@@ -1,0 +1,32 @@
+/**
+ * GPS 재탐색 버튼 — 완료율 기반으로 남은 로드맵을 재생성
+ */
+export default function RerouteButton({ completionRate, onClick, loading }) {
+  if (completionRate < 20) return null  // 20% 미만엔 노출 안 함
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={loading}
+      className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-dashed
+        border-indigo-300 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50
+        transition-colors text-left group"
+    >
+      <span className="text-xl shrink-0 group-hover:animate-spin-slow">🧭</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold text-indigo-700">
+          {loading ? 'GPS 재탐색 중…' : 'GPS 재탐색'}
+        </p>
+        <p className="text-xs text-indigo-400">
+          {Math.round(completionRate)}% 완료 기준으로 남은 일정을 재조정해드려요
+        </p>
+      </div>
+      {!loading && (
+        <svg className="w-4 h-4 text-indigo-400 shrink-0" fill="none" viewBox="0 0 16 16">
+          <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.5"
+            strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
+    </button>
+  )
+}

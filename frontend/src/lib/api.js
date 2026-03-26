@@ -1,0 +1,85 @@
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+
+/**
+ * 일반 REST 요청
+ */
+export async function request(path, options = {}) {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    headers: { 'Content-Type': 'application/json', ...options.headers },
+    ...options,
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    const error = new Error(err.detail || `HTTP ${res.status}`)
+    error.status = res.status
+    throw error
+  }
+  return res.json()
+}
+
+/**
+ * SSE 스트리밍 요청
+ * @param {string} path - API 경로
+ * @param {object} body - 요청 바디
+ * @param {function} onChunk - 청크 수신 콜백 (text) => void
+ * @param {function} onDone  - 완료 콜백 () => void
+ * @param {function} onError - 에러 콜백 (error) => void
+ * @returns {AbortController} - 취소용
+ */
+export function streamSSE(path, body, onChunk, onDone, onError) {
+  const controller = new AbortController()
+
+  ;(async () => {
+    try {
+      const res = await fetch(`${BASE_URL}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        const error = new Error(err.detail || `HTTP ${res.status}`)
+        error.status = res.status
+        onError?.(error)
+        return
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() // 마지막 미완성 줄 보존
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6)
+            if (data === '[DONE]') {
+              onDone?.()
+              return
+            }
+            try {
+              const parsed = JSON.parse(data)
+              // teaser: { type:'text', chunk } / full: { type:'chunk', chunk }
+              onChunk?.(parsed.chunk ?? parsed.text ?? data)
+            } catch {
+              onChunk?.(data) // plain text fallback
+            }
+          }
+        }
+      }
+      onDone?.()
+    } catch (err) {
+      if (err.name !== 'AbortError') onError?.(err)
+    }
+  })()
+
+  return controller
+}

@@ -1,0 +1,42 @@
+# 환경변수 (절대 커밋 금지)
+.env
+.env.local
+.env.*.local
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# AWS
+.aws-sam/
+samconfig.toml
+
+# Claude Code
+.claude/
+
+# 기획 문서 (선택적 제외)
+*.docx
+
+# 빌드 산출물
+frontend/dist/
+frontend/.vite/
+
+# Python 캐시
+backend/**/__pycache__/
+backend/**/*.pyc
