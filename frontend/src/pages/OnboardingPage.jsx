@@ -11,7 +11,7 @@ import { useAuth } from '../hooks/useAuth'
 import { request } from '../lib/api'
 
 // Google OAuth 리다이렉트 후 폼 상태 복원용 sessionStorage 키
-const DRAFT_KEY = 'careerpath_onboarding_draft'
+const DRAFT_KEY = 'devnavi_onboarding_draft'
 
 const STEP1_INITIAL = {
   role: '',
@@ -154,9 +154,9 @@ export default function OnboardingPage() {
       }
 
       // 1. localStorage에 항상 저장 (오프라인 대응)
-      localStorage.setItem(`careerpath_roadmap_${id}`, JSON.stringify(withMeta))
+      localStorage.setItem(`devnavi_roadmap_${id}`, JSON.stringify(withMeta))
       if (careerSummary) {
-        localStorage.setItem(`careerpath_summary_${id}`, JSON.stringify(careerSummary))
+        localStorage.setItem(`devnavi_summary_${id}`, JSON.stringify(careerSummary))
       }
 
       // 2. 로그인 상태면 Supabase에도 저장
@@ -172,12 +172,12 @@ export default function OnboardingPage() {
             }),
           })
           // localStorage를 서버 ID로 이전
-          localStorage.setItem(`careerpath_roadmap_${serverId}`, JSON.stringify(withMeta))
+          localStorage.setItem(`devnavi_roadmap_${serverId}`, JSON.stringify(withMeta))
           if (careerSummary) {
-            localStorage.setItem(`careerpath_summary_${serverId}`, JSON.stringify(careerSummary))
+            localStorage.setItem(`devnavi_summary_${serverId}`, JSON.stringify(careerSummary))
           }
-          localStorage.removeItem(`careerpath_roadmap_${id}`)
-          if (careerSummary) localStorage.removeItem(`careerpath_summary_${id}`)
+          localStorage.removeItem(`devnavi_roadmap_${id}`)
+          if (careerSummary) localStorage.removeItem(`devnavi_summary_${id}`)
           navigate(`/roadmap/${serverId}`)
           return
         } catch {
@@ -252,7 +252,7 @@ export default function OnboardingPage() {
       <header className="bg-white border-b border-gray-100 px-6 py-4
         flex items-center justify-between sticky top-0 z-10">
         <span className="text-lg font-black text-indigo-600 tracking-tight">
-          Career<span className="text-gray-800">Path</span>
+          Dev<span className="text-gray-800">Navi</span>
         </span>
         {/* 로드맵 생성 중에는 스텝 인디케이터 숨김 */}
         {step !== 'generating' && (

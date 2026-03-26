@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { streamSSE } from '../lib/api'
 
-const LS_PREFIX = 'careerpath_roadmap_'
+const LS_PREFIX = 'devnavi_roadmap_'
 
 /** localStorage에 로드맵 저장 */
 export function saveRoadmapLocal(roadmap) {

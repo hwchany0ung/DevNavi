@@ -67,7 +67,7 @@ export function useAuth() {
     // 로그아웃 시 기기에 저장된 로드맵/분석 데이터 정리
     // (다른 사람이 같은 기기를 쓸 경우 이전 사용자 데이터 노출 방지)
     Object.keys(localStorage)
-      .filter((k) => k.startsWith('careerpath_'))
+      .filter((k) => k.startsWith('devnavi_'))
       .forEach((k) => localStorage.removeItem(k))
     setUser(null)
   }, [])

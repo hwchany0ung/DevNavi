@@ -11,7 +11,7 @@ import { loadRoadmapLocal, saveRoadmapLocal } from '../hooks/useRoadmapStream'
 import { useAuth } from '../hooks/useAuth'
 import { request } from '../lib/api'
 
-const DONE_PREFIX = 'careerpath_done_'
+const DONE_PREFIX = 'devnavi_done_'
 
 // ── localStorage 유틸 ───────────────────────────────────────────────
 function loadDoneLocal(roadmapId) {
@@ -70,7 +70,7 @@ export default function RoadmapPage() {
   // ── 커리어 분석 로드 ────────────────────────────────────────────
   useEffect(() => {
     try {
-      const raw = localStorage.getItem(`careerpath_summary_${id}`)
+      const raw = localStorage.getItem(`devnavi_summary_${id}`)
       if (raw) setCareerSummary(JSON.parse(raw))
     } catch { /* 없으면 null 유지 */ }
   }, [id])
@@ -227,7 +227,7 @@ export default function RoadmapPage() {
       <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4
         flex items-center justify-between sticky top-0 z-20">
         <span className="text-lg font-black text-indigo-600 tracking-tight">
-          Career<span className="text-gray-800">Path</span>
+          Dev<span className="text-gray-800">Navi</span>
         </span>
 
         <div className="flex items-center gap-2 sm:gap-3">
