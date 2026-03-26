@@ -36,7 +36,11 @@ export function useRoadmapStream({ onSaved } = {}) {
   const chunkCount   = useRef(0)
   const controllerRef = useRef(null)
 
-  const start = useCallback((body) => {
+  /**
+   * @param {object} body        - 요청 바디
+   * @param {object} [headers]   - 추가 헤더 (Authorization 등)
+   */
+  const start = useCallback((body, headers = {}) => {
     bufferRef.current = ''
     chunkCount.current = 0
     setProgress(0)
@@ -72,7 +76,8 @@ export function useRoadmapStream({ onSaved } = {}) {
       (err) => {
         setError(err)
         setIsStreaming(false)
-      }
+      },
+      headers,
     )
   }, [onSaved])
 

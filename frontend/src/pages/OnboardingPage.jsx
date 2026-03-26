@@ -1,12 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Step1Form from '../components/onboarding/Step1Form'
 import Step2Form from '../components/onboarding/Step2Form'
 import TeaserStream from '../components/onboarding/TeaserStream'
 import CareerSummaryPanel from '../components/roadmap/CareerSummaryPanel'
+import AuthModal from '../components/auth/AuthModal'
 import { useSSE } from '../hooks/useSSE'
 import { useRoadmapStream } from '../hooks/useRoadmapStream'
+import { useAuth } from '../hooks/useAuth'
 import { request } from '../lib/api'
+
+// Google OAuth 리다이렉트 후 폼 상태 복원용 sessionStorage 키
+const DRAFT_KEY = 'careerpath_onboarding_draft'
 
 const STEP1_INITIAL = {
   role: '',
@@ -61,6 +66,8 @@ function FullRoadmapLoading({ progress }) {
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
+
   const [step, setStep] = useState(1)       // 1 | 'teaser' | 2 | 'summary' | 'generating'
   const [step1, setStep1] = useState(STEP1_INITIAL)
   const [step2, setStep2] = useState(STEP2_INITIAL)
@@ -68,51 +75,50 @@ export default function OnboardingPage() {
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [summaryError, setSummaryError] = useState(null)
 
-  // 티저 스트리밍
-  const { text: teaserText, isStreaming: teaserStreaming, error: teaserError, start: startTeaser } = useSSE()
+  // 로그인 모달
+  const [showAuth, setShowAuth] = useState(false)
+  // 로그인 완료 후 실행할 pending 액션 ('summary' | null)
+  const pendingActionRef = useRef(null)
 
-  // 전체 로드맵 스트리밍
-  const { isStreaming: fullStreaming, progress, error: fullError, start: startFull } = useRoadmapStream({
-    onSaved: (id, roadmap) => {
-      // _meta에 입력 정보 저장 (GPS 재탐색용)
-      const withMeta = {
-        ...roadmap,
-        _meta: {
-          role: step1.role,
-          period: step1.period,
-          company_type: step2.company_type,
-          daily_study_hours: step2.daily_study_hours,
-        },
-      }
-      localStorage.setItem(`careerpath_roadmap_${id}`, JSON.stringify(withMeta))
-      // 커리어 분석 결과도 로드맵 ID에 연결해 저장
-      if (careerSummary) {
-        localStorage.setItem(`careerpath_summary_${id}`, JSON.stringify(careerSummary))
-      }
-      navigate(`/roadmap/${id}`)
-    },
-  })
+  // ── Google OAuth 리다이렉트 복원 ──────────────────────────────────
+  // Google로 로그인하면 /onboarding으로 리다이렉트됨 → 폼 상태 복원
+  useEffect(() => {
+    if (!user) return
+    const saved = sessionStorage.getItem(DRAFT_KEY)
+    if (!saved) return
+    try {
+      const { step1: s1, step2: s2 } = JSON.parse(saved)
+      sessionStorage.removeItem(DRAFT_KEY)
+      setStep1(s1)
+      setStep2(s2)
+      setStep(2)
+      // step 2 복원 완료 → 커리어 분석 자동 실행 트리거
+      pendingActionRef.current = 'summary'
+    } catch {
+      sessionStorage.removeItem(DRAFT_KEY)
+    }
+  }, [user])
 
-  // Step 1 제출 → 티저 스트리밍
-  const handleStep1Submit = () => {
-    if (!isStep1Complete(step1)) return
-    startTeaser('/roadmap/teaser', {
-      role: step1.role,
-      period: step1.period,
-      level: step1.level,
-    })
-    setStep('teaser')
-  }
+  // ── 로그인 완료 감지 → pending 액션 실행 ─────────────────────────
+  useEffect(() => {
+    if (!user || !pendingActionRef.current) return
+    if (pendingActionRef.current === 'summary') {
+      pendingActionRef.current = null
+      setShowAuth(false)
+      _doCareerSummary()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
-  // Step 2 제출 → 커리어 분석 요약 (summary 스텝)
-  const handleStep2Submit = async () => {
-    if (!isStep2Complete(step2)) return
+  // ── 커리어 분석 API 실제 호출 (로그인 확인 후 실행) ──────────────
+  const _doCareerSummary = async () => {
     setSummaryLoading(true)
     setSummaryError(null)
     setStep('summary')
     try {
       const data = await request('/roadmap/career-summary', {
         method: 'POST',
+        headers: user ? { Authorization: `Bearer ${user.accessToken}` } : {},
         body: JSON.stringify({
           role: step1.role,
           period: step1.period,
@@ -130,19 +136,100 @@ export default function OnboardingPage() {
     }
   }
 
+  // 티저 스트리밍
+  const { text: teaserText, isStreaming: teaserStreaming, error: teaserError, start: startTeaser } = useSSE()
+
+  // 전체 로드맵 스트리밍
+  const { isStreaming: fullStreaming, progress, error: fullError, start: startFull } = useRoadmapStream({
+    onSaved: async (id, roadmap) => {
+      // _meta에 입력 정보 저장 (GPS 재탐색용)
+      const withMeta = {
+        ...roadmap,
+        _meta: {
+          role: step1.role,
+          period: step1.period,
+          company_type: step2.company_type,
+          daily_study_hours: step2.daily_study_hours,
+        },
+      }
+
+      // 1. localStorage에 항상 저장 (오프라인 대응)
+      localStorage.setItem(`careerpath_roadmap_${id}`, JSON.stringify(withMeta))
+      if (careerSummary) {
+        localStorage.setItem(`careerpath_summary_${id}`, JSON.stringify(careerSummary))
+      }
+
+      // 2. 로그인 상태면 Supabase에도 저장
+      if (user) {
+        try {
+          const { roadmap_id: serverId } = await request('/roadmap/persist', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${user.accessToken}` },
+            body: JSON.stringify({
+              role: step1.role,
+              period: step1.period,
+              roadmap: withMeta,
+            }),
+          })
+          // localStorage를 서버 ID로 이전
+          localStorage.setItem(`careerpath_roadmap_${serverId}`, JSON.stringify(withMeta))
+          if (careerSummary) {
+            localStorage.setItem(`careerpath_summary_${serverId}`, JSON.stringify(careerSummary))
+          }
+          localStorage.removeItem(`careerpath_roadmap_${id}`)
+          if (careerSummary) localStorage.removeItem(`careerpath_summary_${id}`)
+          navigate(`/roadmap/${serverId}`)
+          return
+        } catch {
+          // Supabase 저장 실패 → 로컬 ID로 계속
+        }
+      }
+
+      navigate(`/roadmap/${id}`)
+    },
+  })
+
+  // Step 1 제출 → 티저 스트리밍
+  const handleStep1Submit = () => {
+    if (!isStep1Complete(step1)) return
+    startTeaser('/roadmap/teaser', {
+      role: step1.role,
+      period: step1.period,
+      level: step1.level,
+    })
+    setStep('teaser')
+  }
+
+  // Step 2 제출 → 로그인 확인 → 커리어 분석
+  const handleStep2Submit = () => {
+    if (!isStep2Complete(step2)) return
+    if (!user) {
+      // Google OAuth 대비 폼 상태를 sessionStorage에 저장
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ step1, step2 }))
+      pendingActionRef.current = 'summary'
+      setShowAuth(true)
+      return
+    }
+    _doCareerSummary()
+  }
+
   // summary 스텝 → 전체 로드맵 SSE 스트리밍
   const handleStartGenerate = () => {
     if (fullStreaming) return
     setStep('generating')
-    startFull({
-      role: step1.role,
-      period: step1.period,
-      level: step1.level,
-      skills: step2.skills,
-      certifications: step2.certifications,
-      company_type: step2.company_type,
-      daily_study_hours: step2.daily_study_hours,
-    })
+    startFull(
+      {
+        role: step1.role,
+        period: step1.period,
+        level: step1.level,
+        skills: step2.skills,
+        certifications: step2.certifications,
+        company_type: step2.company_type,
+        daily_study_hours: step2.daily_study_hours,
+      },
+      // Authorization 헤더 전달 (/roadmap/full 은 로그인 필수)
+      user ? { Authorization: `Bearer ${user.accessToken}` } : {},
+    )
   }
 
   const stepIndex = (step === 1 || step === 'teaser') ? 0
@@ -152,6 +239,15 @@ export default function OnboardingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* 로그인 모달 */}
+      <AuthModal
+        open={showAuth}
+        onClose={() => {
+          setShowAuth(false)
+          // 이메일 로그인 성공 시 user가 설정되면 useEffect에서 자동 처리
+        }}
+      />
+
       {/* 헤더 */}
       <header className="bg-white border-b border-gray-100 px-6 py-4
         flex items-center justify-between sticky top-0 z-10">
@@ -173,6 +269,12 @@ export default function OnboardingPage() {
               </div>
             ))}
           </div>
+        )}
+        {/* 로그인 상태 표시 */}
+        {user && (
+          <span className="text-xs text-gray-400 hidden sm:block">
+            {user.email}
+          </span>
         )}
       </header>
 
@@ -238,7 +340,7 @@ export default function OnboardingPage() {
               className="w-full py-4 bg-indigo-600 hover:bg-indigo-700
                 disabled:bg-gray-200 disabled:text-gray-400
                 text-white font-bold text-base rounded-2xl transition-colors">
-              커리어 분석하기 →
+              {user ? '커리어 분석하기 →' : '로그인하고 커리어 분석하기 →'}
             </button>
           </div>
         )}
@@ -274,7 +376,7 @@ export default function OnboardingPage() {
               <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center space-y-3">
                 <p className="text-red-600 font-semibold text-sm">분석 중 오류가 발생했어요</p>
                 <p className="text-red-400 text-xs">{summaryError}</p>
-                <button onClick={handleStep2Submit}
+                <button onClick={_doCareerSummary}
                   className="px-5 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors">
                   다시 시도
                 </button>
