@@ -19,11 +19,19 @@ def get_supabase_client() -> httpx.AsyncClient:
 
 
 async def close_supabase_client() -> None:
-    """앱 종료 시 클라이언트 닫기 (lifespan shutdown 훅에서 호출)."""
+    """앱 종료 시 클라이언트 닫기 (lifespan shutdown 훅에서 호출).
+
+    try/finally로 aclose() 실패와 무관하게 _client=None 보장.
+    종료 중 예외는 무시 — 이미 프로세스가 종료 중이므로 로그만으로 충분.
+    """
     global _client
     if _client and not _client.is_closed:
-        await _client.aclose()
-        _client = None
+        try:
+            await _client.aclose()
+        except Exception:
+            pass  # 종료 중 에러는 무시
+        finally:
+            _client = None
 
 
 def sb_headers(*, prefer: str = "return=representation") -> dict:
@@ -37,5 +45,14 @@ def sb_headers(*, prefer: str = "return=representation") -> dict:
 
 
 def sb_url(table: str) -> str:
-    """Supabase REST 엔드포인트 URL 생성."""
+    """Supabase REST 엔드포인트 URL 생성.
+
+    SUPABASE_URL이 설정되지 않은 상태에서 호출되면 즉시 RuntimeError.
+    (각 서비스 함수의 supabase_ready 가드를 통과한 후에만 호출돼야 함)
+    """
+    if not settings.SUPABASE_URL:
+        raise RuntimeError(
+            "SUPABASE_URL이 설정되지 않았습니다. "
+            "sb_url() 호출 전 settings.supabase_ready를 확인하세요."
+        )
     return f"{settings.SUPABASE_URL}/rest/v1/{table}"
