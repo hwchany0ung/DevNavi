@@ -1,6 +1,14 @@
 from pydantic import BaseModel, Field, field_validator
 from typing import Literal, Optional, Union
 
+# 개별 스킬/자격증 항목 최대 길이 (프롬프트 인젝션 및 비용 방어)
+_ITEM_MAX_LEN = 60
+
+
+def _truncate_items(items: list) -> list[str]:
+    """리스트 항목을 문자열로 변환 후 _ITEM_MAX_LEN 자로 자름."""
+    return [str(item)[:_ITEM_MAX_LEN] for item in items]
+
 
 # ───────────────────────────── 요청 모델 ─────────────────────────────
 
@@ -24,6 +32,11 @@ class FullRoadmapRequest(BaseModel):
     certifications: list[str] = Field(default_factory=list, max_length=10)
     company_type: Literal["startup", "msp", "bigco", "si", "foreign", "any"] = "any"
     daily_study_hours: Literal["under1h", "1to2h", "3to4h", "over5h"] = "1to2h"
+
+    @field_validator("skills", "certifications", mode="before")
+    @classmethod
+    def truncate_items(cls, v: list) -> list[str]:
+        return _truncate_items(v) if isinstance(v, list) else v
 
 
 class RerouteRequest(BaseModel):
@@ -98,6 +111,11 @@ class CareerSummaryRequest(BaseModel):
     skills: list[str] = Field(default_factory=list, max_length=20)
     certifications: list[str] = Field(default_factory=list, max_length=10)
     company_type: Literal["startup", "msp", "bigco", "si", "foreign", "any"] = "any"
+
+    @field_validator("skills", "certifications", mode="before")
+    @classmethod
+    def truncate_items(cls, v: list) -> list[str]:
+        return _truncate_items(v) if isinstance(v, list) else v
 
 
 class SkillItem(BaseModel):

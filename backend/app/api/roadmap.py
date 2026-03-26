@@ -43,6 +43,7 @@ from app.services.roadmap_service import (
     list_activity,
 )
 from app.middleware.auth import require_user, optional_user
+from app.services.usage_service import check_and_increment
 
 router = APIRouter(prefix="/roadmap", tags=["roadmap"])
 
@@ -67,26 +68,40 @@ async def teaser(request: Request, body: TeaserRequest):
 
 @router.post("/full")
 @limiter.limit("5/hour")
-async def full_roadmap(request: Request, body: FullRoadmapRequest):
-    """Sonnet 전체 로드맵 JSON SSE 스트리밍.
+async def full_roadmap(
+    request: Request,
+    body: FullRoadmapRequest,
+    user: dict = Depends(require_user),
+):
+    """Sonnet 전체 로드맵 JSON SSE 스트리밍 (로그인 필수).
 
-    현재는 인증 없이 허용 (Phase 6 결제 연동 후 require_premium으로 전환).
-    IP당 시간당 5회로 제한해 API 비용 남용을 방지.
+    - 로그인 미인증 시 401
+    - 무료 사용자 하루 3회 초과 시 429
+    - Phase 6 결제 연동 후 require_premium으로 전환 예정
     """
-    system, user = build_full_prompt(
+    await check_and_increment(user["id"], "full")
+    system, user_msg = build_full_prompt(
         body.role, body.period, body.level,
         body.skills, body.certifications,
         body.company_type, body.daily_study_hours,
     )
-    return StreamingResponse(stream_full(system, user), headers=SSE_HEADERS)
+    return StreamingResponse(stream_full(system, user_msg), headers=SSE_HEADERS)
 
 
 # ─────────────────────────── 커리어 분석 요약 ───────────────────────
 
 @router.post("/career-summary")
 @limiter.limit("10/hour")
-async def career_summary(request: Request, body: CareerSummaryRequest):
-    """Haiku로 커리어 분석 JSON 반환 (스킬 우선순위·자격증·어필 포인트)."""
+async def career_summary(
+    request: Request,
+    body: CareerSummaryRequest,
+    user: dict = Depends(require_user),
+):
+    """Haiku로 커리어 분석 JSON 반환 (로그인 필수).
+
+    - 무료 사용자 하루 10회 초과 시 429
+    """
+    await check_and_increment(user["id"], "career-summary")
     try:
         system, user_msg = build_career_summary_prompt(
             body.role, body.period, body.level,
@@ -149,7 +164,8 @@ async def reroute(
     body: RerouteRequest,
     user: dict = Depends(require_user),
 ):
-    """완료율 기반 잔여 로드맵 재생성 (단일 JSON 응답)."""
+    """완료율 기반 잔여 로드맵 재생성 (단일 JSON 응답). 무료 하루 3회 제한."""
+    await check_and_increment(user["id"], "reroute")
     system, user_msg = build_reroute_prompt(
         body.original_role, body.original_period,
         body.company_type, body.completion_rate,
