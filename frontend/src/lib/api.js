@@ -24,16 +24,17 @@ export async function request(path, options = {}) {
  * @param {function} onChunk - 청크 수신 콜백 (text) => void
  * @param {function} onDone  - 완료 콜백 () => void
  * @param {function} onError - 에러 콜백 (error) => void
+ * @param {object} [extraHeaders] - 추가 헤더 (Authorization 등)
  * @returns {AbortController} - 취소용
  */
-export function streamSSE(path, body, onChunk, onDone, onError) {
+export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {}) {
   const controller = new AbortController()
 
   ;(async () => {
     try {
       const res = await fetch(`${BASE_URL}${path}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...extraHeaders },
         body: JSON.stringify(body),
         signal: controller.signal,
       })

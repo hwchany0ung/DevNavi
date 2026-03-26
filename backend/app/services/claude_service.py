@@ -22,7 +22,11 @@ _client: anthropic.AsyncAnthropic | None = None
 def _get_client() -> anthropic.AsyncAnthropic:
     global _client
     if _client is None:
-        _client = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+        _client = anthropic.AsyncAnthropic(
+            api_key=settings.ANTHROPIC_API_KEY,
+            # 스트리밍은 오래 걸릴 수 있으므로 여유있게 설정
+            timeout=120.0,
+        )
     return _client
 
 

@@ -135,9 +135,18 @@ export default function RoadmapPage() {
   // ── 통계 ────────────────────────────────────────────────────────
   const { totalCount, completedCount, completionRate } = useMemo(() => {
     if (!roadmap) return { totalCount: 0, completedCount: 0, completionRate: 0 }
+    // doneSet.size 대신 실제 로드맵 태스크 기준으로 카운트
+    // (remote + local 병합 시 유효하지 않은 task_id가 섞여도 100% 초과 방지)
     let total = 0
-    roadmap.months.forEach((m) => m.weeks.forEach((w) => { total += w.tasks.length }))
-    const done = doneSet.size
+    let done  = 0
+    roadmap.months.forEach((m) =>
+      m.weeks.forEach((w) =>
+        w.tasks.forEach((_, ti) => {
+          total++
+          if (doneSet.has(`${m.month}-${w.week}-${ti}`)) done++
+        })
+      )
+    )
     return { totalCount: total, completedCount: done, completionRate: total > 0 ? (done / total) * 100 : 0 }
   }, [roadmap, doneSet])
 

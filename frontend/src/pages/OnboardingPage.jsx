@@ -158,19 +158,22 @@ export default function OnboardingPage() {
         <span className="text-lg font-black text-indigo-600 tracking-tight">
           Career<span className="text-gray-800">Path</span>
         </span>
-        <div className="flex items-center gap-2 text-sm">
-          {['직군 선택', '상세 정보', '커리어 분석'].map((label, i) => (
-            <div key={i} className="flex items-center gap-2">
-              {i > 0 && (
-                <div className={`w-8 h-px ${i <= stepIndex ? 'bg-indigo-400' : 'bg-gray-200'}`} />
-              )}
-              <span className={`font-medium
-                ${i === stepIndex ? 'text-indigo-600' : i < stepIndex ? 'text-indigo-300' : 'text-gray-300'}`}>
-                {label}
-              </span>
-            </div>
-          ))}
-        </div>
+        {/* 로드맵 생성 중에는 스텝 인디케이터 숨김 */}
+        {step !== 'generating' && (
+          <div className="flex items-center gap-2 text-sm">
+            {['직군 선택', '상세 정보', '커리어 분석'].map((label, i) => (
+              <div key={i} className="flex items-center gap-2">
+                {i > 0 && (
+                  <div className={`w-8 h-px ${i <= stepIndex ? 'bg-indigo-400' : 'bg-gray-200'}`} />
+                )}
+                <span className={`font-medium
+                  ${i === stepIndex ? 'text-indigo-600' : i < stepIndex ? 'text-indigo-300' : 'text-gray-300'}`}>
+                  {label}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </header>
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-5 py-10">

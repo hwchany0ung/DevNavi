@@ -4,6 +4,7 @@
 엔드포인트:
   POST /roadmap/teaser              - Haiku 티저 스트리밍 (무료, 로그인 불필요)
   POST /roadmap/full                - Sonnet 전체 로드맵 스트리밍 (프리미엄)
+  POST /roadmap/career-summary      - Haiku 커리어 분석 JSON
   POST /roadmap/persist             - 스트리밍 완료 후 Supabase 저장 (인증 필요)
   POST /roadmap/reroute             - Sonnet GPS 재탐색 (인증 필요)
   GET  /roadmap/{id}                - 저장된 로드맵 조회
@@ -15,11 +16,12 @@ import json
 import re
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 logger = logging.getLogger(__name__)
 
+from app.core.limiter import limiter
 from app.models.roadmap import (
     TeaserRequest,
     FullRoadmapRequest,
@@ -54,7 +56,8 @@ SSE_HEADERS = {
 # ─────────────────────────── 티저 (Haiku) ───────────────────────────
 
 @router.post("/teaser")
-async def teaser(body: TeaserRequest):
+@limiter.limit("20/hour")
+async def teaser(request: Request, body: TeaserRequest):
     """무료 사용자용 월별 뼈대 텍스트 스트리밍."""
     system, user = build_teaser_prompt(body.role, body.period, body.level)
     return StreamingResponse(stream_teaser(system, user), headers=SSE_HEADERS)
@@ -63,10 +66,12 @@ async def teaser(body: TeaserRequest):
 # ─────────────────────────── 전체 로드맵 (Sonnet) ───────────────────
 
 @router.post("/full")
-async def full_roadmap(body: FullRoadmapRequest):
+@limiter.limit("5/hour")
+async def full_roadmap(request: Request, body: FullRoadmapRequest):
     """Sonnet 전체 로드맵 JSON SSE 스트리밍.
 
     현재는 인증 없이 허용 (Phase 6 결제 연동 후 require_premium으로 전환).
+    IP당 시간당 5회로 제한해 API 비용 남용을 방지.
     """
     system, user = build_full_prompt(
         body.role, body.period, body.level,
@@ -79,7 +84,8 @@ async def full_roadmap(body: FullRoadmapRequest):
 # ─────────────────────────── 커리어 분석 요약 ───────────────────────
 
 @router.post("/career-summary")
-async def career_summary(body: CareerSummaryRequest):
+@limiter.limit("10/hour")
+async def career_summary(request: Request, body: CareerSummaryRequest):
     """Haiku로 커리어 분석 JSON 반환 (스킬 우선순위·자격증·어필 포인트)."""
     try:
         system, user_msg = build_career_summary_prompt(
