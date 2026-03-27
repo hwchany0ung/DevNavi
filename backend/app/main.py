@@ -22,10 +22,13 @@ async def lifespan(app: FastAPI):
     await close_supabase_client()
 
 
+_is_dev = settings.ENV == "development"
 app = FastAPI(
     title="DevNavi API",
     version="0.1.0",
-    docs_url="/docs" if settings.ENV == "development" else None,
+    docs_url="/docs" if _is_dev else None,
+    redoc_url="/redoc" if _is_dev else None,
+    openapi_url="/openapi.json" if _is_dev else None,  # 프로덕션에서 API 스키마 노출 차단
     lifespan=lifespan,
 )
 
@@ -38,7 +41,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # 실제 사용하는 메서드만 허용
     allow_headers=["*"],
 )
 
