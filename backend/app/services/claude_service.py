@@ -56,12 +56,12 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
     클라이언트는 청크를 버퍼링하다가 [DONE] 수신 시 JSON.parse 수행.
 
     CloudFront origin_read_timeout = 60초 제한 대응:
-    - Lambda invoke_mode=RESPONSE_STREAM: 청크 즉시 전송 (근본 해결)
-    - 청크 간격 55초 초과 시 keepalive 전송 (이중 안전장치)
+    - invoke_mode=BUFFERED: Mangum Lambda Proxy JSON 정상 해석
+    - Sonnet ~60tok/s 기준 max_tokens=3500 → ~58초 → CF 제한 이내
 
-    max_tokens=4000:
-    - RESPONSE_STREAM(terraform apply 완료) 후 8000으로 복구 가능
-    - BUFFERED 임시 운영 시 Sonnet ~50tok/s → 80초 → CF 타임아웃 방지
+    max_tokens=3500:
+    - BUFFERED 모드에서 CloudFront 60초 timeout 안전 마진 확보
+    - 전체 로드맵 충분한 품질 유지 (약 2500~3000 한국어 토큰)
     """
     import time
 
@@ -73,7 +73,7 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
     try:
         async with client.messages.stream(
             model=SONNET,
-            max_tokens=8000,
+            max_tokens=3500,
             system=system,
             messages=[{"role": "user", "content": user}],
         ) as stream:

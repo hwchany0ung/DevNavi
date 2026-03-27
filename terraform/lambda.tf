@@ -63,9 +63,10 @@ resource "aws_lambda_function_url" "api" {
   # Access-Control-Allow-Origin 헤더가 중복되어 브라우저가 요청 거부
   # → cors 블록 제거, FastAPI app에서 단일 처리
 
-  # RESPONSE_STREAM: 청크 생성 즉시 전송 → CloudFront 60초 read timeout 해결
-  # BUFFERED 사용 시 Lambda가 전체 응답(~100초)을 완성한 뒤 전송 → CF timeout 발생
-  invoke_mode = "RESPONSE_STREAM"
+  # BUFFERED: Mangum이 Lambda Proxy JSON 형식으로 응답 → Function URL이 정상 해석
+  # RESPONSE_STREAM 사용 시 Mangum JSON 자체가 스트림 body로 전달돼 SSE 파싱 불가
+  # CloudFront 60초 origin timeout 대응: stream_full max_tokens ≤ 4000 유지
+  invoke_mode = "BUFFERED"
 }
 
 # ── Lambda Function URL 퍼블릭 액세스 권한 ────────────────────────────
