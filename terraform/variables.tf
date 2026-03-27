@@ -22,20 +22,20 @@ variable "env" {
 }
 
 variable "domain_name" {
-  description = "서비스 도메인 (Route 53 호스팅 존 필요)"
-  type        = string
-  default     = "devnavi.kr"
+  description = <<-EOT
+    서비스 도메인 (예: devnavi.kr)
+    - 비워두면: CloudFront 기본 도메인(xxxx.cloudfront.net)으로 동작
+    - 입력하면: ACM 인증서 + CloudFront aliases 활성화
+    단계별 사용:
+      1단계) "" → 도메인 없이 먼저 배포/테스트
+      2단계) "devnavi.kr" → ACM 인증서 ISSUED 후 terraform apply 재실행
+  EOT
+  type    = string
+  default = ""
 }
 
-variable "route53_zone_id" {
-  description = "Route 53 호스팅 존 ID (도메인 구매 후 입력, 없으면 빈 문자열)"
-  type        = string
-  default     = ""
-}
-
-# fix: OIDC 역할 신뢰 정책에 사용 (IAM User 대체)
 variable "github_repo" {
-  description = "GitHub 저장소 (owner/repo 형식, OIDC sub 클레임 필터링)"
+  description = "GitHub 저장소 (owner/repo 형식, OIDC 신뢰 정책에 사용)"
   type        = string
   default     = "hwchany0ung/DevNavi"
 }

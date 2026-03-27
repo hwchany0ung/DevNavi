@@ -1,5 +1,6 @@
 # ──────────────────────────────────────────────────────────────────────
 # ACM 인증서 — CloudFront는 반드시 us-east-1
+# 가비아 네임서버 사용 → DNS 검증 레코드 수동 등록 필요
 # ──────────────────────────────────────────────────────────────────────
 
 resource "aws_acm_certificate" "main" {
@@ -16,31 +17,16 @@ resource "aws_acm_certificate" "main" {
   tags = local.common_tags
 }
 
-# Route 53에 DNS 검증 레코드 자동 생성
-# fix: for_each + count 동시 사용 불가 → for_each에 조건 통합
-resource "aws_route53_record" "acm_validation" {
-  for_each = var.route53_zone_id != "" ? {
-    for dvo in aws_acm_certificate.main.domain_validation_options
-    : dvo.domain_name => {
-      name   = dvo.resource_record_name
-      record = dvo.resource_record_value
-      type   = dvo.resource_record_type
-    }
-  } : {}
-
-  allow_overwrite = true
-  name            = each.value.name
-  records         = [each.value.record]
-  ttl             = 60
-  type            = each.value.type
-  zone_id         = var.route53_zone_id
-}
-
-resource "aws_acm_certificate_validation" "main" {
-  provider = aws.us_east_1
-
-  certificate_arn         = aws_acm_certificate.main.arn
-  validation_record_fqdns = [for record in aws_route53_record.acm_validation : record.fqdn]
-
-  count = var.route53_zone_id != "" ? 1 : 0
-}
+# ──────────────────────────────────────────────────────────────────────
+# terraform apply 후 수동 작업 (가비아 DNS 관리 페이지):
+#
+# 1. AWS 콘솔 → Certificate Manager (us-east-1) → 인증서 선택
+#    → "도메인" 탭에서 CNAME 이름/값 확인 (devnavi.kr, *.devnavi.kr 각 1개)
+#
+# 2. 가비아 → My가비아 → 도메인 → DNS 관리 → CNAME 레코드 추가
+#    호스트: _xxxx.devnavi.kr  →  값: _yyyy.acm-validations.aws
+#    (ACM이 제공하는 값으로 교체)
+#
+# 3. 수분~수시간 후 인증서 상태가 ISSUED로 변경됨
+#    → 이후 terraform apply 재실행하면 CloudFront aliases 적용
+# ──────────────────────────────────────────────────────────────────────
