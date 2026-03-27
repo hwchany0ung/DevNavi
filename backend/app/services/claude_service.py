@@ -50,10 +50,13 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
     클라이언트는 청크를 버퍼링하다가 [DONE] 수신 시 JSON.parse 수행.
 
     CloudFront origin_read_timeout = 60초 제한 대응:
-    청크 간격이 55초 이상 벌어지면 ': keepalive' 이벤트를 먼저 전송해
-    CloudFront/프록시 연결 유지. 브라우저 EventSource는 ':' 주석을 무시.
+    - Lambda invoke_mode=RESPONSE_STREAM: 청크 즉시 전송 (근본 해결)
+    - 청크 간격 55초 초과 시 keepalive 전송 (이중 안전장치)
+
+    max_tokens=4000:
+    - RESPONSE_STREAM(terraform apply 완료) 후 8000으로 복구 가능
+    - BUFFERED 임시 운영 시 Sonnet ~50tok/s → 80초 → CF 타임아웃 방지
     """
-    import asyncio
     import time
 
     client = _get_client()
@@ -61,7 +64,7 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
 
     async with client.messages.stream(
         model=SONNET,
-        max_tokens=8000,
+        max_tokens=4000,
         system=system,
         messages=[{"role": "user", "content": user}],
     ) as stream:

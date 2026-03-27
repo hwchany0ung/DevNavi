@@ -63,7 +63,9 @@ resource "aws_lambda_function_url" "api" {
   # Access-Control-Allow-Origin 헤더가 중복되어 브라우저가 요청 거부
   # → cors 블록 제거, FastAPI app에서 단일 처리
 
-  invoke_mode = "BUFFERED"
+  # RESPONSE_STREAM: 청크 생성 즉시 전송 → CloudFront 60초 read timeout 해결
+  # BUFFERED 사용 시 Lambda가 전체 응답(~100초)을 완성한 뒤 전송 → CF timeout 발생
+  invoke_mode = "RESPONSE_STREAM"
 }
 
 # ── Lambda Function URL 퍼블릭 액세스 권한 ────────────────────────────
