@@ -66,7 +66,7 @@ function FullRoadmapLoading({ progress }) {
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  const { user, signOut } = useAuth()
 
   const [step, setStep] = useState(1)       // 1 | 'teaser' | 2 | 'summary' | 'generating'
   const [step1, setStep1] = useState(STEP1_INITIAL)
@@ -272,11 +272,17 @@ export default function OnboardingPage() {
             ))}
           </div>
         )}
-        {/* 로그인 상태 표시 */}
+        {/* 로그인 상태 표시 + 로그아웃 */}
         {user && (
-          <span className="text-xs text-gray-400 hidden sm:block">
-            {user.email}
-          </span>
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="text-xs text-gray-400 truncate max-w-[140px]">{user.email}</span>
+            <button
+              onClick={signOut}
+              className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
+            >
+              로그아웃
+            </button>
+          </div>
         )}
       </header>
 
