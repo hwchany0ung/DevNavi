@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Footer from '../components/common/Footer'
 import ThemeToggle from '../components/common/ThemeToggle'
+import ExistingRoadmapModal from '../components/onboarding/ExistingRoadmapModal'
 import Step1Form from '../components/onboarding/Step1Form'
 import Step2Form from '../components/onboarding/Step2Form'
 import TeaserStream from '../components/onboarding/TeaserStream'
@@ -81,6 +82,22 @@ export default function OnboardingPage() {
   const [showAuth, setShowAuth] = useState(false)
   // 로그인 완료 후 실행할 pending 액션 ('summary' | null)
   const pendingActionRef = useRef(null)
+
+  // 기존 로드맵 감지 모달
+  const [existingRoadmapId, setExistingRoadmapId] = useState(null)
+
+  // ── 기존 로드맵 존재 여부 확인 ──────────────────────────────────
+  useEffect(() => {
+    if (!user) return
+    // OAuth 복원 중이면 스킵 (sessionStorage draft가 있을 때)
+    const hasDraft = !!sessionStorage.getItem(DRAFT_KEY)
+    if (hasDraft) return
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('devnavi_roadmap_'))
+    if (keys.length > 0) {
+      const id = keys[keys.length - 1].replace('devnavi_roadmap_', '')
+      setExistingRoadmapId(id)
+    }
+  }, [user])
 
   // ── Google OAuth 리다이렉트 복원 ──────────────────────────────────
   // Google로 로그인하면 /onboarding으로 리다이렉트됨 → 폼 상태 복원
@@ -241,8 +258,29 @@ export default function OnboardingPage() {
     : step === 'summary' ? 2
     : 2
 
+  // 기존 로드맵 핸들러
+  const handleGoExisting = () => {
+    navigate(`/roadmap/${existingRoadmapId}`, { replace: true })
+  }
+  const handleDeleteAndNew = () => {
+    // localStorage에서 해당 로드맵 관련 데이터 모두 삭제
+    Object.keys(localStorage)
+      .filter(k => k.startsWith('devnavi_roadmap_') || k.startsWith('devnavi_done_') || k.startsWith('devnavi_summary_'))
+      .forEach(k => localStorage.removeItem(k))
+    setExistingRoadmapId(null)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col transition-colors">
+      {/* 기존 로드맵 안내 모달 */}
+      {existingRoadmapId && (
+        <ExistingRoadmapModal
+          roadmapId={existingRoadmapId}
+          onGoExisting={handleGoExisting}
+          onDeleteAndNew={handleDeleteAndNew}
+        />
+      )}
+
       {/* 로그인 모달 */}
       <AuthModal
         open={showAuth}
