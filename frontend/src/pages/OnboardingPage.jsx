@@ -322,8 +322,7 @@ export default function OnboardingPage() {
       return
     }
 
-    // ── 신규 생성 ────────────────────────────────────────────────────
-    setStep('generating')
+    // ── 신규 생성 (스텝 전환 없이 summary 내에서 로딩 인라인 표시) ──
     startFull(
       {
         role: step1.role,
@@ -340,8 +339,7 @@ export default function OnboardingPage() {
 
   const stepIndex = (step === 1 || step === 'teaser') ? 0
     : step === 2 ? 1
-    : step === 'summary' ? 2
-    : 2
+    : 2  // 'summary'
 
   // 기존 로드맵 핸들러
   const handleGoExisting = () => {
@@ -396,22 +394,19 @@ export default function OnboardingPage() {
         <span className="text-lg font-black text-indigo-600 tracking-tight">
           Dev<span className="text-gray-800 dark:text-white">Navi</span>
         </span>
-        {/* 로드맵 생성 중에는 스텝 인디케이터 숨김 */}
-        {step !== 'generating' && (
-          <div className="flex items-center gap-2 text-sm">
-            {['직군 선택', '상세 정보', '커리어 분석'].map((label, i) => (
-              <div key={i} className="flex items-center gap-2">
-                {i > 0 && (
-                  <div className={`w-8 h-px ${i <= stepIndex ? 'bg-indigo-400' : 'bg-gray-200 dark:bg-white/10'}`} />
-                )}
-                <span className={`font-medium
-                  ${i === stepIndex ? 'text-indigo-600 dark:text-indigo-400' : i < stepIndex ? 'text-indigo-300 dark:text-indigo-500/60' : 'text-gray-300 dark:text-white/50'}`}>
-                  {label}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-2 text-sm">
+          {['직군 선택', '상세 정보', '커리어 분석'].map((label, i) => (
+            <div key={i} className="flex items-center gap-2">
+              {i > 0 && (
+                <div className={`w-8 h-px ${i <= stepIndex ? 'bg-indigo-400' : 'bg-gray-200 dark:bg-white/10'}`} />
+              )}
+              <span className={`font-medium
+                ${i === stepIndex ? 'text-indigo-600 dark:text-indigo-400' : i < stepIndex ? 'text-indigo-300 dark:text-indigo-500/60' : 'text-gray-300 dark:text-white/50'}`}>
+                {label}
+              </span>
+            </div>
+          ))}
+        </div>
         {/* 테마 토글 + 로그인 상태 */}
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -538,42 +533,30 @@ export default function OnboardingPage() {
               </div>
             ) : null}
 
+            {/* ── 로드맵 생성 버튼 / 로딩 / 에러 (인라인 전환) ── */}
             {!summaryLoading && (
-              <button
-                onClick={handleStartGenerate}
-                disabled={!careerSummary && !summaryError}
-                className="w-full py-4 bg-indigo-600 hover:bg-indigo-700
-                  disabled:bg-gray-200 dark:disabled:bg-white/10 disabled:text-gray-400 dark:disabled:text-white/60
-                  text-white font-bold text-base rounded-2xl transition-colors">
-                로드맵 생성하기 ✨
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* ── 생성 중 ── */}
-        {step === 'generating' && (
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
-                로드맵 생성 중
-              </h1>
-              <p className="text-gray-400 dark:text-white/70 text-sm mt-1">
-                완성되면 자동으로 이동해드려요
-              </p>
-            </div>
-            {fullError ? (
-              <div className="rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-6 text-center space-y-3">
-                <p className="text-red-600 dark:text-red-400 font-semibold text-sm">오류가 발생했어요</p>
-                <p className="text-red-400 dark:text-red-400/70 text-xs">{fullError.message}</p>
+              fullStreaming ? (
+                <FullRoadmapLoading progress={progress} />
+              ) : fullError ? (
+                <div className="rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-6 text-center space-y-3">
+                  <p className="text-red-600 dark:text-red-400 font-semibold text-sm">로드맵 생성 중 오류가 발생했어요</p>
+                  <p className="text-red-400 dark:text-red-400/70 text-xs">{fullError.message}</p>
+                  <button
+                    onClick={handleStartGenerate}
+                    className="px-5 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors">
+                    다시 시도
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={() => setStep(2)}
-                  className="px-5 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors">
-                  다시 시도
+                  onClick={handleStartGenerate}
+                  disabled={!careerSummary && !summaryError}
+                  className="w-full py-4 bg-indigo-600 hover:bg-indigo-700
+                    disabled:bg-gray-200 dark:disabled:bg-white/10 disabled:text-gray-400 dark:disabled:text-white/60
+                    text-white font-bold text-base rounded-2xl transition-colors">
+                  로드맵 생성하기 ✨
                 </button>
-              </div>
-            ) : (
-              <FullRoadmapLoading progress={progress} />
+              )
             )}
           </div>
         )}
