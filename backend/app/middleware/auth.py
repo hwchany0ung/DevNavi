@@ -1,5 +1,8 @@
 """
-Supabase JWT 인증 미들웨어 (PyJWT 직접 검증 — supabase 패키지 불필요).
+Supabase JWT 인증 미들웨어 — JWKS 기반 (ES256/HS256 자동 지원).
+
+Supabase가 ECC (P-256) 키로 토큰을 서명하는 경우 ES256으로,
+Legacy HS256 Secret이 있는 경우 폴백으로 검증.
 
 사용법:
   from app.middleware.auth import require_user, optional_user
@@ -12,10 +15,22 @@ from datetime import datetime, timezone
 from typing import Optional
 
 import jwt
+from jwt import PyJWKClient
 from fastapi import Header, HTTPException, status
 
 from app.core.config import settings
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
+
+# JWKS 클라이언트 (모듈 초기화 시 1회 생성, 키 자동 캐싱)
+_jwks_client: Optional[PyJWKClient] = None
+
+
+def _get_jwks_client() -> Optional[PyJWKClient]:
+    global _jwks_client
+    if _jwks_client is None and settings.SUPABASE_URL:
+        jwks_url = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+        _jwks_client = PyJWKClient(jwks_url, cache_keys=True)
+    return _jwks_client
 
 
 def _extract_token(authorization: Optional[str]) -> Optional[str]:
@@ -28,27 +43,62 @@ def _extract_token(authorization: Optional[str]) -> Optional[str]:
 
 
 def _verify_token(token: str) -> dict:
-    """Supabase JWT 검증 → {"id": "...", "email": "..."} 반환."""
-    if not settings.SUPABASE_JWT_SECRET:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="인증 서비스 미설정 (SUPABASE_JWT_SECRET 필요)",
-        )
-    try:
-        payload = jwt.decode(
-            token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=["HS256"],
-            audience="authenticated",
-        )
-        return {
-            "id":    payload.get("sub", ""),
-            "email": payload.get("email", ""),
-        }
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="토큰이 만료됐습니다.")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="유효하지 않은 토큰입니다.")
+    """Supabase JWT 검증 → {"id": "...", "email": "..."} 반환.
+
+    1) JWKS 엔드포인트로 ES256/HS256 자동 검증 시도 (ECC P-256 현재 키)
+    2) 실패 시 Legacy HS256 Secret으로 폴백
+    """
+    # 1. JWKS 기반 검증 (ECC P-256 / ES256 지원)
+    jwks_client = _get_jwks_client()
+    if jwks_client:
+        try:
+            signing_key = jwks_client.get_signing_key_from_jwt(token)
+            payload = jwt.decode(
+                token,
+                signing_key.key,
+                algorithms=["ES256", "RS256", "HS256"],
+                audience="authenticated",
+            )
+            return {
+                "id":    payload.get("sub", ""),
+                "email": payload.get("email", ""),
+            }
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="토큰이 만료됐습니다.",
+            )
+        except (jwt.InvalidTokenError, Exception):
+            pass  # Legacy HS256으로 폴백
+
+    # 2. Legacy HS256 Secret 폴백
+    if settings.SUPABASE_JWT_SECRET:
+        try:
+            payload = jwt.decode(
+                token,
+                settings.SUPABASE_JWT_SECRET,
+                algorithms=["HS256"],
+                audience="authenticated",
+            )
+            return {
+                "id":    payload.get("sub", ""),
+                "email": payload.get("email", ""),
+            }
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="토큰이 만료됐습니다.",
+            )
+        except jwt.InvalidTokenError:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="유효하지 않은 토큰입니다.",
+            )
+
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail="인증 서비스 미설정 (SUPABASE_URL 또는 SUPABASE_JWT_SECRET 필요)",
+    )
 
 
 async def require_user(authorization: Optional[str] = Header(None)) -> dict:
