@@ -277,7 +277,7 @@ export default function RoadmapPage() {
       <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-white/10 px-4 sm:px-6 py-4
         flex items-center justify-between sticky top-0 z-20">
         <button
-          onClick={() => navigate('/', { state: { skipRedirect: true } })}
+          onClick={() => navigate('/')}
           className="text-lg font-black text-indigo-600 tracking-tight hover:opacity-80 transition-opacity"
         >
           Dev<span className="text-gray-800 dark:text-white">Navi</span>

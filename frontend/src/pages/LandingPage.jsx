@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../contexts/ThemeContext'
 import { request } from '../lib/api'
@@ -109,7 +109,6 @@ export default function LandingPage() {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const navigate = useNavigate()
-  const { state: locationState } = useLocation()
   const [authOpen, setAuthOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
@@ -121,38 +120,7 @@ export default function LandingPage() {
       .catch(() => setIsAdmin(false))
   }, [user])
 
-  useEffect(() => {
-    if (loading) return
-    if (!user) return
-    // 로드맵 페이지에서 로고 클릭 등 명시적으로 홈으로 온 경우 리다이렉트 생략
-    if (locationState?.skipRedirect) return
-
-    // 1) localStorage에서 먼저 찾기 (UUID 형식 검증 포함)
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    const localKeys = Object.keys(localStorage)
-      .filter(k => k.startsWith('devnavi_roadmap_'))
-      .sort()  // 오래된 것 먼저 → 마지막이 최신
-    if (localKeys.length > 0) {
-      const id = localKeys[localKeys.length - 1].replace('devnavi_roadmap_', '')
-      if (UUID_RE.test(id)) {
-        navigate(`/roadmap/${id}`, { replace: true })
-        return
-      }
-    }
-
-    // 2) 서버에서 로드맵 확인 (localStorage 없을 때 — 기존 사용자 재방문)
-    request('/roadmap/my', {
-      headers: { Authorization: `Bearer ${user.accessToken}` },
-    })
-      .then(({ roadmap_id }) => {
-        if (roadmap_id) {
-          navigate(`/roadmap/${roadmap_id}`, { replace: true })
-        } else {
-          navigate('/onboarding', { replace: true })
-        }
-      })
-      .catch(() => navigate('/onboarding', { replace: true }))
-  }, [user, loading, navigate])
+  // 자동 리다이렉트 제거 — '내 로드맵' 버튼으로 직접 이동하는 방식으로 변경
 
   if (loading) {
     return (
