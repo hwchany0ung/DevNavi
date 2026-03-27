@@ -154,6 +154,8 @@ export default function OnboardingPage() {
       }
 
       // 1. localStorage에 항상 저장 (오프라인 대응)
+      // _isLocal: true → 비로그인 상태로 생성된 로드맵 표시 (RoadmapPage에서 로그인 시 자동 서버 저장용)
+      if (!user) withMeta._isLocal = true
       localStorage.setItem(`devnavi_roadmap_${id}`, JSON.stringify(withMeta))
       if (careerSummary) {
         localStorage.setItem(`devnavi_summary_${id}`, JSON.stringify(careerSummary))

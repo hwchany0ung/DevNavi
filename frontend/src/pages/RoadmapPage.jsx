@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import PersonaCard         from '../components/roadmap/PersonaCard'
 import MonthTimeline       from '../components/roadmap/MonthTimeline'
@@ -74,6 +74,40 @@ export default function RoadmapPage() {
       if (raw) setCareerSummary(JSON.parse(raw))
     } catch { /* 없으면 null 유지 */ }
   }, [id])
+
+  // ── 로그인 시 로컬 전용 로드맵 자동 서버 저장 ───────────────────
+  // 비로그인으로 생성한 로드맵(_isLocal=true)을 로그인 후 Supabase에 저장하고 URL을 서버 ID로 교체
+  const autoSaveDoneRef = useRef(false)
+  useEffect(() => {
+    if (!user || autoSaveDoneRef.current) return
+    const local = loadRoadmapLocal(id)
+    if (!local?._isLocal) return  // 이미 서버 저장됐거나 로컬 전용 아님
+
+    autoSaveDoneRef.current = true
+    const { _isLocal, ...toSave } = local  // _isLocal 플래그 제거 후 저장
+
+    request('/roadmap/persist', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${user.accessToken}` },
+      body: JSON.stringify({
+        role: local._meta?.role ?? '',
+        period: local._meta?.period ?? '',
+        roadmap: toSave,
+      }),
+    }).then(({ roadmap_id: serverId }) => {
+      // 서버 ID로 localStorage 이전
+      localStorage.setItem(`devnavi_roadmap_${serverId}`, JSON.stringify(toSave))
+      const summaryRaw = localStorage.getItem(`devnavi_summary_${id}`)
+      if (summaryRaw) {
+        localStorage.setItem(`devnavi_summary_${serverId}`, summaryRaw)
+        localStorage.removeItem(`devnavi_summary_${id}`)
+      }
+      localStorage.removeItem(`devnavi_roadmap_${id}`)
+      navigate(`/roadmap/${serverId}`, { replace: true })
+    }).catch(() => {
+      autoSaveDoneRef.current = false  // 실패 시 재시도 허용
+    })
+  }, [user, id, navigate])
 
   // ── 로드맵 로드 ─────────────────────────────────────────────────
   useEffect(() => {
