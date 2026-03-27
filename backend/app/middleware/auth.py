@@ -42,8 +42,18 @@ def _extract_token(authorization: Optional[str]) -> Optional[str]:
     return parts[1]
 
 
-def _verify_token(token: str) -> dict:
-    """Supabase JWT 검증 → {"id": "...", "email": "..."} 반환.
+async def _verify_token_async(token: str) -> dict:
+    """Supabase JWT 검증 → {"id": "...", "email": "..."} 반환 (비동기 래퍼).
+
+    PyJWKClient.get_signing_key_from_jwt 는 동기 HTTP 요청을 수행하므로
+    asyncio.to_thread로 감싸서 이벤트 루프 블로킹을 방지.
+    """
+    import asyncio
+    return await asyncio.to_thread(_verify_token_sync, token)
+
+
+def _verify_token_sync(token: str) -> dict:
+    """Supabase JWT 검증 → {"id": "...", "email": "..."} 반환 (동기).
 
     1) JWKS 엔드포인트로 ES256/HS256 자동 검증 시도 (ECC P-256 현재 키)
     2) 실패 시 Legacy HS256 Secret으로 폴백
@@ -118,7 +128,7 @@ async def require_user(authorization: Optional[str] = Header(None)) -> dict:
     token = _extract_token(authorization)
     if not token:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="인증이 필요합니다.")
-    return _verify_token(token)
+    return await _verify_token_async(token)
 
 
 async def optional_user(authorization: Optional[str] = Header(None)) -> Optional[dict]:
@@ -127,7 +137,7 @@ async def optional_user(authorization: Optional[str] = Header(None)) -> Optional
     if not token:
         return None
     try:
-        return _verify_token(token)
+        return await _verify_token_async(token)
     except HTTPException:
         return None
 

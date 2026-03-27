@@ -73,7 +73,7 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
     try:
         async with client.messages.stream(
             model=SONNET,
-            max_tokens=4000,
+            max_tokens=8000,
             system=system,
             messages=[{"role": "user", "content": user}],
         ) as stream:
