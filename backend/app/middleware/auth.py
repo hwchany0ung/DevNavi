@@ -132,6 +132,34 @@ async def optional_user(authorization: Optional[str] = Header(None)) -> Optional
         return None
 
 
+async def require_admin(authorization: Optional[str] = Header(None)) -> dict:
+    """관리자 전용. JWT 검증 후 DB에서 role='admin' 확인.
+
+    보안 설계:
+      - 비인가 접근 시 403이 아닌 404 반환 (라우트 존재 자체를 숨김)
+      - role 판단은 반드시 DB에서 (JWT 커스텀 클레임 사용 안 함)
+    """
+    user = await require_user(authorization)
+    if not settings.supabase_ready:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+
+    client = get_supabase_client()
+    resp = await client.get(
+        sb_url("users"),
+        params={"id": f"eq.{user['id']}", "select": "role"},
+        headers=sb_headers(),
+    )
+
+    rows = resp.json() if resp.status_code == 200 else []
+    role = rows[0].get("role", "user") if rows else "user"
+
+    if role != "admin":
+        # 존재를 드러내지 않기 위해 404 반환
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+
+    return {**user, "role": role}
+
+
 async def require_premium(authorization: Optional[str] = Header(None)) -> dict:
     """구독 사용자만 허용. 미구독 또는 만료 시 402."""
     user = await require_user(authorization)

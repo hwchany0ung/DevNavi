@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
@@ -11,6 +13,9 @@ from app.core.config import settings
 from app.core.limiter import limiter
 from app.core.supabase_client import close_supabase_client
 from app.api.roadmap import router as roadmap_router
+from app.api.admin import router as admin_router, save_error_log
+
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -72,7 +77,28 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
+# ── 5xx 에러 자동 로깅 미들웨어 ──────────────────────────────────────────
+# 발생한 서버 에러를 DB error_logs 테이블에 저장 (관리자 대시보드 표시용).
+# 응답 지연 없이 fire-and-forget 방식으로 저장.
+_LOG_SKIP_PATHS = {"/health"}
+
+@app.middleware("http")
+async def log_server_errors(request: Request, call_next):
+    response = await call_next(request)
+    if response.status_code >= 500 and request.url.path not in _LOG_SKIP_PATHS:
+        asyncio.create_task(
+            save_error_log(
+                method=request.method,
+                path=request.url.path,
+                status_code=response.status_code,
+                error_msg=f"HTTP {response.status_code}",
+            )
+        )
+    return response
+
+
 app.include_router(roadmap_router)
+app.include_router(admin_router)
 
 
 @app.get("/health")
