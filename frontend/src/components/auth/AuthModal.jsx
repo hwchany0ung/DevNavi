@@ -97,7 +97,7 @@ export default function AuthModal({ open, onClose }) {
           </div>
 
           {/* 이메일 폼 */}
-          <form onSubmit={handleSubmit} className="space-y-3">
+          <form onSubmit={handleSubmit} method="post" className="space-y-3">
             <input
               type="email" required
               value={email} onChange={(e) => setEmail(e.target.value)}

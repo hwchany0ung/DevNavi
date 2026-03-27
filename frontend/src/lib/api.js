@@ -61,6 +61,13 @@ export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {
         return
       }
 
+      // Content-Type 검증: text/event-stream 이 아니면 잘못된 엔드포인트
+      const contentType = res.headers.get('content-type') || ''
+      if (!contentType.includes('text/event-stream')) {
+        onError?.(new Error('잘못된 API 엔드포인트 — SSE 응답이 아닙니다.'))
+        return
+      }
+
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
