@@ -17,8 +17,8 @@ resource "aws_lambda_function" "api" {
   function_name = "${local.name_prefix}-api"
   description   = "DevNavi FastAPI backend (Mangum)"
 
-  # Graviton2 (ARM64) — x86 대비 20% 저렴, 동일 성능
-  architectures = ["arm64"]
+  # x86_64 — GitHub Actions 빌드 환경과 아키텍처 통일
+  architectures = ["x86_64"]
   runtime       = "python3.12"
   handler       = "app.main.handler"
 
@@ -68,7 +68,7 @@ resource "aws_lambda_function_url" "api" {
     max_age       = 86400
   }
 
-  invoke_mode = "RESPONSE_STREAM"
+  invoke_mode = "BUFFERED"
 }
 
 # ── CloudWatch 로그 그룹 ─────────────────────────────────────────────
