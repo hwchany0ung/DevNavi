@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../contexts/ThemeContext'
 import { request } from '../lib/api'
@@ -109,11 +109,14 @@ export default function LandingPage() {
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const navigate = useNavigate()
+  const { state: locationState } = useLocation()
   const [authOpen, setAuthOpen] = useState(false)
 
   useEffect(() => {
     if (loading) return
     if (!user) return
+    // 로드맵 페이지에서 로고 클릭 등 명시적으로 홈으로 온 경우 리다이렉트 생략
+    if (locationState?.skipRedirect) return
 
     // 1) localStorage에서 먼저 찾기 (UUID 형식 검증 포함)
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
