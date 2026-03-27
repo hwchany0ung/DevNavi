@@ -32,15 +32,21 @@ def _get_client() -> anthropic.AsyncAnthropic:
 
 async def stream_teaser(system: str, user: str) -> AsyncGenerator[str, None]:
     """Haiku로 티저 텍스트를 SSE data 형식으로 스트리밍."""
+    import logging
+    _logger = logging.getLogger(__name__)
     client = _get_client()
-    async with client.messages.stream(
-        model=HAIKU,
-        max_tokens=800,
-        system=system,
-        messages=[{"role": "user", "content": user}],
-    ) as stream:
-        async for text in stream.text_stream:
-            yield f"data: {json.dumps({'type': 'text', 'chunk': text})}\n\n"
+    try:
+        async with client.messages.stream(
+            model=HAIKU,
+            max_tokens=800,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        ) as stream:
+            async for text in stream.text_stream:
+                yield f"data: {json.dumps({'type': 'text', 'chunk': text})}\n\n"
+    except Exception as e:
+        _logger.error("stream_teaser 오류: %s", e, exc_info=True)
+        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
     yield "data: [DONE]\n\n"
 
 
@@ -59,22 +65,28 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
     """
     import time
 
+    import logging
+    _logger = logging.getLogger(__name__)
     client = _get_client()
     last_chunk_time = time.monotonic()
 
-    async with client.messages.stream(
-        model=SONNET,
-        max_tokens=4000,
-        system=system,
-        messages=[{"role": "user", "content": user}],
-    ) as stream:
-        async for text in stream.text_stream:
-            now = time.monotonic()
-            # 55초 이상 간격 발생 예방 keepalive (CloudFront 60초 제한)
-            if now - last_chunk_time > 55:
-                yield ": keepalive\n\n"
-            last_chunk_time = now
-            yield f"data: {json.dumps({'type': 'chunk', 'chunk': text})}\n\n"
+    try:
+        async with client.messages.stream(
+            model=SONNET,
+            max_tokens=4000,
+            system=system,
+            messages=[{"role": "user", "content": user}],
+        ) as stream:
+            async for text in stream.text_stream:
+                now = time.monotonic()
+                # 55초 이상 간격 발생 예방 keepalive (CloudFront 60초 제한)
+                if now - last_chunk_time > 55:
+                    yield ": keepalive\n\n"
+                last_chunk_time = now
+                yield f"data: {json.dumps({'type': 'chunk', 'chunk': text})}\n\n"
+    except Exception as e:
+        _logger.error("stream_full 오류: %s", e, exc_info=True)
+        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
     yield "data: [DONE]\n\n"
 
 

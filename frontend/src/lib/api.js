@@ -82,6 +82,12 @@ export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {
             }
             try {
               const parsed = JSON.parse(data)
+              // 서버 측 에러 이벤트 처리
+              if (parsed.type === 'error') {
+                const err = new Error(parsed.message || '서버 오류가 발생했어요.')
+                onError?.(err)
+                return
+              }
               // teaser: { type:'text', chunk } / full: { type:'chunk', chunk }
               onChunk?.(parsed.chunk ?? parsed.text ?? data)
             } catch {
