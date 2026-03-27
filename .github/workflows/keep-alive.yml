@@ -1,0 +1,33 @@
+name: Supabase Keep-Alive
+
+# Supabase 무료 플랜은 7일 무활동 시 프로젝트 자동 정지.
+# 5일마다 /health 엔드포인트를 호출해 DB 접속을 유지.
+
+on:
+  schedule:
+    - cron: '0 9 */5 * *'   # 5일마다 오전 9시 (UTC) 실행
+  workflow_dispatch:          # 수동 실행 버튼 (테스트용)
+
+jobs:
+  ping:
+    name: Ping API & DB
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Health check
+        run: |
+          echo "Pinging https://api.devnavi.kr/health ..."
+          RESPONSE=$(curl -sf --max-time 30 https://api.devnavi.kr/health)
+          echo "Response: $RESPONSE"
+
+          # db 필드가 "ok"인지 확인
+          DB_STATUS=$(echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('db','unknown'))")
+          echo "DB status: $DB_STATUS"
+
+          if [ "$DB_STATUS" = "ok" ]; then
+            echo "Supabase keep-alive successful."
+          else
+            echo "Warning: DB ping skipped or failed (db=$DB_STATUS). Check SUPABASE settings."
+            # skip은 경고만 (개발 환경 등), 실제 오류만 exit 1
+          fi

@@ -11,7 +11,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.core.limiter import limiter
-from app.core.supabase_client import close_supabase_client
+from app.core.supabase_client import close_supabase_client, get_supabase_client, sb_headers, sb_url
 from app.api.roadmap import router as roadmap_router
 from app.api.admin import router as admin_router, save_error_log
 
@@ -103,7 +103,24 @@ app.include_router(admin_router)
 
 @app.get("/health")
 async def health():
-    return {"status": "ok"}
+    """헬스체크 + Supabase 자동 정지 방지용 DB 핑.
+
+    GitHub Actions 스케줄러가 5일마다 호출하여
+    Supabase 7일 무활동 자동 정지를 방지.
+    """
+    db_ok = False
+    if settings.supabase_ready:
+        try:
+            client = get_supabase_client()
+            r = await client.get(
+                sb_url("users"),
+                params={"select": "id", "limit": "1"},
+                headers=sb_headers(),
+            )
+            db_ok = r.status_code == 200
+        except Exception:
+            db_ok = False
+    return {"status": "ok", "db": "ok" if db_ok else "skip"}
 
 
 # AWS Lambda 핸들러
