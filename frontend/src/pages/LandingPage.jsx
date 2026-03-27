@@ -105,7 +105,7 @@ function RoadmapPreview() {
 
 /* ── 메인 랜딩 페이지 ── */
 export default function LandingPage() {
-  const { user, loading } = useAuth()
+  const { user, loading, signOut } = useAuth()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const navigate = useNavigate()
@@ -185,15 +185,34 @@ export default function LandingPage() {
             시작하기
           </button>
           <ThemeToggle />
-          <button
-            onClick={() => setAuthOpen(true)}
-            className="text-sm px-4 py-2 rounded-xl transition-all backdrop-blur-sm"
-            style={{
-              border: `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : '#e5e7eb'}`,
-              color: isDark ? 'rgba(255,255,255,0.7)' : '#4b5563',
-            }}>
-            로그인
-          </button>
+          {user ? (
+            /* 로그인 상태 */
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate('/onboarding')}
+                className="text-sm px-4 py-2 rounded-xl font-bold text-white transition-all active:scale-95"
+                style={{ background: 'linear-gradient(135deg, #6366f1, #22d3ee)' }}>
+                내 로드맵
+              </button>
+              <button
+                onClick={signOut}
+                className="text-sm transition-colors"
+                style={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#9ca3af' }}>
+                로그아웃
+              </button>
+            </div>
+          ) : (
+            /* 비로그인 상태 */
+            <button
+              onClick={() => setAuthOpen(true)}
+              className="text-sm px-4 py-2 rounded-xl transition-all backdrop-blur-sm"
+              style={{
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : '#e5e7eb'}`,
+                color: isDark ? 'rgba(255,255,255,0.7)' : '#4b5563',
+              }}>
+              로그인
+            </button>
+          )}
         </div>
       </nav>
 
