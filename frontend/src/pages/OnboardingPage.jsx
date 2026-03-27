@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import Footer from '../components/common/Footer'
 import Step1Form from '../components/onboarding/Step1Form'
 import Step2Form from '../components/onboarding/Step2Form'
 import TeaserStream from '../components/onboarding/TeaserStream'
@@ -435,6 +436,12 @@ export default function OnboardingPage() {
           </div>
         )}
       </main>
+
+      {/* AI 면책 고지 */}
+      <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 text-center text-xs text-gray-400">
+        ⚠️ AI가 생성한 로드맵은 참고용입니다. 실제 채용 결과와 다를 수 있으며, DevNavi는 결과의 정확성에 대한 법적 책임을 지지 않습니다.
+      </div>
+      <Footer />
     </div>
   )
 }

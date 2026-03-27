@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import Footer from '../components/common/Footer'
 import PersonaCard         from '../components/roadmap/PersonaCard'
 import MonthTimeline       from '../components/roadmap/MonthTimeline'
 import WeekAccordion       from '../components/roadmap/WeekAccordion'
@@ -453,6 +454,14 @@ export default function RoadmapPage() {
           </div>
         </div>
       )}
+
+      {/* AI 면책 고지 + 푸터 */}
+      <div className="mt-auto">
+        <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 text-center text-xs text-gray-400">
+          ⚠️ 본 로드맵은 AI가 생성한 참고 자료입니다. 실제 취업·학습 결과는 개인 역량 및 시장 상황에 따라 다를 수 있으며, DevNavi는 결과의 정확성에 대한 법적 책임을 지지 않습니다.
+        </div>
+        <Footer />
+      </div>
     </div>
   )
 }

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+
+# © 2025 DevNavi. All rights reserved.
+# Unauthorized copying, reproduction, or redistribution of this website
+# and its contents is strictly prohibited.
+# 본 웹사이트의 무단 복제, 재배포를 금지합니다.
