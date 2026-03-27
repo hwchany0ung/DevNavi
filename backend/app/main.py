@@ -56,6 +56,19 @@ async def verify_cloudfront_secret(request: Request, call_next):
                 return JSONResponse(status_code=403, content={"detail": "Forbidden"})
     return await call_next(request)
 
+
+# ── 보안 응답 헤더 미들웨어 ─────────────────────────────────────────────
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    return response
+
+
 app.include_router(roadmap_router)
 
 
