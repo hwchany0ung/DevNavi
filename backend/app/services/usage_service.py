@@ -5,7 +5,7 @@ API 사용량 추적 및 일일 제한 서비스.
 사용량은 Supabase api_usage 테이블에 (user_id, usage_date, endpoint) 기준으로 기록.
 
 제한:
-  - /roadmap/full          : 하루 2회 (Sonnet — 고비용)
+  - /roadmap/full          : 하루 5회 (Sonnet — 고비용)
   - /roadmap/career-summary: 하루 10회 (Haiku — 저비용)
   - /roadmap/reroute       : 하루 3회 (Sonnet — 고비용)
 
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 # ── 엔드포인트별 일일 허용 횟수 ──────────────────────────────────────
 DAILY_LIMITS: dict[str, int] = {
-    "full":           2,   # Sonnet 전체 로드맵 (파라미터 캐시로 중복 방지 → 하루 2회)
+    "full":           5,   # Sonnet 전체 로드맵 (파라미터 캐시로 중복 방지 → 하루 5회)
     "career-summary": 10,  # Haiku 커리어 분석
     "reroute":        3,   # Sonnet GPS 재탐색
 }
