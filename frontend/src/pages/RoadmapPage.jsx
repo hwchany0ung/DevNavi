@@ -65,7 +65,7 @@ export default function RoadmapPage() {
   const [rerouteLoading, setRerouteLoading] = useState(false)
   const [sidebarOpen,  setSidebarOpen]  = useState(false)
   const [authOpen,     setAuthOpen]     = useState(false)
-  const [showGrass,    setShowGrass]    = useState(false)
+  const [showGrass,    setShowGrass]    = useState(true)
   const [showSummary,  setShowSummary]  = useState(false)
   const [careerSummary, setCareerSummary] = useState(null)
 
@@ -227,7 +227,7 @@ export default function RoadmapPage() {
   // ── 로딩 ────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center space-y-3">
           <div className="flex gap-1 justify-center">
             {[0,1,2].map((i) => (
@@ -235,7 +235,7 @@ export default function RoadmapPage() {
                 style={{ animationDelay: `${i*0.15}s` }} />
             ))}
           </div>
-          <p className="text-gray-400 text-sm">로드맵을 불러오는 중…</p>
+          <p className="text-gray-400 dark:text-white/40 text-sm">로드맵을 불러오는 중…</p>
         </div>
       </div>
     )
@@ -243,11 +243,11 @@ export default function RoadmapPage() {
 
   if (error || !roadmap) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-5">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-5">
         <div className="text-center space-y-4">
           <p className="text-5xl">🗺️</p>
-          <p className="text-gray-700 font-semibold">로드맵을 찾을 수 없어요</p>
-          <p className="text-gray-400 text-sm">{error}</p>
+          <p className="text-gray-700 dark:text-white font-semibold">로드맵을 찾을 수 없어요</p>
+          <p className="text-gray-400 dark:text-white/40 text-sm">{error}</p>
           <button onClick={() => navigate('/onboarding')}
             className="px-6 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors">
             새 로드맵 만들기
@@ -258,22 +258,22 @@ export default function RoadmapPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
       {/* ── 헤더 ── */}
-      <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-white/10 px-4 sm:px-6 py-4
         flex items-center justify-between sticky top-0 z-20">
         <span className="text-lg font-black text-indigo-600 tracking-tight">
-          Dev<span className="text-gray-800">Navi</span>
+          Dev<span className="text-gray-800 dark:text-white">Navi</span>
         </span>
 
         <div className="flex items-center gap-2 sm:gap-3">
           {/* 진행률 칩 */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-indigo-50 rounded-xl">
-            <div className="w-16 h-1.5 rounded-full bg-indigo-100 overflow-hidden">
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/20 rounded-xl">
+            <div className="w-16 h-1.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 overflow-hidden">
               <div className="h-full bg-indigo-500 rounded-full transition-all"
                 style={{ width: `${completionRate}%` }} />
             </div>
-            <span className="text-xs font-bold text-indigo-700">{Math.round(completionRate)}%</span>
+            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">{Math.round(completionRate)}%</span>
           </div>
 
           {/* 잔디 토글 */}
@@ -281,7 +281,10 @@ export default function RoadmapPage() {
             <button
               onClick={() => setShowGrass((v) => !v)}
               className={`text-xs px-3 py-1.5 rounded-xl font-medium transition-colors hidden sm:block
-                ${showGrass ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>
+                ${showGrass
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
+                }`}>
               🌱 활동
             </button>
           )}
@@ -309,8 +312,8 @@ export default function RoadmapPage() {
           {/* 모바일 사이드바 토글 */}
           <button
             onClick={() => setSidebarOpen((v) => !v)}
-            className="sm:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <svg className="w-5 h-5 text-gray-600" fill="none" viewBox="0 0 20 20">
+            className="sm:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
+            <svg className="w-5 h-5 text-gray-600 dark:text-white/60" fill="none" viewBox="0 0 20 20">
               <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </button>
@@ -321,7 +324,7 @@ export default function RoadmapPage() {
         {/* ── 사이드바 ── */}
         <aside className={`
           fixed sm:sticky top-0 sm:top-[57px] h-screen sm:h-[calc(100vh-57px)]
-          w-72 bg-white border-r border-gray-100 flex flex-col z-10
+          w-72 bg-white dark:bg-gray-900 border-r border-gray-100 dark:border-white/10 flex flex-col z-10
           transition-transform sm:translate-x-0 overflow-y-auto
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}>
@@ -343,11 +346,12 @@ export default function RoadmapPage() {
               <button
                 onClick={() => setAuthOpen(true)}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-dashed
-                  border-indigo-200 bg-indigo-50 hover:bg-indigo-100 transition-colors text-left">
+                  border-indigo-200 dark:border-indigo-500/30 bg-indigo-50 dark:bg-indigo-500/10
+                  hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors text-left">
                 <span className="text-xl">💾</span>
                 <div>
-                  <p className="text-sm font-bold text-indigo-700">로그인하고 저장하기</p>
-                  <p className="text-xs text-indigo-400">진행률이 기기 간 동기화돼요</p>
+                  <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300">로그인하고 저장하기</p>
+                  <p className="text-xs text-indigo-400 dark:text-indigo-400/70">진행률이 기기 간 동기화돼요</p>
                 </div>
               </button>
             )}
@@ -370,11 +374,12 @@ export default function RoadmapPage() {
               <button
                 onClick={() => { setShowSummary(true); setSidebarOpen(false) }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-indigo-100
-                  bg-white hover:bg-indigo-50 transition-colors text-left">
+                  dark:border-indigo-500/20 bg-white dark:bg-white/5 hover:bg-indigo-50 dark:hover:bg-indigo-500/10
+                  transition-colors text-left">
                 <span className="text-xl">📊</span>
                 <div>
-                  <p className="text-sm font-bold text-indigo-700">커리어 분석 보기</p>
-                  <p className="text-xs text-indigo-400">스킬·자격증 우선순위 확인</p>
+                  <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300">커리어 분석 보기</p>
+                  <p className="text-xs text-indigo-400 dark:text-indigo-400/70">스킬·자격증 우선순위 확인</p>
                 </div>
               </button>
             )}
@@ -394,15 +399,15 @@ export default function RoadmapPage() {
               {/* 월 헤더 */}
               <div className="flex items-center justify-between mb-2">
                 <div>
-                  <h1 className="text-xl font-black text-gray-900">{currentMonth.month}월차</h1>
-                  <p className="text-indigo-600 font-semibold text-sm mt-0.5">{currentMonth.theme}</p>
+                  <h1 className="text-xl font-black text-gray-900 dark:text-white">{currentMonth.month}월차</h1>
+                  <p className="text-indigo-600 dark:text-indigo-400 font-semibold text-sm mt-0.5">{currentMonth.theme}</p>
                 </div>
                 <div className="flex gap-2">
                   <button
                     disabled={activeMonth <= 1}
                     onClick={() => setActiveMonth((m) => m - 1)}
-                    className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center
-                      disabled:opacity-30 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+                    className="w-8 h-8 rounded-xl border border-gray-200 dark:border-white/20 flex items-center justify-center
+                      text-gray-500 dark:text-white/60 disabled:opacity-30 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16">
                       <path d="M10 4L6 8l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -410,8 +415,8 @@ export default function RoadmapPage() {
                   <button
                     disabled={activeMonth >= roadmap.months.length}
                     onClick={() => setActiveMonth((m) => m + 1)}
-                    className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center
-                      disabled:opacity-30 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+                    className="w-8 h-8 rounded-xl border border-gray-200 dark:border-white/20 flex items-center justify-center
+                      text-gray-500 dark:text-white/60 disabled:opacity-30 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 16 16">
                       <path d="M6 4l4 4-4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
@@ -430,7 +435,7 @@ export default function RoadmapPage() {
               ))}
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+            <div className="flex items-center justify-center h-full text-gray-400 dark:text-white/40 text-sm">
               월을 선택해주세요
             </div>
           )}
@@ -447,7 +452,7 @@ export default function RoadmapPage() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setShowSummary(false)} />
           {/* 패널 */}
-          <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl
+          <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-3xl shadow-2xl
             max-h-[85vh] overflow-y-auto p-6 space-y-2">
             <CareerSummaryPanel
               summary={careerSummary}
@@ -459,7 +464,7 @@ export default function RoadmapPage() {
 
       {/* AI 면책 고지 + 푸터 */}
       <div className="mt-auto">
-        <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 text-center text-xs text-gray-400">
+        <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-white/10 px-6 py-3 text-center text-xs text-gray-400 dark:text-white/30">
           ⚠️ 본 로드맵은 AI가 생성한 참고 자료입니다. 실제 취업·학습 결과는 개인 역량 및 시장 상황에 따라 다를 수 있으며, DevNavi는 결과의 정확성에 대한 법적 책임을 지지 않습니다.
         </div>
         <Footer />

@@ -9,15 +9,16 @@ export default function RerouteButton({ completionRate, onClick, loading }) {
       onClick={onClick}
       disabled={loading}
       className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border border-dashed
-        border-indigo-300 bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50
+        border-indigo-300 dark:border-indigo-500/40 bg-indigo-50 dark:bg-indigo-500/10
+        hover:bg-indigo-100 dark:hover:bg-indigo-500/20 disabled:opacity-50
         transition-colors text-left group"
     >
       <span className="text-xl shrink-0 group-hover:animate-spin-slow">🧭</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-indigo-700">
+        <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300">
           {loading ? '방향 재설정 중…' : '방향 재설정'}
         </p>
-        <p className="text-xs text-indigo-400">
+        <p className="text-xs text-indigo-400 dark:text-indigo-400/70">
           {Math.round(completionRate)}% 완료 기준으로 남은 일정을 재조정해드려요
         </p>
       </div>

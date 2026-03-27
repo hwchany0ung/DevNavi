@@ -1,7 +1,7 @@
 const CATEGORY = {
-  learn:   { label: '학습',     cls: 'bg-blue-50 text-blue-600 border-blue-200' },
-  project: { label: '프로젝트', cls: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
-  cert:    { label: '자격증',   cls: 'bg-amber-50 text-amber-600 border-amber-200' },
+  learn:   { label: '학습',     cls: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-500/30' },
+  project: { label: '프로젝트', cls: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' },
+  cert:    { label: '자격증',   cls: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-500/30' },
 }
 
 /**
@@ -13,7 +13,7 @@ export default function TaskItem({ task, taskId, done, onToggle }) {
   return (
     <label
       className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer
-        transition-colors hover:bg-gray-50 group
+        transition-colors hover:bg-gray-50 dark:hover:bg-white/5 group
         ${done ? 'opacity-60' : ''}`}
     >
       {/* 커스텀 체크박스 */}
@@ -23,7 +23,7 @@ export default function TaskItem({ task, taskId, done, onToggle }) {
           transition-colors
           ${done
             ? 'bg-indigo-600 border-indigo-600'
-            : 'border-gray-300 group-hover:border-indigo-400'
+            : 'border-gray-300 dark:border-white/30 group-hover:border-indigo-400'
           }`}
       >
         {done && (
@@ -35,7 +35,7 @@ export default function TaskItem({ task, taskId, done, onToggle }) {
       </div>
 
       {/* 내용 */}
-      <span className={`flex-1 text-sm leading-snug ${done ? 'line-through text-gray-400' : 'text-gray-700'}`}>
+      <span className={`flex-1 text-sm leading-snug ${done ? 'line-through text-gray-400 dark:text-white/30' : 'text-gray-700 dark:text-white/80'}`}>
         {task.content}
       </span>
 

@@ -26,7 +26,14 @@ export default function PersonaCard({ roadmap, role, completedCount, totalCount 
           </p>
         </div>
         <div className="shrink-0">
-          <ProgressRing percent={percent} size={64} stroke={6} />
+          <ProgressRing
+          percent={percent}
+          size={64}
+          stroke={6}
+          trackColor="rgba(255,255,255,0.25)"
+          fillColor="rgba(255,255,255,0.95)"
+          textColor="text-white"
+        />
         </div>
       </div>
 
