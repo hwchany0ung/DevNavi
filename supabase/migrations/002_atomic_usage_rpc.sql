@@ -52,28 +52,27 @@ GRANT EXECUTE ON FUNCTION increment_and_check_usage TO service_role;
 
 -- ============================================================
 -- activity_summary 뷰 (잔디달력용)
--- task_completions 테이블에 completed_at 컬럼이 있어야 합니다.
+-- task_completions 구조: 완료 시 행 INSERT, 취소 시 행 DELETE
+-- → completed 컬럼 없음, 모든 행 = 완료된 태스크
 -- ============================================================
 
--- 1) completed_at 컬럼 추가 (없으면)
+-- 1) completed_at 컬럼 추가 (없으면) — 언제 완료했는지 기록용
 ALTER TABLE task_completions
   ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ DEFAULT NOW();
 
--- 2) 기존 completed=true 행에 대략적인 시각 설정 (최초 1회)
+-- 2) 기존 행에 현재 시각 설정 (최초 1회 — completed 컬럼 참조 제거)
 UPDATE task_completions
 SET completed_at = NOW()
-WHERE completed = TRUE AND completed_at IS NULL;
+WHERE completed_at IS NULL;
 
--- 3) 뷰 생성
+-- 3) 뷰 생성 (completed 컬럼 없으므로 WHERE 절에서 제거)
 CREATE OR REPLACE VIEW activity_summary AS
 SELECT
   user_id,
   DATE(completed_at AT TIME ZONE 'Asia/Seoul') AS activity_date,
   COUNT(*)::INT AS count
 FROM task_completions
-WHERE
-  completed = TRUE
-  AND completed_at >= NOW() - INTERVAL '365 days'
+WHERE completed_at >= NOW() - INTERVAL '365 days'
 GROUP BY user_id, DATE(completed_at AT TIME ZONE 'Asia/Seoul');
 
 -- 4) RLS: 인증된 사용자는 자신의 데이터만 조회
