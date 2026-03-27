@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 # ── 엔드포인트별 일일 허용 횟수 ──────────────────────────────────────
 DAILY_LIMITS: dict[str, int] = {
-    "full":           3,   # Sonnet 전체 로드맵
+    "full":           2,   # Sonnet 전체 로드맵 (파라미터 캐시로 중복 방지 → 하루 2회로 축소)
     "career-summary": 10,  # Haiku 커리어 분석
     "reroute":        3,   # Sonnet GPS 재탐색
 }

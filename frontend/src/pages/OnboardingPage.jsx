@@ -16,6 +16,58 @@ import { request } from '../lib/api'
 // Google OAuth 리다이렉트 후 폼 상태 복원용 sessionStorage 키
 const DRAFT_KEY = 'devnavi_onboarding_draft'
 
+// ── 파라미터 캐시 유틸 ─────────────────────────────────────────────────
+/** 생성 파라미터를 정렬된 문자열 키로 변환 (캐시 비교용) */
+function computeParamsKey(s1, s2) {
+  return [
+    s1.role, s1.period, s1.level,
+    [...(s2.skills         || [])].sort().join(','),
+    [...(s2.certifications || [])].sort().join(','),
+    s2.company_type,
+    s2.daily_study_hours,
+  ].join('|')
+}
+
+/** devnavi_archived_* 에서 동일 paramsKey를 가진 보관 로드맵 ID 반환 */
+function findArchivedRoadmap(paramsKey) {
+  const match = Object.keys(localStorage)
+    .filter(k => k.startsWith('devnavi_archived_'))
+    .find(k => {
+      try {
+        const data = JSON.parse(localStorage.getItem(k))
+        return data?._meta?.paramsKey === paramsKey
+      } catch { return false }
+    })
+  return match ? match.replace('devnavi_archived_', '') : null
+}
+
+/** 보관된 로드맵을 활성 상태로 복원 */
+function restoreArchivedRoadmap(id) {
+  const roadmap = localStorage.getItem(`devnavi_archived_${id}`)
+  if (roadmap) {
+    localStorage.setItem(`devnavi_roadmap_${id}`, roadmap)
+    localStorage.removeItem(`devnavi_archived_${id}`)
+  }
+  const summary = localStorage.getItem(`devnavi_archived_summary_${id}`)
+  if (summary) {
+    localStorage.setItem(`devnavi_summary_${id}`, summary)
+    localStorage.removeItem(`devnavi_archived_summary_${id}`)
+  }
+}
+
+/** 오래된 보관 로드맵 정리 (최대 3개 유지) */
+function pruneArchivedRoadmaps() {
+  const keys = Object.keys(localStorage)
+    .filter(k => k.startsWith('devnavi_archived_') && !k.includes('_summary_'))
+  if (keys.length <= 3) return
+  // 가장 오래된 것부터 제거 (키 기준 정렬)
+  keys.sort().slice(0, keys.length - 3).forEach(k => {
+    const id = k.replace('devnavi_archived_', '')
+    localStorage.removeItem(k)
+    localStorage.removeItem(`devnavi_archived_summary_${id}`)
+  })
+}
+
 const STEP1_INITIAL = {
   role: '',
   period: '',
@@ -161,14 +213,18 @@ export default function OnboardingPage() {
   // 전체 로드맵 스트리밍
   const { isStreaming: fullStreaming, progress, error: fullError, start: startFull } = useRoadmapStream({
     onSaved: async (id, roadmap) => {
-      // _meta에 입력 정보 저장 (GPS 재탐색용)
+      // _meta에 입력 정보 저장 (GPS 재탐색 + 파라미터 캐시용)
       const withMeta = {
         ...roadmap,
         _meta: {
           role: step1.role,
           period: step1.period,
+          level: step1.level,
+          skills: step2.skills,
+          certifications: step2.certifications,
           company_type: step2.company_type,
           daily_study_hours: step2.daily_study_hours,
+          paramsKey: computeParamsKey(step1, step2),
         },
       }
 
@@ -234,9 +290,21 @@ export default function OnboardingPage() {
     _doCareerSummary()
   }
 
-  // summary 스텝 → 전체 로드맵 SSE 스트리밍
+  // summary 스텝 → 전체 로드맵 SSE 스트리밍 (캐시 우선 확인)
   const handleStartGenerate = () => {
     if (fullStreaming) return
+
+    // ── 보관된 로드맵 캐시 확인 ─────────────────────────────────────
+    const paramsKey = computeParamsKey(step1, step2)
+    const archivedId = findArchivedRoadmap(paramsKey)
+    if (archivedId) {
+      // 동일 파라미터 → API 호출 없이 복원
+      restoreArchivedRoadmap(archivedId)
+      navigate(`/roadmap/${archivedId}`, { replace: true })
+      return
+    }
+
+    // ── 신규 생성 ────────────────────────────────────────────────────
     setStep('generating')
     startFull(
       {
@@ -248,7 +316,6 @@ export default function OnboardingPage() {
         company_type: step2.company_type,
         daily_study_hours: step2.daily_study_hours,
       },
-      // Authorization 헤더 전달 (/roadmap/full 은 로그인 필수)
       user ? { Authorization: `Bearer ${user.accessToken}` } : {},
     )
   }
@@ -263,10 +330,25 @@ export default function OnboardingPage() {
     navigate(`/roadmap/${existingRoadmapId}`, { replace: true })
   }
   const handleDeleteAndNew = () => {
-    // localStorage에서 해당 로드맵 관련 데이터 모두 삭제
+    // 즉시 삭제 대신 보관(archive) → 동일 파라미터 재생성 시 API 호출 없이 복원 가능
     Object.keys(localStorage)
-      .filter(k => k.startsWith('devnavi_roadmap_') || k.startsWith('devnavi_done_') || k.startsWith('devnavi_summary_'))
-      .forEach(k => localStorage.removeItem(k))
+      .filter(k => k.startsWith('devnavi_roadmap_'))
+      .forEach(k => {
+        const id = k.replace('devnavi_roadmap_', '')
+        const data = localStorage.getItem(k)
+        if (data) localStorage.setItem(`devnavi_archived_${id}`, data)
+        localStorage.removeItem(k)
+
+        const summary = localStorage.getItem(`devnavi_summary_${id}`)
+        if (summary) {
+          localStorage.setItem(`devnavi_archived_summary_${id}`, summary)
+          localStorage.removeItem(`devnavi_summary_${id}`)
+        }
+        // 완료 목록은 재생성 시 리셋
+        localStorage.removeItem(`devnavi_done_${id}`)
+      })
+    // 보관함 3개 초과 시 오래된 것 정리
+    pruneArchivedRoadmaps()
     setExistingRoadmapId(null)
   }
 
