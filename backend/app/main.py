@@ -50,4 +50,6 @@ async def health():
 
 
 # AWS Lambda 핸들러
-handler = Mangum(app)
+# lifespan="on": startup/shutdown 훅 실행
+# api_gateway_base_path: Lambda Function URL은 경로 prefix 없음
+handler = Mangum(app, lifespan="on", api_gateway_base_path=None)

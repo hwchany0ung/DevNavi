@@ -1,0 +1,89 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend.yml'
+
+  # 수동 실행 허용
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Package & Deploy to Lambda
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      # Lambda 배포 패키지 생성
+      # package/ 폴더에 의존성 설치 후 app 코드 복사 → zip
+      - name: Build Lambda package
+        run: |
+          cd backend
+          pip install -r requirements.txt -t package/ --quiet
+          cp -r app package/
+          cd package
+          zip -r ../lambda.zip . -q
+          cd ..
+          echo "📦 Package size: $(du -sh lambda.zip | cut -f1)"
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      # 50MB 초과 시 S3 경유 업로드 (Lambda 직접 업로드 제한)
+      - name: Check package size
+        id: pkg_size
+        run: |
+          SIZE=$(stat -c%s backend/lambda.zip)
+          echo "size=$SIZE" >> $GITHUB_OUTPUT
+          echo "Package size: ${SIZE} bytes"
+
+      - name: Upload via S3 (if > 50MB)
+        if: ${{ steps.pkg_size.outputs.size > 52428800 }}
+        run: |
+          aws s3 cp backend/lambda.zip \
+            s3://${{ secrets.S3_LAMBDA_BUCKET }}/devnavi-api/lambda.zip
+          aws lambda update-function-code \
+            --function-name devnavi-api \
+            --s3-bucket ${{ secrets.S3_LAMBDA_BUCKET }} \
+            --s3-key devnavi-api/lambda.zip \
+            --no-cli-pager
+
+      - name: Upload directly (if <= 50MB)
+        if: ${{ steps.pkg_size.outputs.size <= 52428800 }}
+        run: |
+          aws lambda update-function-code \
+            --function-name devnavi-api \
+            --zip-file fileb://backend/lambda.zip \
+            --no-cli-pager
+
+      # 배포 완료 대기 후 최신 버전 확인
+      - name: Wait for update & verify
+        run: |
+          aws lambda wait function-updated \
+            --function-name devnavi-api
+          aws lambda get-function-configuration \
+            --function-name devnavi-api \
+            --query '{State: State, LastUpdateStatus: LastUpdateStatus, CodeSize: CodeSize}' \
+            --output table \
+            --no-cli-pager
+
+      - name: Deploy summary
+        run: |
+          echo "✅ Backend deployed successfully"
+          echo "🔗 API URL: https://api.devnavi.kr"
