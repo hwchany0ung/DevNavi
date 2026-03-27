@@ -27,6 +27,14 @@ Thumbs.db
 .aws-sam/
 samconfig.toml
 
+# Terraform (시크릿 포함 파일 제외)
+terraform/.terraform/
+terraform/.terraform.lock.hcl
+terraform/terraform.tfvars
+terraform/*.tfstate
+terraform/*.tfstate.backup
+terraform/.tmp/
+
 # Claude Code
 .claude/
 

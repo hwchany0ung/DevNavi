@@ -1,0 +1,19 @@
+# terraform.tfvars.example
+# cp terraform.tfvars.example terraform.tfvars 후 값 입력
+# ⚠️ terraform.tfvars는 .gitignore에 포함됨 (시크릿 포함)
+
+aws_region  = "ap-northeast-2"
+project     = "devnavi"
+env         = "prod"
+domain_name = "devnavi.kr"
+
+# Route 53 호스팅 존 ID (도메인 구매 후 입력, 없으면 빈 문자열)
+# AWS 콘솔 → Route 53 → Hosted zones → Zone ID 컬럼
+route53_zone_id = ""
+
+# ── 시크릿 (절대 Git에 커밋하지 말 것) ──
+anthropic_api_key    = "sk-ant-api03-..."
+supabase_url         = "https://xxxx.supabase.co"
+supabase_service_key = "eyJhbGciOiJIUzI1NiIs..."
+supabase_anon_key    = "eyJhbGciOiJIUzI1NiIs..."
+supabase_jwt_secret  = "your-jwt-secret"
