@@ -129,11 +129,14 @@ async def teaser(request: Request, body: TeaserRequest):
     params_key = f"{body.role}|{body.period}|{body.level}"
 
     # 1. 캐시 확인 → 히트 시 AI 호출 없이 즉시 반환
+    # 최소 50자 이상인 경우만 유효 캐시로 간주 (빈 캐시/불완전 캐시 방지)
     if settings.supabase_ready:
         cached = await _get_teaser_cache(params_key)
-        if cached:
+        if cached and len(cached.strip()) >= 50:
             logger.info("티저 캐시 히트: %s", params_key)
             return StreamingResponse(_stream_cached_teaser(cached), headers=SSE_HEADERS)
+        elif cached:
+            logger.warning("티저 캐시 무효 (너무 짧음 %d자) → AI 재호출: %s", len(cached.strip()), params_key)
 
     # 2. 캐시 미스 → Claude Haiku 호출 + 결과 캐시 저장
     logger.info("티저 캐시 미스 → AI 호출: %s", params_key)
