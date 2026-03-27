@@ -117,7 +117,10 @@ export default function LandingPage() {
     if (!user) { setIsAdmin(false); return }
     request('/admin/me', { headers: { Authorization: `Bearer ${user.accessToken}` } })
       .then(() => setIsAdmin(true))
-      .catch(() => setIsAdmin(false))
+      .catch((err) => {
+        console.error('[isAdmin] /admin/me 실패:', err?.status, err?.message)
+        setIsAdmin(false)
+      })
   }, [user])
 
   // 자동 리다이렉트 제거 — '내 로드맵' 버튼으로 직접 이동하는 방식으로 변경

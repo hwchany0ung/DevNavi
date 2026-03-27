@@ -127,4 +127,4 @@ async def health():
 # lifespan="on": startup/shutdown 훅 실행
 # api_gateway_base_path: Lambda Function URL은 경로 prefix 없음
 handler = Mangum(app, lifespan="on", api_gateway_base_path=None)
-# x86_64 build - Fri Mar 27 13:12:55     2026
+# x86_64 build - Fri Mar 27 17:00:00 2026 (admin router)
