@@ -58,17 +58,32 @@ resource "aws_lambda_function_url" "api" {
   function_name      = aws_lambda_function.api.function_name
   authorization_type = "NONE"  # CloudFront에서 인증 처리
 
-  cors {
-    allow_credentials = true
-    # domain_name 없으면 * (테스트용), 있으면 특정 오리진만 허용
-    allow_origins = var.domain_name != "" ? ["https://${var.domain_name}"] : ["*"]
-    # Lambda Function URL은 OPTIONS 자동 처리 — GET/POST만 명시
-    allow_methods = ["GET", "POST"]
-    allow_headers = ["Content-Type", "Authorization"]
-    max_age       = 86400
-  }
+  # CORS는 FastAPI CORSMiddleware가 담당
+  # Lambda Function URL CORS와 FastAPI CORS가 동시에 동작하면
+  # Access-Control-Allow-Origin 헤더가 중복되어 브라우저가 요청 거부
+  # → cors 블록 제거, FastAPI app에서 단일 처리
 
   invoke_mode = "BUFFERED"
+}
+
+# ── Lambda Function URL 퍼블릭 액세스 권한 ────────────────────────────
+# 주의: AuthType=NONE 계정에서 공개 액세스를 위해 두 액션이 모두 필요
+# lambda:InvokeFunction   — 일반 호출 권한
+# lambda:InvokeFunctionUrl — Function URL 전용 호출 권한
+
+resource "aws_lambda_permission" "allow_public_invoke" {
+  statement_id  = "AllowPublicInvoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.api.function_name
+  principal     = "*"
+}
+
+resource "aws_lambda_permission" "allow_public_invoke_url" {
+  statement_id           = "AllowPublicInvokeFunctionUrl"
+  action                 = "lambda:InvokeFunctionUrl"
+  function_name          = aws_lambda_function.api.function_name
+  principal              = "*"
+  function_url_auth_type = "NONE"
 }
 
 # ── CloudWatch 로그 그룹 ─────────────────────────────────────────────
