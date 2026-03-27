@@ -1,7 +1,8 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from mangum import Mangum
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -40,6 +41,20 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── CloudFront 시크릿 헤더 검증 미들웨어 ─────────────────────────────
+# Lambda Function URL이 공개 접근 가능하므로, CloudFront를 통한 요청인지 확인.
+# CLOUDFRONT_SECRET 환경변수가 설정된 경우에만 활성화.
+_CF_SECRET = settings.CLOUDFRONT_SECRET if hasattr(settings, "CLOUDFRONT_SECRET") else None
+
+@app.middleware("http")
+async def verify_cloudfront_secret(request: Request, call_next):
+    if _CF_SECRET and settings.ENV == "production":
+        # health check는 제외 (ALB/Lambda 상태 확인용)
+        if request.url.path != "/health":
+            if request.headers.get("X-CF-Secret") != _CF_SECRET:
+                return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+    return await call_next(request)
 
 app.include_router(roadmap_router)
 

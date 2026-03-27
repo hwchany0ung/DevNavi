@@ -13,8 +13,12 @@ from pydantic_settings import BaseSettings
 def _load_ssm_params() -> None:
     """
     Lambda 환경(production)에서 SSM Parameter Store 값을 os.environ에 주입.
-    boto3가 없거나 SSM 접근 실패 시 조용히 무시 (로컬 .env로 폴백).
+    - 로컬/개발: .env 파일로 폴백
+    - 프로덕션: SSM 로드 실패 시 앱 시작 중단 (시크릿 없이 실행 방지)
     """
+    import logging
+    _logger = logging.getLogger(__name__)
+
     if os.getenv("ENV") != "production":
         return
     try:
@@ -29,13 +33,21 @@ def _load_ssm_params() -> None:
             f"{prefix}SUPABASE_JWT_SECRET",
             f"{prefix}CORS_ORIGINS",
             f"{prefix}FREE_DAILY_LIMIT",
+            f"{prefix}CLOUDFRONT_SECRET",
         ]
         response = ssm.get_parameters(Names=param_names, WithDecryption=True)
+        # 누락된 파라미터 경고 (InvalidParameters 배열)
+        missing = response.get("InvalidParameters", [])
+        if missing:
+            _logger.warning("SSM 누락 파라미터: %s", missing)
         for param in response["Parameters"]:
             key = param["Name"].replace(prefix, "")
             os.environ.setdefault(key, param["Value"])
-    except Exception:
-        pass  # 로컬/테스트 환경에서는 무시
+        _logger.info("SSM 파라미터 로드 완료 (%d개)", len(response["Parameters"]))
+    except Exception as e:
+        # 프로덕션에서 SSM 로드 실패 → 앱 시작 중단 (시크릿 없이 실행 방지)
+        _logger.critical("SSM 파라미터 로드 실패: %s", e)
+        raise RuntimeError(f"프로덕션 시크릿 로드 실패: {e}") from e
 
 
 # 모듈 임포트 시 1회 실행 (Lambda 컨테이너 재사용으로 이후 호출은 스킵됨)
@@ -60,6 +72,11 @@ class Settings(BaseSettings):
 
     # ── CORS ──────────────────────────────────────────────────────
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
+
+    # ── CloudFront 직접 접근 차단 시크릿 ────────────────────────
+    # CloudFront → Lambda 요청 시 X-CF-Secret 헤더에 이 값을 포함시켜야 함
+    # 미설정 시 검증 비활성화 (로컬 개발 환경)
+    CLOUDFRONT_SECRET: Optional[str] = None
 
     # ── 무료 사용자 일일 생성 한도 ───────────────────────────────
     FREE_DAILY_LIMIT: int = 3

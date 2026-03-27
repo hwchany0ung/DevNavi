@@ -66,8 +66,9 @@ export function useAuth() {
     if (supabase) await supabase.auth.signOut()
     // 로그아웃 시 기기에 저장된 로드맵/분석 데이터 정리
     // (다른 사람이 같은 기기를 쓸 경우 이전 사용자 데이터 노출 방지)
+    // devnavi_theme은 사용자 설정이므로 유지, 나머지(로드맵·분석·done 등)만 제거
     Object.keys(localStorage)
-      .filter((k) => k.startsWith('devnavi_'))
+      .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme')
       .forEach((k) => localStorage.removeItem(k))
     setUser(null)
   }, [])

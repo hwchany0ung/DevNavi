@@ -1,13 +1,23 @@
+import re
 from pydantic import BaseModel, Field, field_validator
 from typing import Literal, Optional, Union
 
 # 개별 스킬/자격증 항목 최대 길이 (프롬프트 인젝션 및 비용 방어)
 _ITEM_MAX_LEN = 60
 
+# 프롬프트 구조를 깨뜨릴 수 있는 특수문자 패턴
+_INJECTION_PATTERN = re.compile(r'[\[\]{}<>\n\r\t\\]')
+
+
+def _sanitize_item(item: str) -> str:
+    """프롬프트 인젝션 위험 문자 제거 후 길이 제한."""
+    cleaned = _INJECTION_PATTERN.sub(' ', str(item))
+    return cleaned[:_ITEM_MAX_LEN].strip()
+
 
 def _truncate_items(items: list) -> list[str]:
-    """리스트 항목을 문자열로 변환 후 _ITEM_MAX_LEN 자로 자름."""
-    return [str(item)[:_ITEM_MAX_LEN] for item in items]
+    """리스트 항목을 sanitize 후 _ITEM_MAX_LEN 자로 자름."""
+    return [_sanitize_item(item) for item in items]
 
 
 # ───────────────────────────── 요청 모델 ─────────────────────────────

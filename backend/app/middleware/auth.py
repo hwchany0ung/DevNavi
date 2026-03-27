@@ -68,8 +68,8 @@ def _verify_token(token: str) -> dict:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="토큰이 만료됐습니다.",
             )
-        except (jwt.InvalidTokenError, Exception):
-            pass  # Legacy HS256으로 폴백
+        except jwt.InvalidTokenError:
+            pass  # Legacy HS256으로 폴백 (토큰 검증 실패만 허용)
 
     # 2. Legacy HS256 Secret 폴백
     if settings.SUPABASE_JWT_SECRET:
@@ -151,6 +151,10 @@ async def require_premium(authorization: Optional[str] = Header(None)) -> dict:
                     detail="구독이 만료됐습니다. 갱신 후 이용해 주세요.",
                 )
         except ValueError:
-            pass  # 날짜 파싱 실패 시 통과 (데이터 이상)
+            # 날짜 형식 이상 → 만료로 간주해 차단 (통과 허용하면 만료 구독자 접근 가능)
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail="구독 정보 오류가 있습니다. 고객지원에 문의해 주세요.",
+            )
 
     return user

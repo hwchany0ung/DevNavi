@@ -176,7 +176,12 @@ export default function AuthModal({ open, onClose }) {
             {mode === 'login' ? '아직 계정이 없으신가요?' : '이미 계정이 있으신가요?'}
             {' '}
             <button
-              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+              onClick={() => {
+                setMode(mode === 'login' ? 'signup' : 'login')
+                // 모드 전환 시 약관·에러·성공 메시지 초기화
+                setAgreeTerms(false)
+                setAgreePrivacy(false)
+              }}
               className="text-indigo-600 dark:text-indigo-400 font-semibold hover:underline"
             >
               {mode === 'login' ? '회원가입' : '로그인'}

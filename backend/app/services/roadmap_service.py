@@ -3,6 +3,7 @@
 (supabase 패키지 불필요)
 """
 import json
+import logging
 import re
 import uuid
 from typing import Optional
@@ -13,6 +14,8 @@ from fastapi import HTTPException
 from app.core.config import settings
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
 from app.models.roadmap import FullRoadmapResponse
+
+logger = logging.getLogger(__name__)
 
 
 # ── 로드맵 파싱 ───────────────────────────────────────────────────────
@@ -41,12 +44,15 @@ def parse_full_roadmap(raw_json: str) -> FullRoadmapResponse:
 def _raise_db_error(e: httpx.HTTPStatusError, operation: str) -> None:
     """httpx.HTTPStatusError → FastAPI HTTPException(502) 변환.
 
-    Supabase가 4xx/5xx를 반환했을 때 클라이언트에게 의미 있는 에러를 전달.
-    502 Bad Gateway: 백엔드가 upstream(DB)에서 실패했음을 의미.
+    내부 DB 구조(테이블명·SQL 오류 등)는 클라이언트에 노출하지 않고 로그에만 기록.
     """
+    logger.error(
+        "DB %s 실패 | Supabase %s | %s",
+        operation, e.response.status_code, e.response.text[:500],
+    )
     raise HTTPException(
         status_code=502,
-        detail=f"DB {operation} 실패 (Supabase {e.response.status_code}): {e.response.text[:200]}",
+        detail=f"데이터베이스 {operation} 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.",
     )
 
 

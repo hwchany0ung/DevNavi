@@ -331,7 +331,7 @@ export default function LandingPage() {
           color: isDark ? 'rgba(255,255,255,0.25)' : '#9ca3af',
         }}>
         <div className="flex flex-wrap items-center justify-center gap-4">
-          <span>© 2025 DevNavi. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} DevNavi. All rights reserved.</span>
           <a href="/terms"   className="hover:opacity-70 transition-opacity">이용약관</a>
           <a href="/privacy" className="hover:opacity-70 transition-opacity">개인정보처리방침</a>
           <a href="mailto:support@devnavi.kr" className="hover:opacity-70 transition-opacity">문의</a>

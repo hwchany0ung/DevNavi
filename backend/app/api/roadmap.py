@@ -156,7 +156,7 @@ async def full_roadmap(
     """Sonnet 전체 로드맵 JSON SSE 스트리밍 (로그인 필수).
 
     - 로그인 미인증 시 401
-    - 무료 사용자 하루 3회 초과 시 429
+    - 무료 사용자 하루 2회 초과 시 429
     - Phase 6 결제 연동 후 require_premium으로 전환 예정
     """
     await check_and_increment(user["id"], "full")
@@ -244,7 +244,7 @@ async def reroute(
     body: RerouteRequest,
     user: dict = Depends(require_user),
 ):
-    """완료율 기반 잔여 로드맵 재생성 (단일 JSON 응답). 무료 하루 3회 제한."""
+    """완료율 기반 잔여 로드맵 재생성 (단일 JSON 응답). 무료 하루 2회 제한."""
     await check_and_increment(user["id"], "reroute")
     system, user_msg = build_reroute_prompt(
         body.original_role, body.original_period,
