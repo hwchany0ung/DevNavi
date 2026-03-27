@@ -25,7 +25,7 @@ export default function WeekAccordion({ week, monthIdx, doneSet, onToggle }) {
         <div className="flex items-center gap-3">
           {/* 주차 뱃지 */}
           <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black
-            ${allDone ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/60'}`}>
+            ${allDone ? 'bg-indigo-600 text-white' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/85'}`}>
             {week.week}
           </span>
           <span className={`font-semibold text-sm ${allDone ? 'text-indigo-700 dark:text-indigo-400' : 'text-gray-700 dark:text-white/80'}`}>
@@ -43,9 +43,9 @@ export default function WeekAccordion({ week, monthIdx, doneSet, onToggle }) {
               style={{ width: `${total > 0 ? (doneCount / total) * 100 : 0}%` }}
             />
           </div>
-          <span className="text-xs text-gray-400 dark:text-white/40">{doneCount}/{total}</span>
+          <span className="text-xs text-gray-400 dark:text-white/70">{doneCount}/{total}</span>
           <svg
-            className={`w-4 h-4 text-gray-400 dark:text-white/40 transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`w-4 h-4 text-gray-400 dark:text-white/70 transition-transform ${open ? 'rotate-180' : ''}`}
             fill="none" viewBox="0 0 16 16">
             <path d="M4 6l4 4 4-4" stroke="currentColor" strokeWidth="1.5"
               strokeLinecap="round" strokeLinejoin="round" />

@@ -84,7 +84,7 @@ function TagSelector({ suggestions, selected, onToggle, onAdd, placeholder }) {
               className={`px-3 py-1.5 rounded-full text-sm font-medium border transition-all
                 ${active
                   ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
-                  : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50 hover:border-indigo-300 dark:hover:border-indigo-400/50 hover:text-indigo-500 dark:hover:text-indigo-300'}`}>
+                  : 'border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/75 hover:border-indigo-300 dark:hover:border-indigo-400/50 hover:text-indigo-500 dark:hover:text-indigo-300'}`}>
               {active && '✓ '}{item}
             </button>
           )
@@ -107,7 +107,7 @@ function TagSelector({ suggestions, selected, onToggle, onAdd, placeholder }) {
 
       {/* 직접 입력 */}
       <div className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-white/5 border-2 border-gray-100 dark:border-white/10 rounded-xl focus-within:border-indigo-400 dark:focus-within:border-indigo-400/70 transition-colors">
-        <span className="text-gray-300 dark:text-white/20 text-sm">+</span>
+        <span className="text-gray-300 dark:text-white/50 text-sm">+</span>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -159,10 +159,10 @@ export default function Step2Form({ values, onChange, role = 'backend' }) {
     <div className="space-y-8">
       {/* Q4: 보유 스킬 */}
       <div>
-        <p className="text-sm font-bold text-gray-500 dark:text-white/40 mb-1 uppercase tracking-widest">
+        <p className="text-sm font-bold text-gray-500 dark:text-cyan-400 mb-1 uppercase tracking-widest">
           Q4 · 보유 스킬
         </p>
-        <p className="text-xs text-gray-400 dark:text-white/30 mb-3">클릭으로 선택하거나 직접 입력하세요</p>
+        <p className="text-xs text-gray-400 dark:text-white/60 mb-3">클릭으로 선택하거나 직접 입력하세요</p>
         <TagSelector
           suggestions={suggestedSkills}
           selected={values.skills}
@@ -174,10 +174,10 @@ export default function Step2Form({ values, onChange, role = 'backend' }) {
 
       {/* Q5: 보유 자격증 */}
       <div>
-        <p className="text-sm font-bold text-gray-500 dark:text-white/40 mb-1 uppercase tracking-widest">
-          Q5 · 보유 자격증 <span className="text-gray-300 dark:text-white/20 font-normal">(선택)</span>
+        <p className="text-sm font-bold text-gray-500 dark:text-cyan-400 mb-1 uppercase tracking-widest">
+          Q5 · 보유 자격증 <span className="text-gray-300 dark:text-white/50 font-normal">(선택)</span>
         </p>
-        <p className="text-xs text-gray-400 dark:text-white/30 mb-3">해당 직군 관련 자격증을 선택하세요</p>
+        <p className="text-xs text-gray-400 dark:text-white/60 mb-3">해당 직군 관련 자격증을 선택하세요</p>
         <TagSelector
           suggestions={suggestedCerts}
           selected={values.certifications}
@@ -189,8 +189,8 @@ export default function Step2Form({ values, onChange, role = 'backend' }) {
 
       {/* Q6: 목표 회사 유형 */}
       <div>
-        <p className="text-sm font-bold text-gray-500 dark:text-white/40 mb-1 uppercase tracking-widest">
-          Q6 · 목표 회사 유형 <span className="text-gray-300 dark:text-white/20 font-normal">(선택)</span>
+        <p className="text-sm font-bold text-gray-500 dark:text-cyan-400 mb-1 uppercase tracking-widest">
+          Q6 · 목표 회사 유형 <span className="text-gray-300 dark:text-white/50 font-normal">(선택)</span>
         </p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
           {COMPANY_TYPES.map((c) => (
@@ -198,7 +198,7 @@ export default function Step2Form({ values, onChange, role = 'backend' }) {
               className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-semibold transition-all
                 ${values.company_type === c.value
                   ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
-                  : 'border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 text-gray-600 dark:text-white/60 hover:border-indigo-200 dark:hover:border-indigo-400/50'}`}>
+                  : 'border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 text-gray-600 dark:text-white/85 hover:border-indigo-200 dark:hover:border-indigo-400/50'}`}>
               <span className="text-xl">{c.icon}</span>
               {c.label}
             </button>
@@ -208,7 +208,7 @@ export default function Step2Form({ values, onChange, role = 'backend' }) {
 
       {/* Q7: 하루 학습 시간 */}
       <div>
-        <p className="text-sm font-bold text-gray-500 dark:text-white/40 mb-3 uppercase tracking-widest">
+        <p className="text-sm font-bold text-gray-500 dark:text-cyan-400 mb-3 uppercase tracking-widest">
           Q7 · 하루 학습 시간
         </p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -217,7 +217,7 @@ export default function Step2Form({ values, onChange, role = 'backend' }) {
               className={`p-3 rounded-xl border-2 text-sm font-semibold transition-all
                 ${values.daily_study_hours === h.value
                   ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
-                  : 'border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 text-gray-600 dark:text-white/60 hover:border-indigo-200 dark:hover:border-indigo-400/50'}`}>
+                  : 'border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 text-gray-600 dark:text-white/85 hover:border-indigo-200 dark:hover:border-indigo-400/50'}`}>
               {h.label}
             </button>
           ))}

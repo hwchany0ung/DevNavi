@@ -4,7 +4,7 @@
 export default function MonthTimeline({ months, activeMonth, doneSet, onSelect }) {
   return (
     <nav className="space-y-1">
-      <p className="text-xs font-semibold text-gray-400 dark:text-white/30 uppercase tracking-widest px-1 mb-2">
+      <p className="text-xs font-semibold text-gray-400 dark:text-white/60 uppercase tracking-widest px-1 mb-2">
         월별 로드맵
       </p>
       {months.map((m) => {
@@ -28,12 +28,12 @@ export default function MonthTimeline({ months, activeMonth, doneSet, onSelect }
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors
               ${isActive
                 ? 'bg-indigo-600 text-white'
-                : 'hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-white/60'
+                : 'hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-white/85'
               }`}
           >
             {/* 월 번호 */}
             <span className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0
-              ${isActive ? 'bg-indigo-500 text-white' : isComplete ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/50'}`}>
+              ${isActive ? 'bg-indigo-500 text-white' : isComplete ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/75'}`}>
               {m.month}
             </span>
 
@@ -42,13 +42,13 @@ export default function MonthTimeline({ months, activeMonth, doneSet, onSelect }
               <p className={`text-xs font-semibold truncate ${isActive ? 'text-white' : 'text-gray-700 dark:text-white/80'}`}>
                 {m.month}월차
               </p>
-              <p className={`text-xs truncate ${isActive ? 'text-indigo-200' : 'text-gray-400 dark:text-white/40'}`}>
+              <p className={`text-xs truncate ${isActive ? 'text-indigo-200' : 'text-gray-400 dark:text-white/70'}`}>
                 {m.theme}
               </p>
             </div>
 
             {/* 진행률 */}
-            <span className={`text-xs shrink-0 ${isActive ? 'text-indigo-200' : 'text-gray-400 dark:text-white/40'}`}>
+            <span className={`text-xs shrink-0 ${isActive ? 'text-indigo-200' : 'text-gray-400 dark:text-white/70'}`}>
               {pct}%
             </span>
           </button>

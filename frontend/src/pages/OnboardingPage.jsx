@@ -121,7 +121,7 @@ function FullRoadmapLoading({ progress }) {
         <p className="text-gray-700 dark:text-white/80 font-bold text-sm">
           AI가 맞춤 로드맵을 생성하고 있어요 ✨
         </p>
-        <p className="text-gray-400 dark:text-white/40 text-xs mt-1">
+        <p className="text-gray-400 dark:text-white/70 text-xs mt-1">
           스킬·목표 회사·학습 시간을 모두 반영 중…
         </p>
       </div>
@@ -405,7 +405,7 @@ export default function OnboardingPage() {
                   <div className={`w-8 h-px ${i <= stepIndex ? 'bg-indigo-400' : 'bg-gray-200 dark:bg-white/10'}`} />
                 )}
                 <span className={`font-medium
-                  ${i === stepIndex ? 'text-indigo-600 dark:text-indigo-400' : i < stepIndex ? 'text-indigo-300 dark:text-indigo-500/60' : 'text-gray-300 dark:text-white/20'}`}>
+                  ${i === stepIndex ? 'text-indigo-600 dark:text-indigo-400' : i < stepIndex ? 'text-indigo-300 dark:text-indigo-500/60' : 'text-gray-300 dark:text-white/50'}`}>
                   {label}
                 </span>
               </div>
@@ -417,10 +417,10 @@ export default function OnboardingPage() {
           <ThemeToggle />
           {user && (
             <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs text-gray-400 dark:text-white/40 truncate max-w-[140px]">{user.email}</span>
+              <span className="text-xs text-gray-400 dark:text-white/70 truncate max-w-[140px]">{user.email}</span>
               <button
                 onClick={signOut}
-                className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-500 dark:text-white/60 transition-colors"
+                className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-500 dark:text-white/85 transition-colors"
               >
                 로그아웃
               </button>
@@ -438,7 +438,7 @@ export default function OnboardingPage() {
               <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
                 어떤 개발자가 되고 싶으세요?
               </h1>
-              <p className="text-gray-400 dark:text-white/40 text-sm mt-1">
+              <p className="text-gray-400 dark:text-white/70 text-sm mt-1">
                 3가지만 알려주시면 AI가 맞춤 로드맵을 즉시 만들어드려요
               </p>
             </div>
@@ -450,7 +450,7 @@ export default function OnboardingPage() {
                 disabled={!isStep1Complete(step1)}
                 onClick={handleStep1Submit}
                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-700
-                  disabled:bg-gray-200 dark:disabled:bg-white/10 disabled:text-gray-400 dark:disabled:text-white/30
+                  disabled:bg-gray-200 dark:disabled:bg-white/10 disabled:text-gray-400 dark:disabled:text-white/60
                   text-white font-bold text-base rounded-2xl transition-colors">
                 AI 로드맵 생성하기 ✨
               </button>
@@ -472,13 +472,13 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div>
               <button onClick={() => setStep('teaser')}
-                className="text-sm text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/70 mb-4 flex items-center gap-1">
+                className="text-sm text-gray-400 dark:text-white/70 hover:text-gray-600 dark:hover:text-white/70 mb-4 flex items-center gap-1">
                 ← 이전으로
               </button>
               <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
                 조금 더 알려주세요
               </h1>
-              <p className="text-gray-400 dark:text-white/40 text-sm mt-1">
+              <p className="text-gray-400 dark:text-white/70 text-sm mt-1">
                 스킬과 목표를 반영한 주차별 체크리스트를 만들어드려요
               </p>
             </div>
@@ -489,7 +489,7 @@ export default function OnboardingPage() {
               disabled={!isStep2Complete(step2)}
               onClick={handleStep2Submit}
               className="w-full py-4 bg-indigo-600 hover:bg-indigo-700
-                disabled:bg-gray-200 dark:disabled:bg-white/10 disabled:text-gray-400 dark:disabled:text-white/30
+                disabled:bg-gray-200 dark:disabled:bg-white/10 disabled:text-gray-400 dark:disabled:text-white/60
                 text-white font-bold text-base rounded-2xl transition-colors">
               {user ? '커리어 분석하기 →' : '로그인하고 커리어 분석하기 →'}
             </button>
@@ -501,13 +501,13 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div>
               <button onClick={() => setStep(2)}
-                className="text-sm text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/70 mb-4 flex items-center gap-1">
+                className="text-sm text-gray-400 dark:text-white/70 hover:text-gray-600 dark:hover:text-white/70 mb-4 flex items-center gap-1">
                 ← 이전으로
               </button>
               <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
                 AI 분석 완료!
               </h1>
-              <p className="text-gray-400 dark:text-white/40 text-sm mt-1">
+              <p className="text-gray-400 dark:text-white/70 text-sm mt-1">
                 지금 상황에 맞는 학습 우선순위를 확인하세요
               </p>
             </div>
@@ -520,8 +520,8 @@ export default function OnboardingPage() {
                       style={{ animationDelay: `${i * 0.15}s` }} />
                   ))}
                 </div>
-                <p className="text-gray-500 dark:text-white/60 font-semibold text-sm">커리어 분석 중…</p>
-                <p className="text-gray-400 dark:text-white/30 text-xs">보유 스킬과 목표를 비교하고 있어요</p>
+                <p className="text-gray-500 dark:text-white/85 font-semibold text-sm">커리어 분석 중…</p>
+                <p className="text-gray-400 dark:text-white/60 text-xs">보유 스킬과 목표를 비교하고 있어요</p>
               </div>
             ) : summaryError ? (
               <div className="rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-6 text-center space-y-3">
@@ -543,7 +543,7 @@ export default function OnboardingPage() {
                 onClick={handleStartGenerate}
                 disabled={!careerSummary && !summaryError}
                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-700
-                  disabled:bg-gray-200 dark:disabled:bg-white/10 disabled:text-gray-400 dark:disabled:text-white/30
+                  disabled:bg-gray-200 dark:disabled:bg-white/10 disabled:text-gray-400 dark:disabled:text-white/60
                   text-white font-bold text-base rounded-2xl transition-colors">
                 로드맵 생성하기 ✨
               </button>
@@ -558,7 +558,7 @@ export default function OnboardingPage() {
               <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
                 로드맵 생성 중
               </h1>
-              <p className="text-gray-400 dark:text-white/40 text-sm mt-1">
+              <p className="text-gray-400 dark:text-white/70 text-sm mt-1">
                 완성되면 자동으로 이동해드려요
               </p>
             </div>
@@ -580,7 +580,7 @@ export default function OnboardingPage() {
       </main>
 
       {/* AI 면책 고지 */}
-      <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-white/10 px-6 py-3 text-center text-xs text-gray-400 dark:text-white/30">
+      <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-white/10 px-6 py-3 text-center text-xs text-gray-400 dark:text-white/60">
         ⚠️ AI가 생성한 로드맵은 참고용입니다. 실제 채용 결과와 다를 수 있으며, DevNavi는 결과의 정확성에 대한 법적 책임을 지지 않습니다.
       </div>
       <Footer />

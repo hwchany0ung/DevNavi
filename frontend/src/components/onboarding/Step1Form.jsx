@@ -31,7 +31,7 @@ export default function Step1Form({ values, onChange }) {
     <div className="space-y-8">
       {/* Q1: 목표 직군 */}
       <div>
-        <p className="text-sm font-bold text-gray-500 dark:text-white/40 mb-3 uppercase tracking-widest">
+        <p className="text-sm font-bold text-gray-500 dark:text-cyan-400 mb-3 uppercase tracking-widest">
           Q1 · 목표 직군
         </p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
@@ -43,7 +43,7 @@ export default function Step1Form({ values, onChange }) {
               className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-semibold transition-all
                 ${values.role === r.value
                   ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
-                  : 'border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 text-gray-600 dark:text-white/60 hover:border-indigo-200 dark:hover:border-indigo-400/50'}`}
+                  : 'border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 text-gray-600 dark:text-white/85 hover:border-indigo-200 dark:hover:border-indigo-400/50'}`}
             >
               <span className="text-xl">{r.icon}</span>
               {r.label}
@@ -54,7 +54,7 @@ export default function Step1Form({ values, onChange }) {
 
       {/* Q2: 목표 기간 */}
       <div>
-        <p className="text-sm font-bold text-gray-500 dark:text-white/40 mb-3 uppercase tracking-widest">
+        <p className="text-sm font-bold text-gray-500 dark:text-cyan-400 mb-3 uppercase tracking-widest">
           Q2 · 목표 기간
         </p>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -66,7 +66,7 @@ export default function Step1Form({ values, onChange }) {
               className={`p-3 rounded-xl border-2 text-sm font-semibold transition-all
                 ${values.period === p.value
                   ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300'
-                  : 'border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 text-gray-600 dark:text-white/60 hover:border-indigo-200 dark:hover:border-indigo-400/50'}`}
+                  : 'border-gray-100 dark:border-white/10 bg-white dark:bg-white/5 text-gray-600 dark:text-white/85 hover:border-indigo-200 dark:hover:border-indigo-400/50'}`}
             >
               {p.label}
             </button>
@@ -76,7 +76,7 @@ export default function Step1Form({ values, onChange }) {
 
       {/* Q3: 지식 수준 */}
       <div>
-        <p className="text-sm font-bold text-gray-500 dark:text-white/40 mb-3 uppercase tracking-widest">
+        <p className="text-sm font-bold text-gray-500 dark:text-cyan-400 mb-3 uppercase tracking-widest">
           Q3 · 현재 수준
         </p>
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -99,7 +99,7 @@ export default function Step1Form({ values, onChange }) {
                   ${values.level === l.value ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-800 dark:text-white/80'}`}>
                   {l.label}
                 </p>
-                <p className="text-xs text-gray-400 dark:text-white/30 mt-0.5">{l.desc}</p>
+                <p className="text-xs text-gray-400 dark:text-white/60 mt-0.5">{l.desc}</p>
               </div>
             </button>
           ))}
