@@ -3,7 +3,7 @@
 > **AI가 설계하는 나만의 IT 커리어 로드맵**
 > Personalized AI-powered career roadmap generator for IT professionals
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](./LICENSE)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115-009688?logo=fastapi)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://react.dev)
 [![Claude](https://img.shields.io/badge/Powered_by-Claude_Sonnet-blueviolet)](https://anthropic.com)
@@ -257,4 +257,4 @@ DevNavi/
 
 ## 라이선스
 
-[MIT License](./LICENSE) © 2025 DevNavi
+[GNU Affero General Public License v3.0](./LICENSE) © 2025 DevNavi
