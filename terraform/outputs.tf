@@ -9,17 +9,17 @@ output "api_url" {
 }
 
 output "s3_frontend_bucket" {
-  description = "프론트엔드 S3 버킷 이름 (GitHub Actions Secrets에 등록)"
+  description = "프론트엔드 S3 버킷 이름 (GitHub Actions Secret: S3_BUCKET)"
   value       = aws_s3_bucket.frontend.id
 }
 
 output "s3_lambda_bucket" {
-  description = "Lambda 패키지 S3 버킷 이름 (GitHub Actions Secrets에 등록)"
+  description = "Lambda 패키지 S3 버킷 이름 (GitHub Actions Secret: S3_LAMBDA_BUCKET)"
   value       = aws_s3_bucket.lambda_packages.id
 }
 
 output "cloudfront_frontend_id" {
-  description = "프론트엔드 CloudFront Distribution ID (GitHub Actions Secrets에 등록)"
+  description = "프론트엔드 CloudFront Distribution ID (GitHub Actions Secret: CF_FRONTEND_DIST_ID)"
   value       = aws_cloudfront_distribution.frontend.id
 }
 
@@ -29,17 +29,13 @@ output "lambda_function_name" {
 }
 
 output "lambda_function_url" {
-  description = "Lambda Function URL (직접 접근 가능)"
+  description = "Lambda Function URL (직접 접근 가능 — 임시 테스트용)"
   value       = aws_lambda_function_url.api.function_url
 }
 
-output "github_actions_access_key_id" {
-  description = "GitHub Actions AWS_ACCESS_KEY_ID (GitHub Secrets에 등록)"
-  value       = aws_iam_access_key.github_actions.id
-}
-
-output "github_actions_secret_access_key" {
-  description = "GitHub Actions AWS_SECRET_ACCESS_KEY (GitHub Secrets에 등록)"
-  value       = aws_iam_access_key.github_actions.secret
-  sensitive   = true
+# fix: IAM User + Access Key 제거 → OIDC Role ARN 출력으로 대체
+# GitHub Actions에서 role-to-assume에 이 ARN 등록
+output "github_actions_role_arn" {
+  description = "GitHub Actions OIDC Role ARN (GitHub Actions Secret: AWS_ROLE_ARN)"
+  value       = aws_iam_role.github_actions.arn
 }

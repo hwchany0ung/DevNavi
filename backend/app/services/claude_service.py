@@ -48,8 +48,17 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
     """Sonnet으로 전체 로드맵 JSON을 SSE data 형식으로 스트리밍.
 
     클라이언트는 청크를 버퍼링하다가 [DONE] 수신 시 JSON.parse 수행.
+
+    CloudFront origin_read_timeout = 60초 제한 대응:
+    청크 간격이 55초 이상 벌어지면 ': keepalive' 이벤트를 먼저 전송해
+    CloudFront/프록시 연결 유지. 브라우저 EventSource는 ':' 주석을 무시.
     """
+    import asyncio
+    import time
+
     client = _get_client()
+    last_chunk_time = time.monotonic()
+
     async with client.messages.stream(
         model=SONNET,
         max_tokens=8000,
@@ -57,6 +66,11 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
         messages=[{"role": "user", "content": user}],
     ) as stream:
         async for text in stream.text_stream:
+            now = time.monotonic()
+            # 55초 이상 간격 발생 예방 keepalive (CloudFront 60초 제한)
+            if now - last_chunk_time > 55:
+                yield ": keepalive\n\n"
+            last_chunk_time = now
             yield f"data: {json.dumps({'type': 'chunk', 'chunk': text})}\n\n"
     yield "data: [DONE]\n\n"
 

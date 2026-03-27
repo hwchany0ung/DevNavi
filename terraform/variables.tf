@@ -28,9 +28,16 @@ variable "domain_name" {
 }
 
 variable "route53_zone_id" {
-  description = "Route 53 호스팅 존 ID (도메인 구매 후 입력)"
+  description = "Route 53 호스팅 존 ID (도메인 구매 후 입력, 없으면 빈 문자열)"
   type        = string
   default     = ""
+}
+
+# fix: OIDC 역할 신뢰 정책에 사용 (IAM User 대체)
+variable "github_repo" {
+  description = "GitHub 저장소 (owner/repo 형식, OIDC sub 클레임 필터링)"
+  type        = string
+  default     = "hwchany0ung/DevNavi"
 }
 
 # ── 시크릿 (terraform.tfvars 또는 환경변수로 주입) ──────────────────

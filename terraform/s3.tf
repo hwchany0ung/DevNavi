@@ -1,9 +1,14 @@
 # ──────────────────────────────────────────────────────────────────────
-# S3 — 프론트엔드 정적 파일 호스팅
+# S3 — 프론트엔드 정적 파일 호스팅 + Lambda 패키지 저장
 # ──────────────────────────────────────────────────────────────────────
 
 resource "aws_s3_bucket" "frontend" {
   bucket = "${local.name_prefix}-frontend"
+
+  # fix: 실수로 terraform destroy 시 파일 전체 삭제 방지
+  lifecycle {
+    prevent_destroy = true
+  }
 
   tags = local.common_tags
 }
@@ -71,7 +76,8 @@ resource "aws_s3_bucket_policy" "frontend" {
   })
 }
 
-# Lambda 배포 패키지용 S3 버킷 (50MB 초과 시 사용)
+# ── Lambda 배포 패키지 버킷 ──────────────────────────────────────────
+
 resource "aws_s3_bucket" "lambda_packages" {
   bucket = "${local.name_prefix}-lambda-packages"
 
@@ -85,6 +91,17 @@ resource "aws_s3_bucket_public_access_block" "lambda_packages" {
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# fix: lambda_packages 버킷 암호화 추가 (frontend와 일관성)
+resource "aws_s3_bucket_server_side_encryption_configuration" "lambda_packages" {
+  bucket = aws_s3_bucket.lambda_packages.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
 }
 
 # 30일 후 오래된 패키지 자동 삭제
