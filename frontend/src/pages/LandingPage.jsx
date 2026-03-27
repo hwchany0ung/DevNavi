@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useTheme } from '../contexts/ThemeContext'
 import AuthModal from '../components/auth/AuthModal'
 import ThemeToggle from '../components/common/ThemeToggle'
 
@@ -104,6 +105,8 @@ function RoadmapPreview() {
 /* ── 메인 랜딩 페이지 ── */
 export default function LandingPage() {
   const { user, loading } = useAuth()
+  const { theme } = useTheme()
+  const isDark = theme === 'dark'
   const navigate = useNavigate()
   const [authOpen, setAuthOpen] = useState(false)
 
@@ -121,44 +124,51 @@ export default function LandingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#080b12]">
-        <div className="w-8 h-8 border-4 border-indigo-100 dark:border-cyan-900 border-t-indigo-500 dark:border-t-cyan-400 rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center"
+        style={{ backgroundColor: isDark ? '#080b12' : '#ffffff' }}>
+        <div className="w-8 h-8 border-4 rounded-full animate-spin"
+          style={{ borderColor: isDark ? '#164e63' : '#e0e7ff', borderTopColor: isDark ? '#22d3ee' : '#6366f1' }} />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#080b12] flex flex-col overflow-hidden transition-colors"
-      style={{ backgroundImage: 'var(--landing-bg)' }}
+    <div className="min-h-screen flex flex-col overflow-hidden transition-colors"
+      style={{
+        backgroundColor: isDark ? '#080b12' : '#ffffff',
+        backgroundImage: isDark
+          ? 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.15), transparent)'
+          : undefined,
+      }}
     >
-      {/* 그라디언트 오버레이 - 다크에서만 표시 */}
-      <div className="pointer-events-none fixed inset-0 hidden dark:block"
-        style={{ backgroundImage: 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.15), transparent)' }} />
 
       {/* 네비게이션 */}
       <nav className="relative z-10 px-6 py-5 flex items-center justify-between max-w-6xl mx-auto w-full">
         <span className="text-lg font-black tracking-tight">
-          <span className="text-gray-900 dark:text-white">Dev</span>
-          <span className="text-indigo-500 dark:text-cyan-400">Navi</span>
+          <span style={{ color: isDark ? '#ffffff' : '#111827' }}>Dev</span>
+          <span style={{ color: isDark ? '#22d3ee' : '#6366f1' }}>Navi</span>
         </span>
         <div className="flex items-center gap-6">
           <button
             onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-            className="text-sm text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white/90 transition-colors hidden sm:block">
+            className="text-sm transition-colors hidden sm:block"
+            style={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#6b7280' }}>
             기능
           </button>
           <button
             onClick={() => navigate('/onboarding')}
-            className="text-sm text-gray-500 dark:text-white/50 hover:text-gray-900 dark:hover:text-white/90 transition-colors hidden sm:block">
+            className="text-sm transition-colors hidden sm:block"
+            style={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#6b7280' }}>
             시작하기
           </button>
           <ThemeToggle />
           <button
             onClick={() => setAuthOpen(true)}
-            className="text-sm px-4 py-2 border border-gray-200 dark:border-white/20
-              hover:border-gray-400 dark:hover:border-white/40
-              text-gray-600 dark:text-white/70 hover:text-gray-900 dark:hover:text-white
-              rounded-xl transition-all backdrop-blur-sm">
+            className="text-sm px-4 py-2 rounded-xl transition-all backdrop-blur-sm"
+            style={{
+              border: `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : '#e5e7eb'}`,
+              color: isDark ? 'rgba(255,255,255,0.7)' : '#4b5563',
+            }}>
             로그인
           </button>
         </div>
@@ -170,16 +180,19 @@ export default function LandingPage() {
 
         {/* 좌측 텍스트 */}
         <div className="flex-1 flex flex-col items-start max-w-xl">
-          <div className="inline-flex items-center gap-2
-            bg-indigo-50 dark:bg-cyan-500/10
-            border border-indigo-200 dark:border-cyan-500/20
-            text-indigo-600 dark:text-cyan-400
-            text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-            <span className="w-1.5 h-1.5 bg-indigo-500 dark:bg-cyan-400 rounded-full animate-pulse" />
+          <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full mb-6"
+            style={{
+              background: isDark ? 'rgba(6,182,212,0.1)' : '#eef2ff',
+              border: `1px solid ${isDark ? 'rgba(6,182,212,0.2)' : '#c7d2fe'}`,
+              color: isDark ? '#22d3ee' : '#6366f1',
+            }}>
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse"
+              style={{ backgroundColor: isDark ? '#22d3ee' : '#6366f1' }} />
             AI 기반 맞춤 커리어 로드맵
           </div>
 
-          <h1 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white leading-[1.15] mb-5">
+          <h1 className="text-4xl sm:text-5xl font-black leading-[1.15] mb-5"
+            style={{ color: isDark ? '#ffffff' : '#111827' }}>
             어떤 개발자가<br />될지, AI가<br />
             <span className="text-transparent bg-clip-text"
               style={{ backgroundImage: 'linear-gradient(90deg, #6366f1, #22d3ee)' }}>
@@ -187,7 +200,8 @@ export default function LandingPage() {
             </span>
           </h1>
 
-          <p className="text-gray-500 dark:text-white/50 text-base leading-relaxed mb-8 max-w-md">
+          <p className="text-base leading-relaxed mb-8 max-w-md"
+            style={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#6b7280' }}>
             목표 직군·기간·현재 수준 3가지만 알려주세요.<br />
             AI가 월별·주별 학습 계획을 즉시 생성합니다.
           </p>
@@ -202,30 +216,30 @@ export default function LandingPage() {
             </button>
             <button
               onClick={() => setAuthOpen(true)}
-              className="px-6 py-3.5 font-bold text-sm rounded-xl
-                border border-gray-200 dark:border-white/15
-                text-gray-600 dark:text-white/70
-                hover:text-gray-900 dark:hover:text-white
-                hover:border-gray-400 dark:hover:border-white/30
-                transition-all">
+              className="px-6 py-3.5 font-bold text-sm rounded-xl transition-all"
+              style={{
+                border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : '#e5e7eb'}`,
+                color: isDark ? 'rgba(255,255,255,0.7)' : '#4b5563',
+              }}>
               로그인
             </button>
           </div>
 
-          <p className="mt-4 text-xs text-gray-400 dark:text-white/30">
+          <p className="mt-4 text-xs" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#9ca3af' }}>
             회원가입 없이 미리보기 가능 · 로드맵 저장은 로그인 필요
           </p>
 
           {/* 통계 */}
-          <div className="flex items-center gap-8 mt-10 pt-8 border-t border-gray-100 dark:border-white/10 w-full">
+          <div className="flex items-center gap-8 mt-10 pt-8 w-full"
+            style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#f3f4f6'}` }}>
             {[
               { value: '9+', label: '지원 직군' },
               { value: '즉시', label: '로드맵 생성' },
               { value: '무료', label: '기본 이용' },
             ].map(({ value, label }) => (
               <div key={label}>
-                <div className="text-xl font-black text-gray-900 dark:text-white">{value}</div>
-                <div className="text-xs text-gray-400 dark:text-white/40 mt-0.5">{label}</div>
+                <div className="text-xl font-black" style={{ color: isDark ? '#ffffff' : '#111827' }}>{value}</div>
+                <div className="text-xs mt-0.5" style={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#9ca3af' }}>{label}</div>
               </div>
             ))}
           </div>
@@ -239,12 +253,14 @@ export default function LandingPage() {
       </main>
 
       {/* 기능 섹션 */}
-      <section id="features" className="relative z-10 px-6 py-16 max-w-6xl mx-auto w-full
-        border-t border-gray-100 dark:border-white/[0.06]">
-        <p className="text-xs text-indigo-500 dark:text-cyan-400 font-semibold tracking-widest uppercase mb-3 text-center">
+      <section id="features" className="relative z-10 px-6 py-16 max-w-6xl mx-auto w-full"
+        style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6'}` }}>
+        <p className="text-xs font-semibold tracking-widest uppercase mb-3 text-center"
+          style={{ color: isDark ? '#22d3ee' : '#6366f1' }}>
           Features
         </p>
-        <h2 className="text-2xl font-black text-gray-900 dark:text-white text-center mb-10">
+        <h2 className="text-2xl font-black text-center mb-10"
+          style={{ color: isDark ? '#ffffff' : '#111827' }}>
           개발자 커리어를 위한 모든 것
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -253,48 +269,55 @@ export default function LandingPage() {
               icon: '🎯',
               title: '맞춤 로드맵',
               desc: '직군·기간·수준에 맞춰 월별·주별 학습 계획 자동 생성',
-              lightColor: 'from-indigo-50 to-white',
-              lightBorder: 'border-indigo-100',
-              darkColor: 'dark:from-indigo-500/20 dark:to-indigo-500/5',
-              darkBorder: 'dark:border-indigo-500/20',
+              darkBg: 'rgba(99,102,241,0.15)',
+              darkBorder: 'rgba(99,102,241,0.2)',
+              lightBg: '#eef2ff',
+              lightBorder: '#c7d2fe',
             },
             {
               icon: '📊',
               title: '진행률 추적',
               desc: '완료 태스크 체크 + 잔디 캘린더로 학습 습관 시각화',
-              lightColor: 'from-cyan-50 to-white',
-              lightBorder: 'border-cyan-100',
-              darkColor: 'dark:from-cyan-500/20 dark:to-cyan-500/5',
-              darkBorder: 'dark:border-cyan-500/20',
+              darkBg: 'rgba(6,182,212,0.15)',
+              darkBorder: 'rgba(6,182,212,0.2)',
+              lightBg: '#ecfeff',
+              lightBorder: '#a5f3fc',
             },
             {
               icon: '🔀',
               title: '방향 재설정',
               desc: '중간에 방향이 바뀌어도 현재 상황 맞춤으로 즉시 재생성',
-              lightColor: 'from-violet-50 to-white',
-              lightBorder: 'border-violet-100',
-              darkColor: 'dark:from-violet-500/20 dark:to-violet-500/5',
-              darkBorder: 'dark:border-violet-500/20',
+              darkBg: 'rgba(139,92,246,0.15)',
+              darkBorder: 'rgba(139,92,246,0.2)',
+              lightBg: '#f5f3ff',
+              lightBorder: '#ddd6fe',
             },
-          ].map(({ icon, title, desc, lightColor, lightBorder, darkColor, darkBorder }) => (
+          ].map(({ icon, title, desc, darkBg, darkBorder, lightBg, lightBorder }) => (
             <div key={title}
-              className={`bg-gradient-to-b ${lightColor} ${darkColor} border ${lightBorder} ${darkBorder} rounded-2xl p-5 space-y-2`}>
+              className="rounded-2xl p-5 space-y-2"
+              style={{
+                background: isDark ? darkBg : lightBg,
+                border: `1px solid ${isDark ? darkBorder : lightBorder}`,
+              }}>
               <span className="text-2xl">{icon}</span>
-              <h3 className="font-bold text-gray-900 dark:text-white text-sm">{title}</h3>
-              <p className="text-xs text-gray-500 dark:text-white/40 leading-relaxed">{desc}</p>
+              <h3 className="font-bold text-sm" style={{ color: isDark ? '#ffffff' : '#111827' }}>{title}</h3>
+              <p className="text-xs leading-relaxed" style={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#6b7280' }}>{desc}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* 푸터 */}
-      <footer className="relative z-10 py-6 border-t border-gray-100 dark:border-white/[0.06]
-        text-center text-xs text-gray-400 dark:text-white/25">
+      <footer className="relative z-10 py-6 text-center text-xs"
+        style={{
+          borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6'}`,
+          color: isDark ? 'rgba(255,255,255,0.25)' : '#9ca3af',
+        }}>
         <div className="flex flex-wrap items-center justify-center gap-4">
           <span>© 2025 DevNavi. All rights reserved.</span>
-          <a href="/terms"   className="hover:text-gray-600 dark:hover:text-white/50 transition-colors">이용약관</a>
-          <a href="/privacy" className="hover:text-gray-600 dark:hover:text-white/50 transition-colors">개인정보처리방침</a>
-          <a href="mailto:support@devnavi.kr" className="hover:text-gray-600 dark:hover:text-white/50 transition-colors">문의</a>
+          <a href="/terms"   className="hover:opacity-70 transition-opacity">이용약관</a>
+          <a href="/privacy" className="hover:opacity-70 transition-opacity">개인정보처리방침</a>
+          <a href="mailto:support@devnavi.kr" className="hover:opacity-70 transition-opacity">문의</a>
         </div>
       </footer>
 

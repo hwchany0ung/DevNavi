@@ -10,7 +10,18 @@ export async function request(path, options = {}) {
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    const error = new Error(err.detail || `HTTP ${res.status}`)
+    // FastAPI validation 오류는 detail이 배열({loc,msg,type})로 올 수 있음
+    let detailMsg
+    if (typeof err.detail === 'string') {
+      detailMsg = err.detail
+    } else if (Array.isArray(err.detail)) {
+      detailMsg = err.detail.map(d => d.msg || JSON.stringify(d)).join(', ')
+    } else if (err.detail) {
+      detailMsg = JSON.stringify(err.detail)
+    } else {
+      detailMsg = `HTTP ${res.status}`
+    }
+    const error = new Error(detailMsg)
     error.status = res.status
     throw error
   }
