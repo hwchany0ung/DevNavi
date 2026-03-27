@@ -58,10 +58,16 @@ resource "aws_lambda_function_url" "api" {
   function_name      = aws_lambda_function.api.function_name
   authorization_type = "NONE"  # CloudFront에서 인증 처리
 
-  # CORS는 FastAPI CORSMiddleware가 담당
-  # Lambda Function URL CORS와 FastAPI CORS가 동시에 동작하면
-  # Access-Control-Allow-Origin 헤더가 중복되어 브라우저가 요청 거부
-  # → cors 블록 제거, FastAPI app에서 단일 처리
+  # Lambda URL이 CORS 단일 처리 (FastAPI CORSMiddleware는 개발 환경에서만 활성)
+  # - OPTIONS preflight: Lambda URL이 자동 처리 (Lambda 도달 안 함)
+  # - 실제 요청: Lambda URL이 Access-Control-Allow-Origin 헤더 추가
+  cors {
+    allow_credentials = true
+    allow_headers     = ["content-type", "authorization"]
+    allow_methods     = ["GET", "POST"]
+    allow_origins     = ["https://devnavi.kr"]
+    max_age           = 86400
+  }
 
   # BUFFERED: Mangum이 Lambda Proxy JSON 형식으로 응답 → Function URL이 정상 해석
   # RESPONSE_STREAM 사용 시 Mangum JSON 자체가 스트림 body로 전달돼 SSE 파싱 불가

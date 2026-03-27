@@ -123,15 +123,20 @@ class ErrorLoggingMiddleware:
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(ErrorLoggingMiddleware)
 
-# ── CORS — 반드시 마지막 등록 (outermost 보장) ─────────────────────────
-# outermost CORS = 모든 에러 응답에도 CORS 헤더 추가됨.
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],  # 실제 사용하는 메서드만 허용
-    allow_headers=["*"],
-)
+# ── CORS ──────────────────────────────────────────────────────────────
+# Production: Lambda Function URL CORS 블록이 단일 처리
+#   - OPTIONS preflight: Lambda URL이 자동 응답 (Lambda 도달 안 함)
+#   - 실제 요청(GET/POST): Lambda URL이 Access-Control-Allow-Origin 추가
+#   → FastAPI CORSMiddleware 동시 적용 시 헤더 중복 → 브라우저 거부
+# Development: 로컬 FastAPI 직접 실행 시 CORSMiddleware 필요
+if settings.ENV != "production":
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.CORS_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["*"],
+    )
 
 app.include_router(roadmap_router)
 app.include_router(admin_router)
@@ -163,4 +168,4 @@ async def health():
 # lifespan="on": startup/shutdown 훅 실행
 # api_gateway_base_path: Lambda Function URL은 경로 prefix 없음
 handler = Mangum(app, lifespan="on", api_gateway_base_path=None)
-# x86_64 build - Sat Mar 28 2026 (pure-asgi, BUFFERED, direct LambdaURL, max_tokens=6000)
+# x86_64 build - Sat Mar 28 2026 (pure-asgi, BUFFERED, LambdaURL CORS, max_tokens=6000)
