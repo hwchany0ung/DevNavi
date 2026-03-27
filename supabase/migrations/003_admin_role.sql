@@ -49,5 +49,16 @@ CREATE INDEX IF NOT EXISTS idx_api_usage_user     ON public.api_usage(user_id, u
 CREATE INDEX IF NOT EXISTS idx_api_usage_endpoint ON public.api_usage(endpoint, usage_date);
 
 ALTER TABLE public.api_usage ENABLE ROW LEVEL SECURITY;
-CREATE POLICY IF NOT EXISTS "api_usage_deny_all" ON public.api_usage
-  USING (false);
+
+-- CREATE POLICY는 IF NOT EXISTS 미지원 → DO 블록으로 중복 방지
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename  = 'api_usage'
+      AND policyname = 'api_usage_deny_all'
+  ) THEN
+    CREATE POLICY "api_usage_deny_all" ON public.api_usage USING (false);
+  END IF;
+END $$;
