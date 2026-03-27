@@ -111,6 +111,15 @@ export default function LandingPage() {
   const navigate = useNavigate()
   const { state: locationState } = useLocation()
   const [authOpen, setAuthOpen] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  // 관리자 여부 서버에서 확인 (로그인 시에만)
+  useEffect(() => {
+    if (!user) { setIsAdmin(false); return }
+    request('/admin/me', { headers: { Authorization: `Bearer ${user.accessToken}` } })
+      .then(() => setIsAdmin(true))
+      .catch(() => setIsAdmin(false))
+  }, [user])
 
   useEffect(() => {
     if (loading) return
@@ -156,7 +165,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col overflow-hidden transition-colors"
+    <div className="min-h-screen flex flex-col overflow-x-hidden transition-colors"
       style={{
         backgroundColor: isDark ? '#080b12' : '#ffffff',
         backgroundImage: isDark
@@ -208,6 +217,18 @@ export default function LandingPage() {
                 style={{ background: 'linear-gradient(135deg, #6366f1, #22d3ee)' }}>
                 내 로드맵
               </button>
+              {isAdmin && (
+                <button
+                  onClick={() => navigate('/admin')}
+                  className="text-xs px-2.5 py-1 rounded-lg font-medium transition-all"
+                  style={{
+                    background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
+                    border: `1px solid ${isDark ? 'rgba(239,68,68,0.3)' : '#fecaca'}`,
+                    color: isDark ? '#f87171' : '#dc2626',
+                  }}>
+                  관리자
+                </button>
+              )}
               <button
                 onClick={signOut}
                 className="text-sm transition-colors"
