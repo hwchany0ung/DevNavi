@@ -45,7 +45,7 @@ app.add_middleware(
 # ── CloudFront 시크릿 헤더 검증 미들웨어 ─────────────────────────────
 # Lambda Function URL이 공개 접근 가능하므로, CloudFront를 통한 요청인지 확인.
 # CLOUDFRONT_SECRET 환경변수가 설정된 경우에만 활성화.
-_CF_SECRET = settings.CLOUDFRONT_SECRET if hasattr(settings, "CLOUDFRONT_SECRET") else None
+_CF_SECRET = settings.CLOUDFRONT_SECRET  # Optional[str] — None이면 검증 비활성화
 
 @app.middleware("http")
 async def verify_cloudfront_secret(request: Request, call_next):

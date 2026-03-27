@@ -277,9 +277,9 @@ async def get_activity(user: dict = Depends(require_user)):
 
 
 @router.get("/{roadmap_id}")
-async def get(roadmap_id: str):
-    """저장된 로드맵 조회 (공개 — 공유 링크 대응)."""
-    data = await get_roadmap(roadmap_id)
+async def get(roadmap_id: str, user: dict = Depends(require_user)):
+    """저장된 로드맵 조회 (인증 필수, 본인 소유 검증)."""
+    data = await get_roadmap(roadmap_id, user_id=user["id"])
     if not data:
         raise HTTPException(status_code=404, detail="로드맵을 찾을 수 없습니다.")
     return data

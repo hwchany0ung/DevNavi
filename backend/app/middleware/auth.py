@@ -59,8 +59,14 @@ def _verify_token(token: str) -> dict:
                 algorithms=["ES256", "RS256", "HS256"],
                 audience="authenticated",
             )
+            sub = payload.get("sub", "")
+            if not sub:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="유효하지 않은 토큰입니다. (sub 누락)",
+                )
             return {
-                "id":    payload.get("sub", ""),
+                "id":    sub,
                 "email": payload.get("email", ""),
             }
         except jwt.ExpiredSignatureError:
@@ -80,8 +86,14 @@ def _verify_token(token: str) -> dict:
                 algorithms=["HS256"],
                 audience="authenticated",
             )
+            sub = payload.get("sub", "")
+            if not sub:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="유효하지 않은 토큰입니다. (sub 누락)",
+                )
             return {
-                "id":    payload.get("sub", ""),
+                "id":    sub,
                 "email": payload.get("email", ""),
             }
         except jwt.ExpiredSignatureError:

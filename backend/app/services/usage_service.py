@@ -70,10 +70,20 @@ async def check_and_increment(user_id: str, endpoint: str) -> None:
         if rpc_resp.status_code == 200:
             # 성공 → count가 반환됨, 제한 이내
             return
-        if rpc_resp.status_code == 400:
-            # PostgreSQL RAISE EXCEPTION → 한도 초과
+        if rpc_resp.status_code in (400, 422):
+            # PostgreSQL RAISE EXCEPTION → 한도 초과 (문자열 + 에러코드 이중 확인)
             err_text = rpc_resp.text
-            if "DAILY_LIMIT_EXCEEDED" in err_text:
+            try:
+                err_json = rpc_resp.json()
+                is_limit = (
+                    "DAILY_LIMIT_EXCEEDED" in err_text or
+                    err_json.get("code") == "DAILY_LIMIT_EXCEEDED" or
+                    "DAILY_LIMIT_EXCEEDED" in str(err_json.get("message", "")) or
+                    "DAILY_LIMIT_EXCEEDED" in str(err_json.get("hint", ""))
+                )
+            except Exception:
+                is_limit = "DAILY_LIMIT_EXCEEDED" in err_text
+            if is_limit:
                 raise HTTPException(
                     status_code=429,
                     detail={

@@ -6,12 +6,21 @@ from typing import Literal, Optional, Union
 _ITEM_MAX_LEN = 60
 
 # 프롬프트 구조를 깨뜨릴 수 있는 특수문자 패턴
-_INJECTION_PATTERN = re.compile(r'[\[\]{}<>\n\r\t\\]')
+# ※ +, #, @ 등 기술명에 정상 사용되는 문자는 제외 (C++, C#, .NET 등 보존)
+_INJECTION_PATTERN = re.compile(r'[\[\]{}\n\r\t\\]')
+# 각도 괄호는 기술명에 드물게 사용되나 HTML/XML 인젝션 위험 — 별도 처리
+_ANGLE_PATTERN = re.compile(r'<[^>]{0,30}>')  # 태그 형태만 제거, 단독 < > 는 보존
 
 
 def _sanitize_item(item: str) -> str:
-    """프롬프트 인젝션 위험 문자 제거 후 길이 제한."""
+    """프롬프트 인젝션 위험 문자 제거 후 길이 제한.
+
+    - 줄바꿈·탭·백슬래시·중괄호·대괄호 제거 (프롬프트 구조 보호)
+    - HTML 태그 형태(<tag>) 제거
+    - C++, C#, .NET, TypeScript<T> 등 기술명은 최대한 보존
+    """
     cleaned = _INJECTION_PATTERN.sub(' ', str(item))
+    cleaned = _ANGLE_PATTERN.sub(' ', cleaned)
     return cleaned[:_ITEM_MAX_LEN].strip()
 
 

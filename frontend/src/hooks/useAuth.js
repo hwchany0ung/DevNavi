@@ -26,10 +26,17 @@ export function useAuth() {
     if (!isSupabaseReady) return
 
     // 현재 세션 확인
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session ? _toUser(session) : null)
-      setLoading(false)
-    })
+    supabase.auth.getSession()
+      .then(({ data: { session }, error }) => {
+        if (error) console.warn('[useAuth] getSession 오류:', error.message)
+        setUser(session ? _toUser(session) : null)
+        setLoading(false)
+      })
+      .catch((err) => {
+        // 네트워크 오류 등 — loading 무한 대기 방지
+        console.warn('[useAuth] getSession 네트워크 오류:', err)
+        setLoading(false)
+      })
 
     // 인증 상태 변경 구독
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {

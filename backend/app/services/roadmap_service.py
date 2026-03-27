@@ -93,16 +93,23 @@ async def persist_roadmap(
     return roadmap_id
 
 
-async def get_roadmap(roadmap_id: str) -> dict | None:
-    """roadmap_id로 로드맵 조회."""
+async def get_roadmap(roadmap_id: str, user_id: Optional[str] = None) -> dict | None:
+    """roadmap_id로 로드맵 조회.
+
+    user_id가 주어지면 소유자 검증 (타인 로드맵 접근 차단).
+    user_id=None이면 공개 조회 (미래 공유 기능용).
+    """
     if not settings.supabase_ready:
         return None
     client = get_supabase_client()
+    params: dict = {"id": f"eq.{roadmap_id}", "select": "*"}
+    if user_id:
+        params["user_id"] = f"eq.{user_id}"
     try:
         resp = await client.get(
             sb_url("roadmaps"),
             headers=sb_headers(),
-            params={"id": f"eq.{roadmap_id}", "select": "*"},
+            params=params,
         )
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:
@@ -175,7 +182,7 @@ async def list_user_roadmaps(user_id: str) -> list[dict]:
         resp = await client.get(
             sb_url("roadmaps"),
             headers=sb_headers(),
-            params={"user_id": f"eq.{user_id}", "select": "id,created_at", "order": "created_at.desc", "limit": "5"},
+            params={"user_id": f"eq.{user_id}", "select": "id,created_at", "order": "created_at.desc", "limit": "1"},
         )
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:

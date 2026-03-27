@@ -42,7 +42,7 @@ def _load_ssm_params() -> None:
             _logger.warning("SSM 누락 파라미터: %s", missing)
         for param in response["Parameters"]:
             key = param["Name"].replace(prefix, "")
-            os.environ.setdefault(key, param["Value"])
+            os.environ[key] = param["Value"]  # SSM이 최우선 (기존 환경변수 덮어씀)
         _logger.info("SSM 파라미터 로드 완료 (%d개)", len(response["Parameters"]))
     except Exception as e:
         # 프로덕션에서 SSM 로드 실패 → 앱 시작 중단 (시크릿 없이 실행 방지)

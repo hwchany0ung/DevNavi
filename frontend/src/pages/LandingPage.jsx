@@ -115,14 +115,17 @@ export default function LandingPage() {
     if (loading) return
     if (!user) return
 
-    // 1) localStorage에서 먼저 찾기
+    // 1) localStorage에서 먼저 찾기 (UUID 형식 검증 포함)
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     const localKeys = Object.keys(localStorage)
       .filter(k => k.startsWith('devnavi_roadmap_'))
       .sort()  // 오래된 것 먼저 → 마지막이 최신
     if (localKeys.length > 0) {
       const id = localKeys[localKeys.length - 1].replace('devnavi_roadmap_', '')
-      navigate(`/roadmap/${id}`, { replace: true })
-      return
+      if (UUID_RE.test(id)) {
+        navigate(`/roadmap/${id}`, { replace: true })
+        return
+      }
     }
 
     // 2) 서버에서 로드맵 확인 (localStorage 없을 때 — 기존 사용자 재방문)
