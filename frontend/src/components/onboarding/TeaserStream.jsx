@@ -14,13 +14,13 @@ function parseTeaser(text) {
     const match = line.match(/^##\s*(.+)/)
     if (match) {
       return (
-        <p key={i} className="font-bold text-indigo-700 mt-4 first:mt-0">
+        <p key={i} className="font-bold text-indigo-700 dark:text-indigo-400 mt-4 first:mt-0">
           {match[1]}
         </p>
       )
     }
     if (line.trim()) {
-      return <p key={i} className="text-gray-600 text-sm mt-1">{line}</p>
+      return <p key={i} className="text-gray-600 dark:text-white/60 text-sm mt-1">{line}</p>
     }
     return null
   })
@@ -36,9 +36,9 @@ export default function TeaserStream({ text, isStreaming, error, onDeepDive }) {
 
   if (error) {
     return (
-      <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center">
-        <p className="text-red-600 font-semibold mb-1">로드맵 생성 중 오류가 발생했어요</p>
-        <p className="text-red-400 text-sm">{error.message}</p>
+      <div className="rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-6 text-center">
+        <p className="text-red-600 dark:text-red-400 font-semibold mb-1">로드맵 생성 중 오류가 발생했어요</p>
+        <p className="text-red-400 dark:text-red-400/70 text-sm">{error.message}</p>
         {error.status === 402 && (
           <button
             onClick={onDeepDive}
@@ -52,8 +52,8 @@ export default function TeaserStream({ text, isStreaming, error, onDeepDive }) {
 
   if (!text && isStreaming) {
     return (
-      <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-6">
-        <div className="flex items-center gap-3 text-indigo-500">
+      <div className="rounded-2xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 p-6">
+        <div className="flex items-center gap-3 text-indigo-500 dark:text-indigo-400">
           <span className="flex gap-1">
             {[0, 1, 2].map((i) => (
               <span key={i}
@@ -71,7 +71,7 @@ export default function TeaserStream({ text, isStreaming, error, onDeepDive }) {
   if (!text) return null
 
   return (
-    <div className="rounded-2xl bg-white border border-indigo-100 shadow-sm overflow-hidden">
+    <div className="rounded-2xl bg-white dark:bg-gray-900 border border-indigo-100 dark:border-white/10 shadow-sm overflow-hidden">
       {/* 헤더 */}
       <div className="px-6 py-4 bg-gradient-to-r from-indigo-600 to-violet-600 flex items-center gap-2">
         <span className="text-white text-sm font-bold">✨ AI 맞춤 로드맵 (티저)</span>
@@ -90,11 +90,11 @@ export default function TeaserStream({ text, isStreaming, error, onDeepDive }) {
       {/* 딥다이브 유도 — 스트리밍 완료 후 표시 */}
       {!isStreaming && text && (
         <div className="px-6 pb-6">
-          <div className="rounded-xl bg-indigo-50 border border-indigo-100 p-4 text-center">
-            <p className="text-sm font-semibold text-indigo-800 mb-1">
+          <div className="rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 p-4 text-center">
+            <p className="text-sm font-semibold text-indigo-800 dark:text-indigo-300 mb-1">
               더 완벽한 맞춤형 세부 계획을 원하시나요?
             </p>
-            <p className="text-xs text-indigo-400 mb-3">
+            <p className="text-xs text-indigo-400 dark:text-indigo-400/70 mb-3">
               스킬·자격증·목표 회사까지 반영한 주차별 체크리스트를 생성해드려요
             </p>
             <button

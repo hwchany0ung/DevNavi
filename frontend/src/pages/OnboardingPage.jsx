@@ -40,7 +40,7 @@ function isStep2Complete(v) {
 /** 전체 로드맵 생성 중 로딩 화면 */
 function FullRoadmapLoading({ progress }) {
   return (
-    <div className="rounded-2xl bg-white border border-indigo-100 shadow-sm p-8 text-center space-y-5">
+    <div className="rounded-2xl bg-white dark:bg-white/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm p-8 text-center space-y-5">
       <div className="flex gap-1 justify-center">
         {[0, 1, 2].map((i) => (
           <span key={i} className="w-3 h-3 rounded-full bg-indigo-400 animate-bounce"
@@ -48,15 +48,15 @@ function FullRoadmapLoading({ progress }) {
         ))}
       </div>
       <div>
-        <p className="text-gray-700 font-bold text-sm">
+        <p className="text-gray-700 dark:text-white/80 font-bold text-sm">
           AI가 맞춤 로드맵을 생성하고 있어요 ✨
         </p>
-        <p className="text-gray-400 text-xs mt-1">
+        <p className="text-gray-400 dark:text-white/40 text-xs mt-1">
           스킬·목표 회사·학습 시간을 모두 반영 중…
         </p>
       </div>
       {/* 진행 바 */}
-      <div className="w-full h-2 rounded-full bg-indigo-100 overflow-hidden">
+      <div className="w-full h-2 rounded-full bg-indigo-100 dark:bg-indigo-900/40 overflow-hidden">
         <div
           className="h-full bg-indigo-500 rounded-full transition-all duration-300"
           style={{ width: `${progress}%` }}
@@ -294,7 +294,7 @@ export default function OnboardingPage() {
       <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-white/10 px-6 py-4
         flex items-center justify-between sticky top-0 z-10">
         <span className="text-lg font-black text-indigo-600 tracking-tight">
-          Dev<span className="text-gray-800">Navi</span>
+          Dev<span className="text-gray-800 dark:text-white">Navi</span>
         </span>
         {/* 로드맵 생성 중에는 스텝 인디케이터 숨김 */}
         {step !== 'generating' && (
@@ -302,10 +302,10 @@ export default function OnboardingPage() {
             {['직군 선택', '상세 정보', '커리어 분석'].map((label, i) => (
               <div key={i} className="flex items-center gap-2">
                 {i > 0 && (
-                  <div className={`w-8 h-px ${i <= stepIndex ? 'bg-indigo-400' : 'bg-gray-200'}`} />
+                  <div className={`w-8 h-px ${i <= stepIndex ? 'bg-indigo-400' : 'bg-gray-200 dark:bg-white/10'}`} />
                 )}
                 <span className={`font-medium
-                  ${i === stepIndex ? 'text-indigo-600' : i < stepIndex ? 'text-indigo-300' : 'text-gray-300'}`}>
+                  ${i === stepIndex ? 'text-indigo-600 dark:text-indigo-400' : i < stepIndex ? 'text-indigo-300 dark:text-indigo-500/60' : 'text-gray-300 dark:text-white/20'}`}>
                   {label}
                 </span>
               </div>
@@ -335,10 +335,10 @@ export default function OnboardingPage() {
         {(step === 1 || step === 'teaser') && (
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl font-black text-gray-900 leading-tight">
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
                 어떤 개발자가 되고 싶으세요?
               </h1>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-gray-400 dark:text-white/40 text-sm mt-1">
                 3가지만 알려주시면 AI가 맞춤 로드맵을 즉시 만들어드려요
               </p>
             </div>
@@ -350,7 +350,7 @@ export default function OnboardingPage() {
                 disabled={!isStep1Complete(step1)}
                 onClick={handleStep1Submit}
                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-700
-                  disabled:bg-gray-200 disabled:text-gray-400
+                  disabled:bg-gray-200 dark:disabled:bg-white/10 disabled:text-gray-400 dark:disabled:text-white/30
                   text-white font-bold text-base rounded-2xl transition-colors">
                 AI 로드맵 생성하기 ✨
               </button>
@@ -372,13 +372,13 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div>
               <button onClick={() => setStep('teaser')}
-                className="text-sm text-gray-400 hover:text-gray-600 mb-4 flex items-center gap-1">
+                className="text-sm text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/70 mb-4 flex items-center gap-1">
                 ← 이전으로
               </button>
-              <h1 className="text-2xl font-black text-gray-900 leading-tight">
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
                 조금 더 알려주세요
               </h1>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-gray-400 dark:text-white/40 text-sm mt-1">
                 스킬과 목표를 반영한 주차별 체크리스트를 만들어드려요
               </p>
             </div>
@@ -389,7 +389,7 @@ export default function OnboardingPage() {
               disabled={!isStep2Complete(step2)}
               onClick={handleStep2Submit}
               className="w-full py-4 bg-indigo-600 hover:bg-indigo-700
-                disabled:bg-gray-200 disabled:text-gray-400
+                disabled:bg-gray-200 dark:disabled:bg-white/10 disabled:text-gray-400 dark:disabled:text-white/30
                 text-white font-bold text-base rounded-2xl transition-colors">
               {user ? '커리어 분석하기 →' : '로그인하고 커리어 분석하기 →'}
             </button>
@@ -401,39 +401,39 @@ export default function OnboardingPage() {
           <div className="space-y-6">
             <div>
               <button onClick={() => setStep(2)}
-                className="text-sm text-gray-400 hover:text-gray-600 mb-4 flex items-center gap-1">
+                className="text-sm text-gray-400 dark:text-white/40 hover:text-gray-600 dark:hover:text-white/70 mb-4 flex items-center gap-1">
                 ← 이전으로
               </button>
-              <h1 className="text-2xl font-black text-gray-900 leading-tight">
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
                 AI 분석 완료!
               </h1>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-gray-400 dark:text-white/40 text-sm mt-1">
                 지금 상황에 맞는 학습 우선순위를 확인하세요
               </p>
             </div>
 
             {summaryLoading ? (
-              <div className="rounded-2xl bg-white border border-indigo-100 shadow-sm p-10 text-center space-y-4">
+              <div className="rounded-2xl bg-white dark:bg-white/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm p-10 text-center space-y-4">
                 <div className="flex gap-1 justify-center">
                   {[0, 1, 2].map((i) => (
                     <span key={i} className="w-2.5 h-2.5 rounded-full bg-indigo-400 animate-bounce"
                       style={{ animationDelay: `${i * 0.15}s` }} />
                   ))}
                 </div>
-                <p className="text-gray-500 font-semibold text-sm">커리어 분석 중…</p>
-                <p className="text-gray-400 text-xs">보유 스킬과 목표를 비교하고 있어요</p>
+                <p className="text-gray-500 dark:text-white/60 font-semibold text-sm">커리어 분석 중…</p>
+                <p className="text-gray-400 dark:text-white/30 text-xs">보유 스킬과 목표를 비교하고 있어요</p>
               </div>
             ) : summaryError ? (
-              <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center space-y-3">
-                <p className="text-red-600 font-semibold text-sm">분석 중 오류가 발생했어요</p>
-                <p className="text-red-400 text-xs">{summaryError}</p>
+              <div className="rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-6 text-center space-y-3">
+                <p className="text-red-600 dark:text-red-400 font-semibold text-sm">분석 중 오류가 발생했어요</p>
+                <p className="text-red-400 dark:text-red-400/70 text-xs">{summaryError}</p>
                 <button onClick={_doCareerSummary}
                   className="px-5 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors">
                   다시 시도
                 </button>
               </div>
             ) : careerSummary ? (
-              <div className="rounded-2xl bg-gray-50 border border-gray-100 p-5">
+              <div className="rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 p-5">
                 <CareerSummaryPanel summary={careerSummary} />
               </div>
             ) : null}
@@ -443,7 +443,7 @@ export default function OnboardingPage() {
                 onClick={handleStartGenerate}
                 disabled={!careerSummary && !summaryError}
                 className="w-full py-4 bg-indigo-600 hover:bg-indigo-700
-                  disabled:bg-gray-200 disabled:text-gray-400
+                  disabled:bg-gray-200 dark:disabled:bg-white/10 disabled:text-gray-400 dark:disabled:text-white/30
                   text-white font-bold text-base rounded-2xl transition-colors">
                 로드맵 생성하기 ✨
               </button>
@@ -455,17 +455,17 @@ export default function OnboardingPage() {
         {step === 'generating' && (
           <div className="space-y-6">
             <div>
-              <h1 className="text-2xl font-black text-gray-900 leading-tight">
+              <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
                 로드맵 생성 중
               </h1>
-              <p className="text-gray-400 text-sm mt-1">
+              <p className="text-gray-400 dark:text-white/40 text-sm mt-1">
                 완성되면 자동으로 이동해드려요
               </p>
             </div>
             {fullError ? (
-              <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center space-y-3">
-                <p className="text-red-600 font-semibold text-sm">오류가 발생했어요</p>
-                <p className="text-red-400 text-xs">{fullError.message}</p>
+              <div className="rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-6 text-center space-y-3">
+                <p className="text-red-600 dark:text-red-400 font-semibold text-sm">오류가 발생했어요</p>
+                <p className="text-red-400 dark:text-red-400/70 text-xs">{fullError.message}</p>
                 <button
                   onClick={() => setStep(2)}
                   className="px-5 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors">
@@ -480,7 +480,7 @@ export default function OnboardingPage() {
       </main>
 
       {/* AI 면책 고지 */}
-      <div className="bg-gray-50 border-t border-gray-100 px-6 py-3 text-center text-xs text-gray-400">
+      <div className="bg-gray-50 dark:bg-gray-900 border-t border-gray-100 dark:border-white/10 px-6 py-3 text-center text-xs text-gray-400 dark:text-white/30">
         ⚠️ AI가 생성한 로드맵은 참고용입니다. 실제 채용 결과와 다를 수 있으며, DevNavi는 결과의 정확성에 대한 법적 책임을 지지 않습니다.
       </div>
       <Footer />
