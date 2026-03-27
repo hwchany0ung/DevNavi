@@ -58,8 +58,10 @@ _CF_SECRET = settings.CLOUDFRONT_SECRET  # Optional[str] — None이면 검증 �
 @app.middleware("http")
 async def verify_cloudfront_secret(request: Request, call_next):
     if _CF_SECRET and settings.ENV == "production":
-        # health check는 제외 (ALB/Lambda 상태 확인용)
-        if request.url.path != "/health":
+        # health check · CORS preflight는 제외
+        # OPTIONS는 데이터를 전송하지 않으므로 보안 위험 없음.
+        # 실제 요청(GET/POST)은 여전히 시크릿 검증 적용됨.
+        if request.url.path != "/health" and request.method != "OPTIONS":
             if request.headers.get("X-CF-Secret") != _CF_SECRET:
                 return JSONResponse(status_code=403, content={"detail": "Forbidden"})
     return await call_next(request)
