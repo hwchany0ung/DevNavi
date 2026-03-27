@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { supabase, isSupabaseReady } from '../lib/supabase'
+import { supabase, isSupabaseReady, cleanAuthParams } from '../lib/supabase'
 
 /**
  * Supabase 인증 상태 훅.
@@ -39,8 +39,12 @@ export function useAuth() {
       })
 
     // 인증 상태 변경 구독
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    // SIGNED_IN 이벤트(OAuth/이메일 확인 리다이렉트 포함) 시 URL에 남은 auth 파라미터 즉시 제거
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session ? _toUser(session) : null)
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        cleanAuthParams()
+      }
     })
     return () => subscription.unsubscribe()
   }, [])

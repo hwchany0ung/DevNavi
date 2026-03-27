@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from typing import Callable
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +9,8 @@ from fastapi.responses import JSONResponse
 from mangum import Mangum
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.datastructures import MutableHeaders
 
 from app.core.config import settings
 from app.core.limiter import limiter
@@ -41,62 +44,87 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# ── CloudFront 시크릿 헤더 검증 미들웨어 ─────────────────────────────
-# Lambda Function URL이 공개 접근 가능하므로, CloudFront를 통한 요청인지 확인.
-# CLOUDFRONT_SECRET 환경변수가 설정된 경우에만 활성화.
-# ※ 미들웨어 등록 순서: Starlette에서 나중에 등록할수록 바깥(outermost)이 됨.
-#   CORSMiddleware를 가장 마지막에 등록하여 모든 응답(403 포함)에 CORS 헤더 보장.
-_CF_SECRET = settings.CLOUDFRONT_SECRET  # Optional[str] — None이면 검증 비활성화
 
+# ─────────────────────────────────────────────────────────────────────
+# Pure ASGI 미들웨어 (BaseHTTPMiddleware 미사용)
+#
+# BaseHTTPMiddleware는 응답을 내부 비동기 채널로 감싸기 때문에
+# Mangum RESPONSE_STREAM 모드와 충돌하여 SSE 스트림이 빈 채로 전달됨.
+# Pure ASGI 방식은 send() 함수만 래핑하여 스트리밍을 방해하지 않음.
+# ─────────────────────────────────────────────────────────────────────
 
-@app.middleware("http")
-async def verify_cloudfront_secret(request: Request, call_next):
-    # CloudFront custom_header(X-CF-Secret)가 Terraform에 미설정 상태.
-    # → CloudFront가 헤더를 Lambda에 전달하지 않으므로 체크 비활성화.
-    # terraform apply -var='cloudfront_secret=...' 로 CloudFront 설정 후 재활성화 예정.
-    # if _CF_SECRET and settings.ENV == "production":
-    #     if request.url.path != "/health" and request.method != "OPTIONS":
-    #         if request.headers.get("X-CF-Secret") != _CF_SECRET:
-    #             return JSONResponse(status_code=403, content={"detail": "Forbidden"})
-    return await call_next(request)
+_SECURITY_HEADERS = {
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "geolocation=(), microphone=(), camera=()",
+}
 
-
-# ── 보안 응답 헤더 미들웨어 ─────────────────────────────────────────────
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    return response
-
-
-# ── 5xx 에러 자동 로깅 미들웨어 ──────────────────────────────────────────
-# 발생한 서버 에러를 DB error_logs 테이블에 저장 (관리자 대시보드 표시용).
-# 응답 지연 없이 fire-and-forget 방식으로 저장.
 _LOG_SKIP_PATHS = {"/health"}
 
 
-@app.middleware("http")
-async def log_server_errors(request: Request, call_next):
-    response = await call_next(request)
-    if response.status_code >= 500 and request.url.path not in _LOG_SKIP_PATHS:
-        asyncio.create_task(
-            save_error_log(
-                method=request.method,
-                path=request.url.path,
-                status_code=response.status_code,
-                error_msg=f"HTTP {response.status_code}",
-            )
-        )
-    return response
+class SecurityHeadersMiddleware:
+    """보안 응답 헤더 추가 — Pure ASGI, SSE 스트리밍 안전."""
 
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_security_headers(message: dict) -> None:
+            if message["type"] == "http.response.start":
+                headers = MutableHeaders(scope=message)
+                for name, value in _SECURITY_HEADERS.items():
+                    headers[name] = value
+            await send(message)
+
+        await self.app(scope, receive, send_with_security_headers)
+
+
+class ErrorLoggingMiddleware:
+    """5xx 에러 자동 로깅 — Pure ASGI, SSE 스트리밍 안전."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path   = scope.get("path", "")
+        method = scope.get("method", "GET")
+        status_ref: dict = {"code": 200}
+
+        async def send_wrapper(message: dict) -> None:
+            if message["type"] == "http.response.start":
+                status_ref["code"] = message.get("status", 200)
+            await send(message)
+
+        await self.app(scope, receive, send_wrapper)
+
+        if status_ref["code"] >= 500 and path not in _LOG_SKIP_PATHS:
+            asyncio.create_task(
+                save_error_log(
+                    method=method,
+                    path=path,
+                    status_code=status_ref["code"],
+                    error_msg=f"HTTP {status_ref['code']}",
+                )
+            )
+
+
+# ── 미들웨어 등록 순서 (add_middleware: 나중에 추가할수록 outermost) ──
+# 실행 순서 (안→밖): FastAPI → ErrorLogging → SecurityHeaders → CORS
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(ErrorLoggingMiddleware)
 
 # ── CORS — 반드시 마지막 등록 (outermost 보장) ─────────────────────────
-# Starlette 미들웨어 스택: 마지막에 add_middleware 할수록 outermost.
-# outermost CORS = verify_cloudfront_secret의 403 응답에도 CORS 헤더 추가됨.
+# outermost CORS = 모든 에러 응답에도 CORS 헤더 추가됨.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
@@ -135,4 +163,4 @@ async def health():
 # lifespan="on": startup/shutdown 훅 실행
 # api_gateway_base_path: Lambda Function URL은 경로 prefix 없음
 handler = Mangum(app, lifespan="on", api_gateway_base_path=None)
-# x86_64 build - Fri Mar 27 18:00:00 2026 (cors outermost)
+# x86_64 build - Sat Mar 28 2026 (pure-asgi-middleware, no BaseHTTPMiddleware)
