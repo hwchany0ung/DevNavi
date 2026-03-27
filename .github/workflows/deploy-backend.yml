@@ -83,6 +83,14 @@ jobs:
             --output table \
             --no-cli-pager
 
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CF_API_DISTRIBUTION_ID }} \
+            --paths "/*" \
+            --no-cli-pager
+        continue-on-error: true   # CF_API_DISTRIBUTION_ID 미설정 시 배포 차단 방지
+
       - name: Deploy summary
         run: |
           echo "✅ Backend deployed successfully"
