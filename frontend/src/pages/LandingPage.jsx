@@ -189,7 +189,21 @@ export default function LandingPage() {
             /* 로그인 상태 */
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate('/onboarding')}
+                onClick={() => {
+                  // localStorage에서 최신 로드맵 ID 탐색
+                  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+                  const localKeys = Object.keys(localStorage)
+                    .filter(k => k.startsWith('devnavi_roadmap_'))
+                    .sort()
+                  if (localKeys.length > 0) {
+                    const id = localKeys[localKeys.length - 1].replace('devnavi_roadmap_', '')
+                    if (UUID_RE.test(id)) { navigate(`/roadmap/${id}`); return }
+                  }
+                  // localStorage 없으면 서버에서 조회
+                  request('/roadmap/my', { headers: { Authorization: `Bearer ${user.accessToken}` } })
+                    .then(({ roadmap_id }) => navigate(roadmap_id ? `/roadmap/${roadmap_id}` : '/onboarding'))
+                    .catch(() => navigate('/onboarding'))
+                }}
                 className="text-sm px-4 py-2 rounded-xl font-bold text-white transition-all active:scale-95"
                 style={{ background: 'linear-gradient(135deg, #6366f1, #22d3ee)' }}>
                 내 로드맵
