@@ -26,7 +26,7 @@ function parseTeaser(text) {
   })
 }
 
-export default function TeaserStream({ text, isStreaming, error, onDeepDive }) {
+export default function TeaserStream({ text, isStreaming, error, onDeepDive, onRetry }) {
   const bottomRef = useRef(null)
 
   // 스트리밍 중 자동 스크롤
@@ -36,14 +36,20 @@ export default function TeaserStream({ text, isStreaming, error, onDeepDive }) {
 
   if (error) {
     return (
-      <div className="rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-6 text-center">
-        <p className="text-red-600 dark:text-red-400 font-semibold mb-1">로드맵 생성 중 오류가 발생했어요</p>
+      <div className="rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-6 text-center space-y-3">
+        <p className="text-red-600 dark:text-red-400 font-semibold">로드맵 생성 중 오류가 발생했어요</p>
         <p className="text-red-400 dark:text-red-400/70 text-sm">{error.message}</p>
-        {error.status === 402 && (
+        {error.status === 402 ? (
           <button
             onClick={onDeepDive}
-            className="mt-4 px-6 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors">
+            className="px-6 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors">
             프리미엄으로 업그레이드
+          </button>
+        ) : (
+          <button
+            onClick={onRetry}
+            className="px-6 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors">
+            다시 시도
           </button>
         )}
       </div>

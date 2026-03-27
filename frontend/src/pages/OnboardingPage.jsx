@@ -448,6 +448,7 @@ export default function OnboardingPage() {
                 isStreaming={teaserStreaming}
                 error={teaserError}
                 onDeepDive={() => setStep(2)}
+                onRetry={handleStep1Submit}
               />
             ) : (
               <button
