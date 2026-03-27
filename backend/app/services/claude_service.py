@@ -58,9 +58,9 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
     Lambda Function URL 직접 접근 (CloudFront 우회) → 60초 timeout 제한 없음.
     Lambda 자체 timeout = 900초.
 
-    max_tokens=6000:
+    max_tokens=8000:
     - CF 우회로 시간 제한 없음
-    - 전체 로드맵 품질 충분히 확보
+    - claude-sonnet-4-5 최대 출력 8192 토큰 → 1년 이상 로드맵도 완전 생성
     """
     import time
 
@@ -72,7 +72,7 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
     try:
         async with client.messages.stream(
             model=SONNET,
-            max_tokens=6000,
+            max_tokens=8000,
             system=system,
             messages=[{"role": "user", "content": user}],
         ) as stream:
