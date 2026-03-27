@@ -1,0 +1,5 @@
+백앤드 서버 : cd C:\Users\chany\SideProject\Careerpath\backend
+.venv/Scripts/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+프론트앤드 서버 : cd C:\Users\chany\SideProject\Careerpath\frontend
+npm run dev
