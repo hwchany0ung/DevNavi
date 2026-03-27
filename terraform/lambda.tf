@@ -60,10 +60,12 @@ resource "aws_lambda_function_url" "api" {
 
   cors {
     allow_credentials = true
-    allow_origins     = ["https://${var.domain_name}"]
-    allow_methods     = ["GET", "POST", "OPTIONS"]
-    allow_headers     = ["Content-Type", "Authorization"]
-    max_age           = 86400
+    # domain_name 없으면 * (테스트용), 있으면 특정 오리진만 허용
+    allow_origins = var.domain_name != "" ? ["https://${var.domain_name}"] : ["*"]
+    # Lambda Function URL은 OPTIONS 자동 처리 — GET/POST만 명시
+    allow_methods = ["GET", "POST"]
+    allow_headers = ["Content-Type", "Authorization"]
+    max_age       = 86400
   }
 
   invoke_mode = "RESPONSE_STREAM"

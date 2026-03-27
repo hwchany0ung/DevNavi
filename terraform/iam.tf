@@ -76,9 +76,7 @@ resource "aws_iam_role" "github_actions" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         }
         StringLike = {
-          # main 브랜치 push만 허용 (PR, fork 등 차단)
-          "token.actions.githubusercontent.com:sub" =
-            "repo:${var.github_repo}:ref:refs/heads/main"
+          "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:ref:refs/heads/main"
         }
       }
     }]

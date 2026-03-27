@@ -112,6 +112,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "lambda_packages" {
     id     = "cleanup-old-packages"
     status = "Enabled"
 
+    filter {}
+
     expiration {
       days = 30
     }

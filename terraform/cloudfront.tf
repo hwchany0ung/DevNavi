@@ -86,7 +86,7 @@ resource "aws_cloudfront_distribution" "frontend" {
   dynamic "viewer_certificate" {
     for_each = var.domain_name != "" ? [1] : []
     content {
-      acm_certificate_arn      = aws_acm_certificate.main.arn
+      acm_certificate_arn      = aws_acm_certificate.main[0].arn
       ssl_support_method       = "sni-only"
       minimum_protocol_version = "TLSv1.2_2021"
     }
@@ -151,7 +151,7 @@ resource "aws_cloudfront_distribution" "api" {
   dynamic "viewer_certificate" {
     for_each = var.domain_name != "" ? [1] : []
     content {
-      acm_certificate_arn      = aws_acm_certificate.main.arn
+      acm_certificate_arn      = aws_acm_certificate.main[0].arn
       ssl_support_method       = "sni-only"
       minimum_protocol_version = "TLSv1.2_2021"
     }
