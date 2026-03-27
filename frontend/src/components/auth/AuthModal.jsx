@@ -9,11 +9,13 @@ import { isSupabaseReady } from '../../lib/supabase'
  * @param {function} onClose
  */
 export default function AuthModal({ open, onClose }) {
-  const [mode, setMode]       = useState('login')  // 'login' | 'signup'
-  const [email, setEmail]     = useState('')
+  const [mode, setMode]         = useState('login')  // 'login' | 'signup'
+  const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [success, setSuccess] = useState('')
+  const [loading, setLoading]   = useState(false)
+  const [success, setSuccess]   = useState('')
+  const [agreeTerms, setAgreeTerms]     = useState(false)
+  const [agreePrivacy, setAgreePrivacy] = useState(false)
 
   const { signInWithEmail, signUpWithEmail, signInWithGoogle, error } = useAuth()
 
@@ -105,6 +107,38 @@ export default function AuthModal({ open, onClose }) {
               focus:outline-none focus:ring-2 focus:ring-indigo-300 text-sm"
           />
 
+          {/* 약관 동의 (회원가입 전용) */}
+          {mode === 'signup' && (
+            <div className="space-y-2 py-1">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreeTerms}
+                  onChange={e => setAgreeTerms(e.target.checked)}
+                  className="mt-0.5 accent-indigo-600"
+                />
+                <span className="text-xs text-gray-500 leading-relaxed">
+                  (필수){' '}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer"
+                    className="text-indigo-600 underline">이용약관</a>에 동의합니다
+                </span>
+              </label>
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreePrivacy}
+                  onChange={e => setAgreePrivacy(e.target.checked)}
+                  className="mt-0.5 accent-indigo-600"
+                />
+                <span className="text-xs text-gray-500 leading-relaxed">
+                  (필수){' '}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer"
+                    className="text-indigo-600 underline">개인정보처리방침</a>에 동의합니다
+                </span>
+              </label>
+            </div>
+          )}
+
           {error && (
             <p className="text-red-500 text-xs px-1">{error}</p>
           )}
@@ -114,7 +148,10 @@ export default function AuthModal({ open, onClose }) {
 
           <button
             type="submit"
-            disabled={!isSupabaseReady || loading}
+            disabled={
+              !isSupabaseReady || loading ||
+              (mode === 'signup' && (!agreeTerms || !agreePrivacy))
+            }
             className="w-full py-3 bg-indigo-600 hover:bg-indigo-700
               disabled:bg-gray-200 disabled:text-gray-400
               text-white font-bold text-sm rounded-2xl transition-colors"
