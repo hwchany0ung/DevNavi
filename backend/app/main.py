@@ -51,13 +51,13 @@ _CF_SECRET = settings.CLOUDFRONT_SECRET  # Optional[str] — None이면 검증 �
 
 @app.middleware("http")
 async def verify_cloudfront_secret(request: Request, call_next):
-    if _CF_SECRET and settings.ENV == "production":
-        # health check · CORS preflight는 제외
-        # OPTIONS는 데이터를 전송하지 않으므로 보안 위험 없음.
-        # 실제 요청(GET/POST)은 여전히 시크릿 검증 적용됨.
-        if request.url.path != "/health" and request.method != "OPTIONS":
-            if request.headers.get("X-CF-Secret") != _CF_SECRET:
-                return JSONResponse(status_code=403, content={"detail": "Forbidden"})
+    # CloudFront custom_header(X-CF-Secret)가 Terraform에 미설정 상태.
+    # → CloudFront가 헤더를 Lambda에 전달하지 않으므로 체크 비활성화.
+    # terraform apply -var='cloudfront_secret=...' 로 CloudFront 설정 후 재활성화 예정.
+    # if _CF_SECRET and settings.ENV == "production":
+    #     if request.url.path != "/health" and request.method != "OPTIONS":
+    #         if request.headers.get("X-CF-Secret") != _CF_SECRET:
+    #             return JSONResponse(status_code=403, content={"detail": "Forbidden"})
     return await call_next(request)
 
 
