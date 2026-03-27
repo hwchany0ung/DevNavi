@@ -15,6 +15,7 @@
 import json
 import re
 import logging
+from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
@@ -22,6 +23,8 @@ from fastapi.responses import StreamingResponse
 logger = logging.getLogger(__name__)
 
 from app.core.limiter import limiter
+from app.core.config import settings
+from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
 from app.models.roadmap import (
     TeaserRequest,
     FullRoadmapRequest,
@@ -54,14 +57,90 @@ SSE_HEADERS = {
 }
 
 
+# ─────────────────────────── 티저 캐시 헬퍼 ─────────────────────────
+
+async def _get_teaser_cache(params_key: str) -> str | None:
+    """Supabase teaser_cache 테이블에서 캐시된 티저 반환. 없으면 None."""
+    try:
+        client = get_supabase_client()
+        resp = await client.get(
+            sb_url("teaser_cache"),
+            headers=sb_headers(),
+            params={"params_key": f"eq.{params_key}", "select": "content", "limit": "1"},
+        )
+        resp.raise_for_status()
+        rows = resp.json()
+        return rows[0]["content"] if rows else None
+    except Exception as e:
+        logger.warning("티저 캐시 조회 실패 (AI 직접 호출로 대체): %s", e)
+        return None
+
+
+async def _save_teaser_cache(params_key: str, content: str) -> None:
+    """티저 결과를 Supabase에 저장. 이미 존재하면 무시(ignore)."""
+    try:
+        client = get_supabase_client()
+        resp = await client.post(
+            sb_url("teaser_cache"),
+            headers=sb_headers(prefer="resolution=ignore,return=minimal"),
+            json={"params_key": params_key, "content": content},
+        )
+        resp.raise_for_status()
+        logger.info("티저 캐시 저장 완료: %s (%d자)", params_key, len(content))
+    except Exception as e:
+        logger.warning("티저 캐시 저장 실패: %s", e)
+
+
+async def _stream_cached_teaser(content: str) -> AsyncGenerator[str, None]:
+    """캐시된 텍스트를 SSE 형식으로 즉시 반환 (AI 호출 없음)."""
+    yield f"data: {json.dumps({'type': 'text', 'chunk': content})}\n\n"
+    yield "data: [DONE]\n\n"
+
+
+async def _stream_teaser_and_cache(
+    system: str, user_msg: str, params_key: str
+) -> AsyncGenerator[str, None]:
+    """Claude로 티저를 스트리밍하면서 완료 시 캐시에 저장."""
+    buffer: list[str] = []
+
+    async for chunk in stream_teaser(system, user_msg):
+        # [DONE] 이전 청크에서 텍스트 수집
+        if not chunk.startswith("data: [DONE]"):
+            try:
+                data = json.loads(chunk[len("data: "):].strip())
+                if data.get("type") == "text":
+                    buffer.append(data.get("chunk", ""))
+            except Exception:
+                pass
+        yield chunk
+
+    # 스트리밍 완료 후 캐시 저장 (마지막 yield 뒤에 실행)
+    if buffer and settings.supabase_ready:
+        await _save_teaser_cache(params_key, "".join(buffer))
+
+
 # ─────────────────────────── 티저 (Haiku) ───────────────────────────
 
 @router.post("/teaser")
 @limiter.limit("20/hour")
 async def teaser(request: Request, body: TeaserRequest):
-    """무료 사용자용 월별 뼈대 텍스트 스트리밍."""
-    system, user = build_teaser_prompt(body.role, body.period, body.level)
-    return StreamingResponse(stream_teaser(system, user), headers=SSE_HEADERS)
+    """무료 사용자용 월별 뼈대 텍스트 스트리밍. Supabase 캐시 우선 반환."""
+    params_key = f"{body.role}|{body.period}|{body.level}"
+
+    # 1. 캐시 확인 → 히트 시 AI 호출 없이 즉시 반환
+    if settings.supabase_ready:
+        cached = await _get_teaser_cache(params_key)
+        if cached:
+            logger.info("티저 캐시 히트: %s", params_key)
+            return StreamingResponse(_stream_cached_teaser(cached), headers=SSE_HEADERS)
+
+    # 2. 캐시 미스 → Claude Haiku 호출 + 결과 캐시 저장
+    logger.info("티저 캐시 미스 → AI 호출: %s", params_key)
+    system, user_msg = build_teaser_prompt(body.role, body.period, body.level)
+    return StreamingResponse(
+        _stream_teaser_and_cache(system, user_msg, params_key),
+        headers=SSE_HEADERS,
+    )
 
 
 # ─────────────────────────── 전체 로드맵 (Sonnet) ───────────────────
