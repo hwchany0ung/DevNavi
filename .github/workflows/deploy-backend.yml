@@ -58,27 +58,27 @@ jobs:
         if: ${{ steps.pkg_size.outputs.size > 52428800 }}
         run: |
           aws s3 cp backend/lambda.zip \
-            s3://${{ secrets.S3_LAMBDA_BUCKET }}/devnavi-api/lambda.zip
+            s3://${{ secrets.S3_LAMBDA_BUCKET }}/devnavi-prod-api/lambda.zip
           aws lambda update-function-code \
-            --function-name devnavi-api \
+            --function-name devnavi-prod-api \
             --s3-bucket ${{ secrets.S3_LAMBDA_BUCKET }} \
-            --s3-key devnavi-api/lambda.zip \
+            --s3-key devnavi-prod-api/lambda.zip \
             --no-cli-pager
 
       - name: Upload directly (if <= 50MB)
         if: ${{ steps.pkg_size.outputs.size <= 52428800 }}
         run: |
           aws lambda update-function-code \
-            --function-name devnavi-api \
+            --function-name devnavi-prod-api \
             --zip-file fileb://backend/lambda.zip \
             --no-cli-pager
 
       - name: Wait for update & verify
         run: |
           aws lambda wait function-updated \
-            --function-name devnavi-api
+            --function-name devnavi-prod-api
           aws lambda get-function-configuration \
-            --function-name devnavi-api \
+            --function-name devnavi-prod-api \
             --query '{State: State, LastUpdateStatus: LastUpdateStatus, CodeSize: CodeSize}' \
             --output table \
             --no-cli-pager
