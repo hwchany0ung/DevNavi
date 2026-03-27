@@ -4,9 +4,12 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
  * 일반 REST 요청
  */
 export async function request(path, options = {}) {
+  // headers를 먼저 분리한 뒤 나머지를 spread해야
+  // Content-Type이 options.headers에 덮어씌워지지 않음
+  const { headers: extraHeaders = {}, ...rest } = options
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
+    headers: { 'Content-Type': 'application/json', ...extraHeaders },
+    ...rest,
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
