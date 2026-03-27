@@ -41,19 +41,13 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# ── CORS ─────────────────────────────────────────────────────────────
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],  # 실제 사용하는 메서드만 허용
-    allow_headers=["*"],
-)
-
 # ── CloudFront 시크릿 헤더 검증 미들웨어 ─────────────────────────────
 # Lambda Function URL이 공개 접근 가능하므로, CloudFront를 통한 요청인지 확인.
 # CLOUDFRONT_SECRET 환경변수가 설정된 경우에만 활성화.
+# ※ 미들웨어 등록 순서: Starlette에서 나중에 등록할수록 바깥(outermost)이 됨.
+#   CORSMiddleware를 가장 마지막에 등록하여 모든 응답(403 포함)에 CORS 헤더 보장.
 _CF_SECRET = settings.CLOUDFRONT_SECRET  # Optional[str] — None이면 검증 비활성화
+
 
 @app.middleware("http")
 async def verify_cloudfront_secret(request: Request, call_next):
@@ -84,6 +78,7 @@ async def add_security_headers(request: Request, call_next):
 # 응답 지연 없이 fire-and-forget 방식으로 저장.
 _LOG_SKIP_PATHS = {"/health"}
 
+
 @app.middleware("http")
 async def log_server_errors(request: Request, call_next):
     response = await call_next(request)
@@ -98,6 +93,17 @@ async def log_server_errors(request: Request, call_next):
         )
     return response
 
+
+# ── CORS — 반드시 마지막 등록 (outermost 보장) ─────────────────────────
+# Starlette 미들웨어 스택: 마지막에 add_middleware 할수록 outermost.
+# outermost CORS = verify_cloudfront_secret의 403 응답에도 CORS 헤더 추가됨.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],  # 실제 사용하는 메서드만 허용
+    allow_headers=["*"],
+)
 
 app.include_router(roadmap_router)
 app.include_router(admin_router)
@@ -129,4 +135,4 @@ async def health():
 # lifespan="on": startup/shutdown 훅 실행
 # api_gateway_base_path: Lambda Function URL은 경로 prefix 없음
 handler = Mangum(app, lifespan="on", api_gateway_base_path=None)
-# x86_64 build - Fri Mar 27 17:00:00 2026 (admin router)
+# x86_64 build - Fri Mar 27 18:00:00 2026 (cors outermost)

@@ -119,6 +119,16 @@ resource "aws_cloudfront_distribution" "api" {
     )
     origin_id = "LambdaURL-${aws_lambda_function.api.function_name}"
 
+    # Lambda Function URL 직접 접근 차단용 시크릿 헤더
+    # cloudfront_secret 변수가 설정된 경우에만 헤더 추가
+    dynamic "custom_header" {
+      for_each = var.cloudfront_secret != "" ? [1] : []
+      content {
+        name  = "X-CF-Secret"
+        value = var.cloudfront_secret
+      }
+    }
+
     custom_origin_config {
       http_port                = 80
       https_port               = 443

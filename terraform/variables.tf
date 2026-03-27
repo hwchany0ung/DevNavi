@@ -70,3 +70,16 @@ variable "supabase_jwt_secret" {
   type        = string
   sensitive   = true
 }
+
+variable "cloudfront_secret" {
+  description = <<-EOT
+    CloudFront → Lambda 요청 인증용 시크릿 헤더 값.
+    CloudFront가 origin 요청 시 X-CF-Secret 헤더에 이 값을 포함.
+    Lambda는 이 값이 없는 직접 요청을 403으로 차단.
+    미설정 시 검증 비활성화 (로컬 개발 환경).
+    예시: openssl rand -hex 32
+  EOT
+  type      = string
+  sensitive = true
+  default   = ""
+}
