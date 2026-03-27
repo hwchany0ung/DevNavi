@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../contexts/ThemeContext'
+import { request } from '../lib/api'
 import AuthModal from '../components/auth/AuthModal'
 import ThemeToggle from '../components/common/ThemeToggle'
 
@@ -113,13 +114,29 @@ export default function LandingPage() {
   useEffect(() => {
     if (loading) return
     if (!user) return
-    const keys = Object.keys(localStorage).filter(k => k.startsWith('devnavi_roadmap_'))
-    if (keys.length > 0) {
-      const id = keys[keys.length - 1].replace('devnavi_roadmap_', '')
+
+    // 1) localStorage에서 먼저 찾기
+    const localKeys = Object.keys(localStorage)
+      .filter(k => k.startsWith('devnavi_roadmap_'))
+      .sort()  // 오래된 것 먼저 → 마지막이 최신
+    if (localKeys.length > 0) {
+      const id = localKeys[localKeys.length - 1].replace('devnavi_roadmap_', '')
       navigate(`/roadmap/${id}`, { replace: true })
-    } else {
-      navigate('/onboarding', { replace: true })
+      return
     }
+
+    // 2) 서버에서 로드맵 확인 (localStorage 없을 때 — 기존 사용자 재방문)
+    request('/roadmap/my', {
+      headers: { Authorization: `Bearer ${user.accessToken}` },
+    })
+      .then(({ roadmap_id }) => {
+        if (roadmap_id) {
+          navigate(`/roadmap/${roadmap_id}`, { replace: true })
+        } else {
+          navigate('/onboarding', { replace: true })
+        }
+      })
+      .catch(() => navigate('/onboarding', { replace: true }))
   }, [user, loading, navigate])
 
   if (loading) {

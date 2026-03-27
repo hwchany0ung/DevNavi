@@ -44,6 +44,7 @@ from app.services.roadmap_service import (
     upsert_completion,
     list_completions,
     list_activity,
+    list_user_roadmaps,
 )
 from app.middleware.auth import require_user, optional_user
 from app.services.usage_service import check_and_increment
@@ -260,6 +261,13 @@ async def reroute(
 
 
 # ─────────────────────────── 조회 ───────────────────────────────────
+
+@router.get("/my")
+async def my_roadmaps(user: dict = Depends(require_user)):
+    """로그인 사용자의 최신 로드맵 ID 반환 (홈 자동 리다이렉트용)."""
+    items = await list_user_roadmaps(user["id"])
+    return {"roadmap_id": items[0]["id"] if items else None}
+
 
 @router.get("/activity/me")
 async def get_activity(user: dict = Depends(require_user)):

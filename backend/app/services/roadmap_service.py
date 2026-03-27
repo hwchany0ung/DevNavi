@@ -160,6 +160,23 @@ async def list_completions(user_id: str, roadmap_id: str) -> list[str]:
     return [row["task_id"] for row in (resp.json() or [])]
 
 
+async def list_user_roadmaps(user_id: str) -> list[dict]:
+    """사용자의 로드맵 목록 조회 (최신순)."""
+    if not settings.supabase_ready:
+        return []
+    client = get_supabase_client()
+    try:
+        resp = await client.get(
+            sb_url("roadmaps"),
+            headers=sb_headers(),
+            params={"user_id": f"eq.{user_id}", "select": "id,created_at", "order": "created_at.desc", "limit": "5"},
+        )
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        _raise_db_error(e, "로드맵 목록 조회")
+    return resp.json() or []
+
+
 async def list_activity(user_id: str) -> list[dict]:
     """잔디 달력용 최근 365일 날짜별 완료 수."""
     if not settings.supabase_ready:
