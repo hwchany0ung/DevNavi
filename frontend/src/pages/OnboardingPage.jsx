@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Footer from '../components/common/Footer'
+import ThemeToggle from '../components/common/ThemeToggle'
 import Step1Form from '../components/onboarding/Step1Form'
 import Step2Form from '../components/onboarding/Step2Form'
 import TeaserStream from '../components/onboarding/TeaserStream'
@@ -131,7 +132,7 @@ export default function OnboardingPage() {
       })
       setCareerSummary(data)
     } catch (e) {
-      setSummaryError(e.message)
+      setSummaryError(e?.message || '오류가 발생했어요. 다시 시도해주세요.')
     } finally {
       setSummaryLoading(false)
     }
@@ -241,7 +242,7 @@ export default function OnboardingPage() {
     : 2
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col transition-colors">
       {/* 로그인 모달 */}
       <AuthModal
         open={showAuth}
@@ -252,7 +253,7 @@ export default function OnboardingPage() {
       />
 
       {/* 헤더 */}
-      <header className="bg-white border-b border-gray-100 px-6 py-4
+      <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-white/10 px-6 py-4
         flex items-center justify-between sticky top-0 z-10">
         <span className="text-lg font-black text-indigo-600 tracking-tight">
           Dev<span className="text-gray-800">Navi</span>
@@ -273,18 +274,21 @@ export default function OnboardingPage() {
             ))}
           </div>
         )}
-        {/* 로그인 상태 표시 + 로그아웃 */}
-        {user && (
-          <div className="hidden sm:flex items-center gap-2">
-            <span className="text-xs text-gray-400 truncate max-w-[140px]">{user.email}</span>
-            <button
-              onClick={signOut}
-              className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
-            >
-              로그아웃
-            </button>
-          </div>
-        )}
+        {/* 테마 토글 + 로그인 상태 */}
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          {user && (
+            <div className="hidden sm:flex items-center gap-2">
+              <span className="text-xs text-gray-400 dark:text-white/40 truncate max-w-[140px]">{user.email}</span>
+              <button
+                onClick={signOut}
+                className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-500 dark:text-white/60 transition-colors"
+              >
+                로그아웃
+              </button>
+            </div>
+          )}
+        </div>
       </header>
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-5 py-10">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import AuthModal from '../components/auth/AuthModal'
+import ThemeToggle from '../components/common/ThemeToggle'
 
 /* ── 로드맵 미리보기 목업 데이터 ── */
 const PREVIEW_MONTHS = [
@@ -137,13 +138,15 @@ export default function LandingPage() {
           <span className="text-white">Dev</span><span className="text-cyan-400">Navi</span>
         </span>
         <div className="flex items-center gap-6">
-          <a href="#features" className="text-sm text-white/50 hover:text-white/90 transition-colors hidden sm:block">기능</a>
+          <button onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
+            className="text-sm text-white/50 hover:text-white/90 transition-colors hidden sm:block">기능</button>
           <button
             onClick={() => navigate('/onboarding')}
             className="text-sm text-white/50 hover:text-white/90 transition-colors hidden sm:block"
           >
             시작하기
           </button>
+          <ThemeToggle />
           <button
             onClick={() => setAuthOpen(true)}
             className="text-sm px-4 py-2 border border-white/20 hover:border-white/40 text-white/70 hover:text-white
@@ -246,7 +249,7 @@ export default function LandingPage() {
             },
             {
               icon: '🔀',
-              title: 'GPS 재탐색',
+              title: '방향 재설정',
               desc: '중간에 방향이 바뀌어도 현재 상황 맞춤으로 즉시 재생성',
               color: 'from-violet-500/20 to-violet-500/5',
               border: 'border-violet-500/20',

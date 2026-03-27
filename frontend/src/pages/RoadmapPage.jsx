@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Footer from '../components/common/Footer'
+import ThemeToggle from '../components/common/ThemeToggle'
 import PersonaCard         from '../components/roadmap/PersonaCard'
 import MonthTimeline       from '../components/roadmap/MonthTimeline'
 import WeekAccordion       from '../components/roadmap/WeekAccordion'
@@ -285,13 +286,14 @@ export default function RoadmapPage() {
             </button>
           )}
 
-          {/* 인증 버튼 */}
+          {/* 테마 토글 + 인증 버튼 */}
+          <ThemeToggle />
           {user ? (
             <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs text-gray-400 truncate max-w-[120px]">{user.email}</span>
+              <span className="text-xs text-gray-400 dark:text-white/40 truncate max-w-[120px]">{user.email}</span>
               <button
                 onClick={signOut}
-                className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
+                className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-500 dark:text-white/60 transition-colors"
               >
                 로그아웃
               </button>

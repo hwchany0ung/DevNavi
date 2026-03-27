@@ -1,5 +1,5 @@
 /**
- * GPS 재탐색 버튼 — 완료율 기반으로 남은 로드맵을 재생성
+ * 방향 재설정 버튼 — 완료율 기반으로 남은 로드맵을 재생성
  */
 export default function RerouteButton({ completionRate, onClick, loading }) {
   if (completionRate < 20) return null  // 20% 미만엔 노출 안 함
@@ -15,7 +15,7 @@ export default function RerouteButton({ completionRate, onClick, loading }) {
       <span className="text-xl shrink-0 group-hover:animate-spin-slow">🧭</span>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-indigo-700">
-          {loading ? 'GPS 재탐색 중…' : 'GPS 재탐색'}
+          {loading ? '방향 재설정 중…' : '방향 재설정'}
         </p>
         <p className="text-xs text-indigo-400">
           {Math.round(completionRate)}% 완료 기준으로 남은 일정을 재조정해드려요
