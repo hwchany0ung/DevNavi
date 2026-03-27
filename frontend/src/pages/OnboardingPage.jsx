@@ -292,7 +292,8 @@ export default function OnboardingPage() {
       period: step1.period,
       level: step1.level,
     })
-    setStep('teaser')
+    // setStep('teaser') 제거 — step 1 내에서 TeaserStream 인라인 표시
+    // (teaser 실패 시 버튼이 다시 나타나는 fallback 보장)
   }
 
   // Step 2 제출 → 로그인 확인 → 커리어 분석
@@ -337,7 +338,7 @@ export default function OnboardingPage() {
     )
   }
 
-  const stepIndex = (step === 1 || step === 'teaser') ? 0
+  const stepIndex = step === 1 ? 0
     : step === 2 ? 1
     : 2  // 'summary'
 
@@ -426,8 +427,8 @@ export default function OnboardingPage() {
 
       <main className="flex-1 max-w-2xl mx-auto w-full px-5 py-10">
 
-        {/* ── Step 1 + 티저 ── */}
-        {(step === 1 || step === 'teaser') && (
+        {/* ── Step 1 + 티저 (인라인 전환) ── */}
+        {step === 1 && (
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
@@ -440,7 +441,15 @@ export default function OnboardingPage() {
 
             <Step1Form values={step1} onChange={setStep1} />
 
-            {step === 1 && (
+            {/* 티저 스트리밍 중이거나 결과 있으면 TeaserStream 표시, 아니면 버튼 */}
+            {(teaserStreaming || teaserText || teaserError) ? (
+              <TeaserStream
+                text={teaserText}
+                isStreaming={teaserStreaming}
+                error={teaserError}
+                onDeepDive={() => setStep(2)}
+              />
+            ) : (
               <button
                 disabled={!isStep1Complete(step1)}
                 onClick={handleStep1Submit}
@@ -450,15 +459,6 @@ export default function OnboardingPage() {
                 AI 로드맵 생성하기 ✨
               </button>
             )}
-
-            {step === 'teaser' && (
-              <TeaserStream
-                text={teaserText}
-                isStreaming={teaserStreaming}
-                error={teaserError}
-                onDeepDive={() => setStep(2)}
-              />
-            )}
           </div>
         )}
 
@@ -466,7 +466,7 @@ export default function OnboardingPage() {
         {step === 2 && (
           <div className="space-y-6">
             <div>
-              <button onClick={() => setStep('teaser')}
+              <button onClick={() => setStep(1)}
                 className="text-sm text-gray-400 dark:text-white/70 hover:text-gray-600 dark:hover:text-white/70 mb-4 flex items-center gap-1">
                 ← 이전으로
               </button>
