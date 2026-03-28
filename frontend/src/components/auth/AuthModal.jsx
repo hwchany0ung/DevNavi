@@ -180,7 +180,9 @@ export default function AuthModal({ open, onClose }) {
             <button
               onClick={() => {
                 setMode(mode === 'login' ? 'signup' : 'login')
-                // 모드 전환 시 약관·에러·성공 메시지 초기화
+                setEmail('')
+                setPassword('')
+                setSuccess('')
                 setAgreeTerms(false)
                 setAgreePrivacy(false)
               }}

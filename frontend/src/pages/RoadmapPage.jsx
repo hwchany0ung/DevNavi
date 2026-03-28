@@ -15,6 +15,8 @@ import { request } from '../lib/api'
 
 const DONE_PREFIX = 'devnavi_done_'
 
+const PERIOD_WEEKS = { '1month': 4, '3months': 13, '6months': 26, '1year': 52 }
+
 // ── localStorage 유틸 ───────────────────────────────────────────────
 function loadDoneLocal(roadmapId) {
   try { return new Set(JSON.parse(localStorage.getItem(DONE_PREFIX + roadmapId) || '[]')) }
@@ -70,6 +72,7 @@ export default function RoadmapPage() {
   const [showGrass,    setShowGrass]    = useState(true)
   const [showSummary,  setShowSummary]  = useState(false)
   const [careerSummary, setCareerSummary] = useState(null)
+  const [autoSaveError, setAutoSaveError] = useState(false)
 
   useEffect(() => {
     document.title = '나의 로드맵 — DevNavi'
@@ -115,6 +118,7 @@ export default function RoadmapPage() {
       navigate(`/roadmap/${serverId}`, { replace: true })
     }).catch(() => {
       autoSaveDoneRef.current = false  // 실패 시 재시도 허용
+      setAutoSaveError(true)
     })
   }, [user, id, navigate])
 
@@ -203,8 +207,6 @@ export default function RoadmapPage() {
   }
 
   // ── GPS 재탐색 — 실제 API 호출 ──────────────────────────────────
-  const PERIOD_WEEKS = { '1month': 4, '3months': 13, '6months': 26, '1year': 52 }
-
   const handleRerouteConfirm = async () => {
     setRerouteModalOpen(false)
     setRerouteLoading(true)
@@ -341,6 +343,14 @@ export default function RoadmapPage() {
           </button>
         </div>
       </header>
+
+      {/* 자동 저장 실패 알림 */}
+      {autoSaveError && (
+        <div className="bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 px-4 py-2 flex items-center justify-between text-xs text-amber-700 dark:text-amber-400">
+          <span>로드맵 서버 저장에 실패했습니다. 로컬에는 저장되어 있으니 다시 시도해주세요.</span>
+          <button onClick={() => setAutoSaveError(false)} className="ml-4 font-bold hover:opacity-70">✕</button>
+        </div>
+      )}
 
       <div className="flex flex-1 overflow-hidden">
         {/* ── 사이드바 ── */}

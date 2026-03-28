@@ -46,8 +46,8 @@ def _load_ssm_params() -> None:
         _logger.info("SSM 파라미터 로드 완료 (%d개)", len(response["Parameters"]))
     except Exception as e:
         # 프로덕션에서 SSM 로드 실패 → 앱 시작 중단 (시크릿 없이 실행 방지)
-        _logger.critical("SSM 파라미터 로드 실패: %s", e)
-        raise RuntimeError(f"프로덕션 시크릿 로드 실패: {e}") from e
+        _logger.critical("SSM 파라미터 로드 실패: %s", e, exc_info=True)
+        raise RuntimeError("프로덕션 시크릿 로드 실패. CloudWatch 로그를 확인하세요.") from e
 
 
 # 모듈 임포트 시 1회 실행 (Lambda 컨테이너 재사용으로 이후 호출은 스킵됨)

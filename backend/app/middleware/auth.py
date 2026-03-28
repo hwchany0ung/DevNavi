@@ -202,6 +202,9 @@ async def require_premium(authorization: Optional[str] = Header(None)) -> dict:
     if expires_at:
         try:
             expires_dt = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
+            # naive datetime(timezone 정보 없음)은 UTC로 간주
+            if expires_dt.tzinfo is None:
+                expires_dt = expires_dt.replace(tzinfo=timezone.utc)
             if expires_dt < datetime.now(timezone.utc):
                 raise HTTPException(
                     status_code=status.HTTP_402_PAYMENT_REQUIRED,

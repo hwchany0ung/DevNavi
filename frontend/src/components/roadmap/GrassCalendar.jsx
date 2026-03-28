@@ -85,6 +85,14 @@ function Cell({ day, maxCount, colors }) {
   )
 }
 
+/** Date 객체를 로컬 시간 기준 YYYY-MM-DD 문자열로 변환 (toISOString은 UTC 기준이라 하루 어긋날 수 있음) */
+function toLocalDateStr(date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  return `${y}-${m}-${d}`
+}
+
 /**
  * activity 배열 → 주×요일 2D 그리드 생성
  */
@@ -112,7 +120,7 @@ function buildGrid(activity, weeks) {
       if (current > today) {
         week.push(null)
       } else {
-        const key = current.toISOString().slice(0, 10)
+        const key = toLocalDateStr(current)
         const count = map[key] || 0
         if (count > maxCount) maxCount = count
         week.push({ date: key, count })

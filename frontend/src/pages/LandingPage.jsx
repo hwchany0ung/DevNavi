@@ -186,7 +186,10 @@ export default function LandingPage() {
                   // localStorage 없으면 서버에서 조회
                   request('/roadmap/my', { headers: { Authorization: `Bearer ${user.accessToken}` } })
                     .then(({ roadmap_id }) => navigate(roadmap_id ? `/roadmap/${roadmap_id}` : '/onboarding'))
-                    .catch(() => navigate('/onboarding'))
+                    .catch((err) => {
+                      console.warn('[내 로드맵] /roadmap/my 조회 실패, 온보딩으로 이동:', err?.message)
+                      navigate('/onboarding')
+                    })
                 }}
                 className="text-sm px-4 py-2 rounded-xl font-bold text-white transition-all active:scale-95"
                 style={{ background: 'linear-gradient(135deg, #6366f1, #22d3ee)' }}>

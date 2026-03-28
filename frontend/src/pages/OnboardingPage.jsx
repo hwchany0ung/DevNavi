@@ -16,6 +16,9 @@ import { request } from '../lib/api'
 // Google OAuth 리다이렉트 후 폼 상태 복원용 sessionStorage 키
 const DRAFT_KEY = 'devnavi_onboarding_draft'
 
+// step 상태 상수 (숫자/문자열 혼재 방지)
+const STEP = { S1: 1, S2: 2, SUMMARY: 'summary' }
+
 // 복원된 draft 값의 유효성 검증 (주입 방지)
 const VALID_ROLES = ['backend', 'frontend', 'cloud_devops', 'fullstack', 'data', 'ai_ml', 'security', 'ios_android', 'qa']
 const VALID_PERIODS = ['3months', '6months', '1year', '1year_plus']
@@ -165,7 +168,7 @@ export default function OnboardingPage() {
     return () => { document.title = 'DevNavi — IT 직군 맞춤형 AI 로드맵' }
   }, [])
 
-  const [step, setStep] = useState(1)       // 1 | 'teaser' | 2 | 'summary' | 'generating'
+  const [step, setStep] = useState(STEP.S1)  // STEP.S1 | STEP.S2 | STEP.SUMMARY
   const [step1, setStep1] = useState(STEP1_INITIAL)
   const [step2, setStep2] = useState(STEP2_INITIAL)
   const [careerSummary, setCareerSummary] = useState(null)
@@ -207,7 +210,7 @@ export default function OnboardingPage() {
       if (!_isValidDraft(s1, s2)) return  // 유효하지 않은 draft 무시
       setStep1(s1)
       setStep2(s2)
-      setStep(2)
+      setStep(STEP.S2)
       // step 2 복원 완료 → 커리어 분석 자동 실행 트리거
       pendingActionRef.current = 'summary'
     } catch {
@@ -230,7 +233,7 @@ export default function OnboardingPage() {
   const _doCareerSummary = async () => {
     setSummaryLoading(true)
     setSummaryError(null)
-    setStep('summary')
+    setStep(STEP.SUMMARY)
     try {
       const data = await request('/roadmap/career-summary', {
         method: 'POST',
@@ -368,9 +371,9 @@ export default function OnboardingPage() {
     generatingRef.current = false
   }
 
-  const stepIndex = step === 1 ? 0
-    : step === 2 ? 1
-    : 2  // 'summary'
+  const stepIndex = step === STEP.S1 ? 0
+    : step === STEP.S2 ? 1
+    : 2  // STEP.SUMMARY
 
   // 기존 로드맵 핸들러
   const handleGoExisting = () => {
@@ -458,7 +461,7 @@ export default function OnboardingPage() {
       <main className="flex-1 max-w-2xl mx-auto w-full px-5 py-10">
 
         {/* ── Step 1 + 티저 (인라인 전환) ── */}
-        {step === 1 && (
+        {step === STEP.S1 && (
           <div className="space-y-6">
             <div>
               <h1 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">
@@ -477,7 +480,7 @@ export default function OnboardingPage() {
                 text={teaserText}
                 isStreaming={teaserStreaming}
                 error={teaserError}
-                onDeepDive={() => setStep(2)}
+                onDeepDive={() => setStep(STEP.S2)}
                 onRetry={handleStep1Submit}
               />
             ) : (
@@ -494,10 +497,10 @@ export default function OnboardingPage() {
         )}
 
         {/* ── Step 2 ── */}
-        {step === 2 && (
+        {step === STEP.S2 && (
           <div className="space-y-6">
             <div>
-              <button onClick={() => setStep(1)}
+              <button onClick={() => setStep(STEP.S1)}
                 className="text-sm text-gray-400 dark:text-white/70 hover:text-gray-600 dark:hover:text-white/70 mb-4 flex items-center gap-1">
                 ← 이전으로
               </button>
@@ -523,10 +526,10 @@ export default function OnboardingPage() {
         )}
 
         {/* ── 커리어 분석 요약 ── */}
-        {step === 'summary' && (
+        {step === STEP.SUMMARY && (
           <div className="space-y-6">
             <div>
-              <button onClick={() => setStep(2)}
+              <button onClick={() => setStep(STEP.S2)}
                 className="text-sm text-gray-400 dark:text-white/70 hover:text-gray-600 dark:hover:text-white/70 mb-4 flex items-center gap-1">
                 ← 이전으로
               </button>
