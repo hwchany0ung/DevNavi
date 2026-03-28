@@ -89,8 +89,10 @@ class Settings(BaseSettings):
     def toss_ready(self) -> bool:
         return bool(self.TOSS_SECRET_KEY)
 
-    class Config:
-        env_file = ".env"
+    model_config = {
+        "env_file": ".env",
+        "env_ignore_empty": True,  # 빈 환경변수는 무시하고 .env 파일 값 우선 사용
+    }
 
 
 settings = Settings()

@@ -11,12 +11,15 @@ Legacy HS256 Secret이 있는 경우 폴백으로 검증.
   async def my_route(user: dict = Depends(require_user)):
       return {"user_id": user["id"]}
 """
+import logging
 from datetime import datetime, timezone
 from typing import Optional
 
 import jwt
 from jwt import PyJWKClient
 from fastapi import Header, HTTPException, status
+
+logger = logging.getLogger(__name__)
 
 from app.core.config import settings
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
@@ -86,6 +89,10 @@ def _verify_token_sync(token: str) -> dict:
             )
         except jwt.InvalidTokenError:
             pass  # Legacy HS256으로 폴백 (토큰 검증 실패만 허용)
+        except Exception as e:
+            # PyJWKClientConnectionError, PyJWKClientError 등 JWKS 네트워크/조회 오류
+            # jwt.InvalidTokenError를 상속하지 않아 위 except에서 잡히지 않음 → 폴백
+            logger.warning("JWKS 검증 실패, HS256 폴백 시도: %s", e)
 
     # 2. Legacy HS256 Secret 폴백
     if settings.SUPABASE_JWT_SECRET:

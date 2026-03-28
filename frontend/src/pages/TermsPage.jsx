@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const sections = [
@@ -53,6 +54,12 @@ const sections = [
 
 export default function TermsPage() {
   const navigate = useNavigate()
+
+  useEffect(() => {
+    document.title = '이용약관 — DevNavi'
+    return () => { document.title = 'DevNavi — IT 직군 맞춤형 AI 로드맵' }
+  }, [])
+
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-2xl mx-auto px-6 py-12">

@@ -99,7 +99,7 @@ export default function AuthModal({ open, onClose }) {
           {/* 이메일 폼 */}
           <form onSubmit={handleSubmit} method="post" className="space-y-3">
             <input
-              type="email" required
+              type="email" name="email" id="email" autoComplete="email" required
               value={email} onChange={(e) => setEmail(e.target.value)}
               placeholder="이메일"
               className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/10
@@ -108,7 +108,9 @@ export default function AuthModal({ open, onClose }) {
                 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-500/50 text-sm"
             />
             <input
-              type="password" required minLength={6}
+              type="password" name="password" id="password"
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              required minLength={6}
               value={password} onChange={(e) => setPassword(e.target.value)}
               placeholder="비밀번호 (6자 이상)"
               className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/10

@@ -112,6 +112,10 @@ export default function LandingPage() {
   const [authOpen, setAuthOpen] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
 
+  useEffect(() => {
+    document.title = 'DevNavi — AI 맞춤 커리어 로드맵'
+  }, [])
+
   // 관리자 여부 서버에서 확인 (로그인 시에만)
   useEffect(() => {
     if (!user) { setIsAdmin(false); return }

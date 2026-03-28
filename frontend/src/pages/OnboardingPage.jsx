@@ -141,6 +141,11 @@ export default function OnboardingPage() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
 
+  useEffect(() => {
+    document.title = '시작하기 — DevNavi'
+    return () => { document.title = 'DevNavi — IT 직군 맞춤형 AI 로드맵' }
+  }, [])
+
   const [step, setStep] = useState(1)       // 1 | 'teaser' | 2 | 'summary' | 'generating'
   const [step1, setStep1] = useState(STEP1_INITIAL)
   const [step2, setStep2] = useState(STEP2_INITIAL)

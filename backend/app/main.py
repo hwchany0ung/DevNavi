@@ -123,6 +123,8 @@ class ErrorLoggingMiddleware:
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(ErrorLoggingMiddleware)
 
+
+
 # ── CORS ──────────────────────────────────────────────────────────────
 # Production: Lambda Function URL CORS 블록이 단일 처리
 #   - OPTIONS preflight: Lambda URL이 자동 응답 (Lambda 도달 안 함)
@@ -168,4 +170,4 @@ async def health():
 # lifespan="on": startup/shutdown 훅 실행
 # api_gateway_base_path: Lambda Function URL은 경로 prefix 없음
 handler = Mangum(app, lifespan="on", api_gateway_base_path=None)
-# x86_64 build - Sat Mar 28 2026 (pure-asgi, BUFFERED, LambdaURL CORS, max_tokens=8000)
+# x86_64 build - Sat Mar 28 2026 (pure-asgi, BUFFERED, LambdaURL CORS, max_tokens=8000, env_ignore_empty, jwks-fallback)

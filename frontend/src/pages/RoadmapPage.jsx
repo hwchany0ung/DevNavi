@@ -71,6 +71,11 @@ export default function RoadmapPage() {
   const [showSummary,  setShowSummary]  = useState(false)
   const [careerSummary, setCareerSummary] = useState(null)
 
+  useEffect(() => {
+    document.title = '나의 로드맵 — DevNavi'
+    return () => { document.title = 'DevNavi — IT 직군 맞춤형 AI 로드맵' }
+  }, [])
+
   // ── 커리어 분석 로드 ────────────────────────────────────────────
   useEffect(() => {
     try {
