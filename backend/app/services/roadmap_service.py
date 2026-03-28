@@ -6,6 +6,7 @@ import json
 import logging
 import re
 import uuid
+from enum import Enum
 from typing import Optional
 
 import httpx
@@ -16,6 +17,15 @@ from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
 from app.models.roadmap import FullRoadmapResponse
 
 logger = logging.getLogger(__name__)
+
+
+class DbOp(str, Enum):
+    SAVE         = "저장"
+    FETCH        = "조회"
+    TOGGLE       = "완료 토글"
+    LIST_DONE    = "완료 목록 조회"
+    LIST_ROADMAP = "로드맵 목록 조회"
+    ACTIVITY     = "활동 조회"
 
 
 # ── 로드맵 파싱 ───────────────────────────────────────────────────────
@@ -41,7 +51,7 @@ def parse_full_roadmap(raw_json: str) -> FullRoadmapResponse:
 
 # ── Supabase 에러 변환 헬퍼 ──────────────────────────────────────────
 
-def _raise_db_error(e: httpx.HTTPStatusError, operation: str) -> None:
+def _raise_db_error(e: httpx.HTTPStatusError, operation: DbOp) -> None:
     """httpx.HTTPStatusError → FastAPI HTTPException(502) 변환.
 
     내부 DB 구조(테이블명·SQL 오류 등)는 클라이언트에 노출하지 않고 로그에만 기록.
@@ -89,7 +99,7 @@ async def persist_roadmap(
         )
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:
-        _raise_db_error(e, "저장")
+        _raise_db_error(e, DbOp.SAVE)
     return roadmap_id
 
 
@@ -113,7 +123,7 @@ async def get_roadmap(roadmap_id: str, user_id: Optional[str] = None) -> dict | 
         )
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:
-        _raise_db_error(e, "조회")
+        _raise_db_error(e, DbOp.FETCH)
     rows = resp.json()
     return rows[0] if rows else None
 
@@ -149,7 +159,7 @@ async def upsert_completion(
             )
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:
-        _raise_db_error(e, "완료 토글")
+        _raise_db_error(e, DbOp.TOGGLE)
 
 
 async def list_completions(user_id: str, roadmap_id: str) -> list[str]:
@@ -169,7 +179,7 @@ async def list_completions(user_id: str, roadmap_id: str) -> list[str]:
         )
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:
-        _raise_db_error(e, "완료 목록 조회")
+        _raise_db_error(e, DbOp.LIST_DONE)
     return [row["task_id"] for row in (resp.json() or [])]
 
 
@@ -186,7 +196,7 @@ async def list_user_roadmaps(user_id: str) -> list[dict]:
         )
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:
-        _raise_db_error(e, "로드맵 목록 조회")
+        _raise_db_error(e, DbOp.LIST_ROADMAP)
     return resp.json() or []
 
 
@@ -203,5 +213,5 @@ async def list_activity(user_id: str) -> list[dict]:
         )
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:
-        _raise_db_error(e, "활동 조회")
+        _raise_db_error(e, DbOp.ACTIVITY)
     return resp.json() or []

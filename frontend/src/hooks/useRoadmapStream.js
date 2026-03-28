@@ -66,6 +66,11 @@ export function useRoadmapStream({ onSaved } = {}) {
             .replace(/```(?:json)?\s*/g, '')
             .replace(/```\s*$/g, '')
             .trim()
+          // JSON 완전성 체크 — 끝이 }가 아니면 max_tokens로 잘린 것
+          if (!cleaned.endsWith('}')) {
+            setError(new Error('로드맵이 너무 길어 생성이 중단됐습니다. 목표 기간을 줄이거나 다시 시도해 주세요.'))
+            return
+          }
           const roadmap = JSON.parse(cleaned)
           const id = saveRoadmapLocal(roadmap)
           onSaved?.(id, roadmap)

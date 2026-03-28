@@ -83,6 +83,7 @@ export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
+      let doneSignalReceived = false
 
       while (true) {
         const { done, value } = await reader.read()
@@ -96,26 +97,32 @@ export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {
           if (line.startsWith('data: ')) {
             const data = line.slice(6)
             if (data === '[DONE]') {
+              doneSignalReceived = true
               onDone?.()
               return
             }
             try {
               const parsed = JSON.parse(data)
-              // 서버 측 에러 이벤트 처리
               if (parsed.type === 'error') {
-                const err = new Error(parsed.message || '서버 오류가 발생했어요.')
-                onError?.(err)
+                onError?.(new Error(parsed.message || '서버 오류가 발생했어요.'))
                 return
               }
+              // progress: 멀티콜 진행 알림 — 버퍼에 추가하지 않고 무시
+              if (parsed.type === 'progress') continue
               // teaser: { type:'text', chunk } / full: { type:'chunk', chunk }
-              onChunk?.(parsed.chunk ?? parsed.text ?? data)
+              if (parsed.chunk !== undefined || parsed.text !== undefined) {
+                onChunk?.(parsed.chunk ?? parsed.text)
+              }
             } catch {
               onChunk?.(data) // plain text fallback
             }
           }
         }
       }
-      onDone?.()
+      // [DONE] 없이 스트림이 끊긴 경우 — 비정상 종료 (max_tokens 등)
+      if (!doneSignalReceived) {
+        onError?.(new Error('로드맵 생성 중 연결이 끊겼습니다. 목표 기간을 줄이거나 다시 시도해 주세요.'))
+      }
     } catch (err) {
       if (err.name !== 'AbortError') onError?.(err)
     }

@@ -36,7 +36,8 @@ from app.models.roadmap import (
     CareerSummaryResponse,
 )
 from app.prompts.builder import build_teaser_prompt, build_full_prompt, build_reroute_prompt, build_career_summary_prompt
-from app.services.claude_service import stream_teaser, stream_full, call_reroute, call_haiku
+from app.prompts.constants import PERIOD_MAP
+from app.services.claude_service import stream_teaser, stream_full, stream_full_multicall, call_reroute, call_haiku
 from app.services.roadmap_service import (
     parse_full_roadmap,
     persist_roadmap,
@@ -163,6 +164,22 @@ async def full_roadmap(
     - Phase 6 결제 연동 후 require_premium으로 전환 예정
     """
     await check_and_increment(user["id"], "full")
+
+    months = PERIOD_MAP.get(body.period, 6)
+
+    # 6개월 초과 → 멀티콜 (6개월씩 분할 호출 후 병합)
+    if months > 6:
+        return StreamingResponse(
+            stream_full_multicall(
+                body.role, body.level,
+                body.skills, body.certifications,
+                body.company_type, body.daily_study_hours,
+                months,
+            ),
+            headers=SSE_HEADERS,
+        )
+
+    # 6개월 이하 → 기존 단일 호출 스트리밍
     system, user_msg = build_full_prompt(
         body.role, body.period, body.level,
         body.skills, body.certifications,

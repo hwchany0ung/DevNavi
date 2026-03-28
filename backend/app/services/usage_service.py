@@ -35,6 +35,12 @@ DAILY_LIMITS: dict[str, int] = {
     "reroute":        3,   # Sonnet GPS 재탐색
 }
 
+# ── 개발/테스트 계정 — 일일 한도 적용 제외 ──────────────────────────
+_DEV_BYPASS_USERS: frozenset[str] = frozenset({
+    "4b2a2646-b9ca-4a20-8ab3-c8ff0d3b675c",
+    "6fc1c49e-fa71-4b1d-860d-c1ae2106a0de",
+})
+
 
 async def check_and_increment(user_id: str, endpoint: str) -> None:
     """일일 사용량 원자적 확인 + 카운터 증가. 초과 시 HTTPException(429).
@@ -50,6 +56,9 @@ async def check_and_increment(user_id: str, endpoint: str) -> None:
     """
     if not settings.supabase_ready:
         return  # 개발 모드 (Supabase 미설정) → 제한 없이 통과
+
+    if user_id in _DEV_BYPASS_USERS:
+        return  # 개발/테스트 계정 → 한도 미적용
 
     limit = DAILY_LIMITS.get(endpoint, 3)
     today = date.today()

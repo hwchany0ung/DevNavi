@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import TaskItem from './TaskItem'
 
 /**
  * 주차 아코디언 — WeekPlan 1개
  */
-export default function WeekAccordion({ week, monthIdx, doneSet, onToggle }) {
+const WeekAccordion = memo(function WeekAccordion({ week, monthIdx, doneSet, onToggle }) {
   const total = week.tasks.length
   const doneCount = week.tasks.filter((_, ti) => doneSet.has(`${monthIdx}-${week.week}-${ti}`)).length
   const allDone = doneCount === total
@@ -20,6 +20,8 @@ export default function WeekAccordion({ week, monthIdx, doneSet, onToggle }) {
       {/* 헤더 */}
       <button
         onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-controls={`week-tasks-${monthIdx}-${week.week}`}
         className="w-full flex items-center justify-between px-5 py-4 text-left"
       >
         <div className="flex items-center gap-3">
@@ -55,7 +57,7 @@ export default function WeekAccordion({ week, monthIdx, doneSet, onToggle }) {
 
       {/* 태스크 목록 */}
       {open && (
-        <div className="px-2 pb-3 space-y-0.5">
+        <div id={`week-tasks-${monthIdx}-${week.week}`} className="px-2 pb-3 space-y-0.5">
           {week.tasks.map((task, ti) => {
             const taskId = `${monthIdx}-${week.week}-${ti}`
             return (
@@ -72,4 +74,6 @@ export default function WeekAccordion({ week, monthIdx, doneSet, onToggle }) {
       )}
     </div>
   )
-}
+})
+
+export default WeekAccordion

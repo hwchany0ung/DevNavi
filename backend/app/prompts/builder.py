@@ -185,10 +185,19 @@ def build_full_prompt(
     level_kr = LEVEL_MAP.get(level, level)
     company_kr = COMPANY_MAP.get(company_type, "무관")
     tasks_per_week = TASKS_PER_WEEK.get(daily_study_hours, 3)
+    # 기간이 길수록 출력 토큰이 급증 → 한도 초과 방지를 위해 태스크 수 상한 조정
+    # 18개월: max 3, 12개월: max 4
+    if months >= 18:
+        tasks_per_week = min(tasks_per_week, 3)
+    elif months >= 12:
+        tasks_per_week = min(tasks_per_week, 4)
     reference = get_reference(role)
 
     skills_str = ", ".join(skills) if skills else "없음"
     certs_str = ", ".join(certifications) if certifications else "없음"
+
+    # 18개월 이상은 출력 토큰 절약을 위해 태스크 내용 길이 제한
+    content_len_hint = "20자 이내" if months >= 18 else "40자 이내"
 
     user = f"""[직군 참조 데이터]
 {reference}
@@ -200,7 +209,56 @@ def build_full_prompt(
 보유 스킬: {skills_str}
 보유 자격증: {certs_str}
 목표 회사 유형: {company_kr}
-하루 학습 시간: {daily_study_hours} → 주당 태스크 {tasks_per_week}개 기준"""
+하루 학습 시간: {daily_study_hours} → 주당 태스크 {tasks_per_week}개 기준
+태스크 content 길이: {content_len_hint} (엄수)"""
+
+    return FULL_SYSTEM, user
+
+
+def build_full_prompt_partial(
+    role: str,
+    level: str,
+    skills: list[str],
+    certifications: list[str],
+    company_type: str,
+    daily_study_hours: str,
+    month_start: int,
+    month_end: int,
+    total_months: int,
+) -> tuple[str, str]:
+    """멀티콜용 — total_months 중 month_start~month_end 구간만 생성."""
+    role_kr = ROLE_MAP.get(role, role)
+    level_kr = LEVEL_MAP.get(level, level)
+    company_kr = COMPANY_MAP.get(company_type, "무관")
+    tasks_per_week = TASKS_PER_WEEK.get(daily_study_hours, 3)
+    reference = get_reference(role)
+
+    skills_str = ", ".join(skills) if skills else "없음"
+    certs_str = ", ".join(certifications) if certifications else "없음"
+
+    is_first_chunk = month_start == 1
+    persona_instruction = (
+        "summary·persona_title·persona_subtitle는 전체 로드맵 기준으로 작성하세요."
+        if is_first_chunk else
+        'summary·persona_title·persona_subtitle는 빈 문자열("")로 채우세요.'
+    )
+
+    user = f"""[직군 참조 데이터]
+{reference}
+
+[사용자 정보]
+목표 직군: {role_kr}
+전체 목표 기간: {total_months}개월 (이번 생성: {month_start}~{month_end}월차)
+현재 수준: {level_kr}
+보유 스킬: {skills_str}
+보유 자격증: {certs_str}
+목표 회사 유형: {company_kr}
+하루 학습 시간: {daily_study_hours} → 주당 태스크 {tasks_per_week}개 기준
+
+[중요]
+- months 배열에 {month_start}번부터 {month_end}번 월차만 생성 (총 {month_end - month_start + 1}개월)
+- month 필드 값은 반드시 {month_start}부터 시작
+- {persona_instruction}"""
 
     return FULL_SYSTEM, user
 

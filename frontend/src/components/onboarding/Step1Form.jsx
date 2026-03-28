@@ -39,6 +39,8 @@ export default function Step1Form({ values, onChange }) {
             <button
               key={r.value}
               type="button"
+              aria-label={`${r.label} 선택`}
+              aria-pressed={values.role === r.value}
               onClick={() => set('role')(r.value)}
               className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-sm font-semibold transition-all
                 ${values.role === r.value
