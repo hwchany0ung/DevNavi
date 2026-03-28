@@ -5,22 +5,18 @@ from typing import Literal, Optional, Union
 # 개별 스킬/자격증 항목 최대 길이 (프롬프트 인젝션 및 비용 방어)
 _ITEM_MAX_LEN = 60
 
-# 프롬프트 구조를 깨뜨릴 수 있는 특수문자 패턴
-# ※ +, #, @ 등 기술명에 정상 사용되는 문자는 제외 (C++, C#, .NET 등 보존)
-_INJECTION_PATTERN = re.compile(r'[\[\]{}\n\r\t\\]')
-# 각도 괄호는 기술명에 드물게 사용되나 HTML/XML 인젝션 위험 — 별도 처리
-_ANGLE_PATTERN = re.compile(r'<[^>]{0,30}>')  # 태그 형태만 제거, 단독 < > 는 보존
+# 화이트리스트: 허용 문자만 통과 (영문, 한글, 숫자, 기술명에 쓰이는 기호)
+# C++, C#, .NET, Node.js, iOS/Android, AWS S3, TypeScript 등 보존
+_ALLOWED_PATTERN = re.compile(r'[^a-zA-Z0-9가-힣ㄱ-ㅎㅏ-ㅣ\s\.\+\#\@\/\-\_\!\(\)\:\,]')
 
 
 def _sanitize_item(item: str) -> str:
-    """프롬프트 인젝션 위험 문자 제거 후 길이 제한.
+    """허용된 문자만 통과시키는 화이트리스트 방식 정제 후 길이 제한.
 
-    - 줄바꿈·탭·백슬래시·중괄호·대괄호 제거 (프롬프트 구조 보호)
-    - HTML 태그 형태(<tag>) 제거
-    - C++, C#, .NET, TypeScript<T> 등 기술명은 최대한 보존
+    허용: 영문, 한글, 숫자, 공백, . + # @ / - _ ! ( ) : ,
+    차단: 줄바꿈, 탭, 괄호류, 백슬래시, 따옴표, 세미콜론 등 인젝션 위험 문자
     """
-    cleaned = _INJECTION_PATTERN.sub(' ', str(item))
-    cleaned = _ANGLE_PATTERN.sub(' ', cleaned)
+    cleaned = _ALLOWED_PATTERN.sub('', str(item))
     return cleaned[:_ITEM_MAX_LEN].strip()
 
 

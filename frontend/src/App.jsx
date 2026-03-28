@@ -8,12 +8,14 @@ import AdminPage from './pages/AdminPage'
 import NotFoundPage from './pages/NotFoundPage'
 import PrivateRoute from './components/auth/PrivateRoute'
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 /** 로그인 후 /dashboard 진입 시 최근 로드맵 또는 온보딩으로 이동 */
 function DashboardRedirect() {
   const keys = Object.keys(localStorage).filter(k => k.startsWith('devnavi_roadmap_'))
   if (keys.length > 0) {
     const id = keys[keys.length - 1].replace('devnavi_roadmap_', '')
-    return <Navigate to={`/roadmap/${id}`} replace />
+    if (UUID_RE.test(id)) return <Navigate to={`/roadmap/${id}`} replace />
   }
   return <Navigate to="/onboarding" replace />
 }

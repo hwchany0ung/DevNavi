@@ -46,7 +46,7 @@ async def stream_teaser(system: str, user: str) -> AsyncGenerator[str, None]:
                 yield f"data: {json.dumps({'type': 'text', 'chunk': text})}\n\n"
     except Exception as e:
         _logger.error("stream_teaser 오류: %s", e, exc_info=True)
-        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        yield f"data: {json.dumps({'type': 'error', 'message': 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'})}\n\n"
     yield "data: [DONE]\n\n"
 
 
@@ -85,7 +85,7 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
                 yield f"data: {json.dumps({'type': 'chunk', 'chunk': text})}\n\n"
     except Exception as e:
         _logger.error("stream_full 오류: %s", e, exc_info=True)
-        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+        yield f"data: {json.dumps({'type': 'error', 'message': '로드맵 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'})}\n\n"
     yield "data: [DONE]\n\n"
 
 

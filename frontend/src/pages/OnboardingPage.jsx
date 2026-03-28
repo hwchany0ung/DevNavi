@@ -16,6 +16,25 @@ import { request } from '../lib/api'
 // Google OAuth 리다이렉트 후 폼 상태 복원용 sessionStorage 키
 const DRAFT_KEY = 'devnavi_onboarding_draft'
 
+// 복원된 draft 값의 유효성 검증 (주입 방지)
+const VALID_ROLES = ['backend', 'frontend', 'cloud_devops', 'fullstack', 'data', 'ai_ml', 'security', 'ios_android', 'qa']
+const VALID_PERIODS = ['3months', '6months', '1year', '1year_plus']
+const VALID_LEVELS = ['beginner', 'basic', 'some_exp', 'career_change']
+const VALID_COMPANY_TYPES = ['startup', 'msp', 'bigco', 'si', 'foreign', 'any']
+const VALID_STUDY_HOURS = ['under1h', '1to2h', '3to4h', 'over5h']
+
+function _isValidDraft(s1, s2) {
+  return (
+    VALID_ROLES.includes(s1?.role) &&
+    VALID_PERIODS.includes(s1?.period) &&
+    VALID_LEVELS.includes(s1?.level) &&
+    Array.isArray(s2?.skills) &&
+    Array.isArray(s2?.certifications) &&
+    VALID_COMPANY_TYPES.includes(s2?.company_type) &&
+    VALID_STUDY_HOURS.includes(s2?.daily_study_hours)
+  )
+}
+
 // ── 파라미터 캐시 유틸 ─────────────────────────────────────────────────
 /** 생성 파라미터를 정렬된 문자열 키로 변환 (캐시 비교용) */
 function computeParamsKey(s1, s2) {
@@ -157,6 +176,8 @@ export default function OnboardingPage() {
   const [showAuth, setShowAuth] = useState(false)
   // 로그인 완료 후 실행할 pending 액션 ('summary' | null)
   const pendingActionRef = useRef(null)
+  // 로드맵 생성 중복 호출 방지
+  const generatingRef = useRef(false)
 
   // 기존 로드맵 감지 모달
   const [existingRoadmapId, setExistingRoadmapId] = useState(null)
@@ -183,6 +204,7 @@ export default function OnboardingPage() {
     try {
       const { step1: s1, step2: s2 } = JSON.parse(saved)
       sessionStorage.removeItem(DRAFT_KEY)
+      if (!_isValidDraft(s1, s2)) return  // 유효하지 않은 draft 무시
       setStep1(s1)
       setStep2(s2)
       setStep(2)
@@ -316,7 +338,8 @@ export default function OnboardingPage() {
 
   // summary 스텝 → 전체 로드맵 SSE 스트리밍 (캐시 우선 확인)
   const handleStartGenerate = () => {
-    if (fullStreaming) return
+    if (fullStreaming || generatingRef.current) return
+    generatingRef.current = true
 
     // ── 보관된 로드맵 캐시 확인 ─────────────────────────────────────
     const paramsKey = computeParamsKey(step1, step2)
@@ -324,6 +347,7 @@ export default function OnboardingPage() {
     if (archivedId) {
       // 동일 파라미터 → API 호출 없이 복원
       restoreArchivedRoadmap(archivedId)
+      generatingRef.current = false
       navigate(`/roadmap/${archivedId}`, { replace: true })
       return
     }
@@ -341,6 +365,7 @@ export default function OnboardingPage() {
       },
       user ? { Authorization: `Bearer ${user.accessToken}` } : {},
     )
+    generatingRef.current = false
   }
 
   const stepIndex = step === 1 ? 0

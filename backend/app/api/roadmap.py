@@ -184,7 +184,6 @@ async def career_summary(
 
     - 무료 사용자 하루 10회 초과 시 429
     """
-    await check_and_increment(user["id"], "career-summary")
     try:
         system, user_msg = build_career_summary_prompt(
             body.role, body.period, body.level,
@@ -194,7 +193,9 @@ async def career_summary(
         logger.info("career-summary raw response: %s", raw[:200])
     except Exception as e:
         logger.exception("career-summary AI 호출 실패")
-        raise HTTPException(status_code=500, detail=f"AI 호출 실패: {e}")
+        raise HTTPException(status_code=500, detail="AI 호출에 실패했습니다. 잠시 후 다시 시도해주세요.")
+    # AI 호출 성공 후에만 사용량 차감 (실패 시 차감하지 않음)
+    await check_and_increment(user["id"], "career-summary")
 
     # JSON 추출 — 코드블록 제거 후 첫 번째 { } 구간 파싱
     cleaned = re.sub(r"```(?:json)?", "", raw).replace("```", "").strip()
@@ -202,14 +203,15 @@ async def career_summary(
     start = cleaned.find("{")
     end   = cleaned.rfind("}") + 1
     if start == -1 or end == 0:
-        raise HTTPException(status_code=422, detail=f"JSON 구조를 찾을 수 없습니다: {cleaned[:200]}")
+        logger.error("career-summary JSON 구조 없음. 원문(200자): %s", cleaned[:200])
+        raise HTTPException(status_code=422, detail="응답 파싱에 실패했습니다. 다시 시도해주세요.")
     json_str = cleaned[start:end]
 
     try:
         data = json.loads(json_str)
     except json.JSONDecodeError as e:
         logger.error("career-summary JSON 파싱 실패: %s\n원문: %s", e, json_str[:300])
-        raise HTTPException(status_code=422, detail=f"JSON 파싱 실패: {e}")
+        raise HTTPException(status_code=422, detail="응답 파싱에 실패했습니다. 다시 시도해주세요.")
 
     # 모델 검증 — 실패 시 raw dict 반환 (프론트가 방어적으로 처리)
     try:
