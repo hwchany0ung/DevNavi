@@ -372,9 +372,9 @@ export default function LandingPage() {
         }}>
         <div className="flex flex-wrap items-center justify-center gap-4">
           <span>© {new Date().getFullYear()} DevNavi. All rights reserved.</span>
-          <a href="/terms"   className="hover:opacity-70 transition-opacity">이용약관</a>
-          <a href="/privacy" className="hover:opacity-70 transition-opacity">개인정보처리방침</a>
-          <a href="mailto:support@devnavi.kr" className="hover:opacity-70 transition-opacity">문의</a>
+          <a href="/terms"   className="hover:opacity-70 transition-opacity inline-flex items-center min-h-[44px] px-1">이용약관</a>
+          <a href="/privacy" className="hover:opacity-70 transition-opacity inline-flex items-center min-h-[44px] px-1">개인정보처리방침</a>
+          <a href="mailto:support@devnavi.kr" className="hover:opacity-70 transition-opacity inline-flex items-center min-h-[44px] px-1">문의</a>
         </div>
       </footer>
 
