@@ -39,6 +39,9 @@ export default function ResetPasswordPage() {
     async function exchange() {
       const { error } = await supabase.auth.exchangeCodeForSession(code)
       if (error) {
+        // 코드 교환 실패 시 부분적으로 생성된 세션을 반드시 제거
+        // (Supabase가 에러를 반환하면서도 세션을 만드는 경우 방지)
+        await supabase.auth.signOut()
         setStep('expired')
       } else {
         setStep('form')
