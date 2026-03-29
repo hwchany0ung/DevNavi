@@ -41,10 +41,22 @@ export function useAuth() {
     // 인증 상태 변경 구독
     // SIGNED_IN 이벤트(OAuth/이메일 확인 리다이렉트 포함) 시 URL에 남은 auth 파라미터 즉시 제거
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session ? _toUser(session) : null)
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (event === 'SIGNED_IN' && session) {
+        // 다른 계정으로 로그인 시 이전 사용자의 localStorage 데이터 제거
+        // (로그아웃 없이 계정 전환 시 이전 사용자의 로드맵이 노출되는 문제 방지)
+        const lastUserId = localStorage.getItem('devnavi_last_user_id')
+        if (lastUserId && lastUserId !== session.user.id) {
+          Object.keys(localStorage)
+            .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme' && k !== 'devnavi_last_user_id')
+            .forEach((k) => localStorage.removeItem(k))
+        }
+        localStorage.setItem('devnavi_last_user_id', session.user.id)
         cleanAuthParams()
       }
+      if (event === 'TOKEN_REFRESHED') {
+        cleanAuthParams()
+      }
+      setUser(session ? _toUser(session) : null)
     })
     return () => subscription.unsubscribe()
   }, [])
@@ -77,7 +89,7 @@ export function useAuth() {
     if (supabase) await supabase.auth.signOut()
     // 로그아웃 시 기기에 저장된 로드맵/분석 데이터 정리
     // (다른 사람이 같은 기기를 쓸 경우 이전 사용자 데이터 노출 방지)
-    // devnavi_theme은 사용자 설정이므로 유지, 나머지(로드맵·분석·done 등)만 제거
+    // devnavi_theme은 사용자 설정이므로 유지, 나머지(로드맵·분석·done·user_id 등)만 제거
     Object.keys(localStorage)
       .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme')
       .forEach((k) => localStorage.removeItem(k))

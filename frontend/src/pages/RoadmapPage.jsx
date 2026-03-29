@@ -107,12 +107,18 @@ export default function RoadmapPage() {
         roadmap: toSave,
       }),
     }).then(({ roadmap_id: serverId }) => {
-      // 서버 ID로 localStorage 이전
+      // 서버 ID로 localStorage 이전 (roadmap → summary → done 순서)
       localStorage.setItem(`devnavi_roadmap_${serverId}`, JSON.stringify(toSave))
       const summaryRaw = localStorage.getItem(`devnavi_summary_${id}`)
       if (summaryRaw) {
         localStorage.setItem(`devnavi_summary_${serverId}`, summaryRaw)
         localStorage.removeItem(`devnavi_summary_${id}`)
+      }
+      // done 데이터도 함께 이전 — 누락 시 로그인 후 완료 기록이 초기화됨
+      const doneRaw = localStorage.getItem(`devnavi_done_${id}`)
+      if (doneRaw) {
+        localStorage.setItem(`devnavi_done_${serverId}`, doneRaw)
+        localStorage.removeItem(`devnavi_done_${id}`)
       }
       localStorage.removeItem(`devnavi_roadmap_${id}`)
       navigate(`/roadmap/${serverId}`, { replace: true })

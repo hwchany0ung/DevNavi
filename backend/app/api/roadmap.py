@@ -59,6 +59,27 @@ SSE_HEADERS = {
 }
 
 
+async def _with_usage_check(
+    gen: AsyncGenerator[str, None],
+    user_id: str,
+) -> AsyncGenerator[str, None]:
+    """사용량 차감 후 실제 스트리밍 제너레이터로 위임.
+
+    스트리밍은 HTTP 헤더(200)를 먼저 전송한 뒤 body를 소비하기 때문에
+    제너레이터 내부에서 429를 HTTP 상태로 반환할 수 없다.
+    대신 SSE error event로 변환해 프론트엔드가 기존 onError 핸들러로 처리하게 한다.
+    이 방식은 라우팅 오류·모델 파라미터 검증 실패 시 쿼터를 소모하지 않는 장점이 있다.
+    (career-summary는 동기 응답이라 호출 성공 후 차감 가능하나, 스트리밍은 이 구조가 최선)
+    """
+    try:
+        await check_and_increment(user_id, "full")
+    except HTTPException as e:
+        yield f"data: {json.dumps({'type': 'error', 'message': e.detail})}\n\n"
+        return
+    async for chunk in gen:
+        yield chunk
+
+
 # ─────────────────────────── 티저 캐시 헬퍼 ─────────────────────────
 
 async def _get_teaser_cache(params_key: str) -> str | None:
@@ -163,29 +184,27 @@ async def full_roadmap(
     - 무료 사용자 하루 2회 초과 시 429
     - Phase 6 결제 연동 후 require_premium으로 전환 예정
     """
-    await check_and_increment(user["id"], "full")
-
     months = PERIOD_MAP.get(body.period, 6)
 
-    # 6개월 초과 → 멀티콜 (6개월씩 분할 호출 후 병합)
+    # 6개월 초과 → 멀티콜 (6개월씩 병렬 분할 호출 후 병합)
     if months > 6:
-        return StreamingResponse(
-            stream_full_multicall(
-                body.role, body.level,
-                body.skills, body.certifications,
-                body.company_type, body.daily_study_hours,
-                months,
-            ),
-            headers=SSE_HEADERS,
+        gen = stream_full_multicall(
+            body.role, body.level,
+            body.skills, body.certifications,
+            body.company_type, body.daily_study_hours,
+            months,
         )
+    else:
+        # 6개월 이하 → 단일 호출 스트리밍
+        system, user_msg = build_full_prompt(
+            body.role, body.period, body.level,
+            body.skills, body.certifications,
+            body.company_type, body.daily_study_hours,
+        )
+        gen = stream_full(system, user_msg)
 
-    # 6개월 이하 → 기존 단일 호출 스트리밍
-    system, user_msg = build_full_prompt(
-        body.role, body.period, body.level,
-        body.skills, body.certifications,
-        body.company_type, body.daily_study_hours,
-    )
-    return StreamingResponse(stream_full(system, user_msg), headers=SSE_HEADERS)
+    # 라우팅·파라미터 확정 후 쿼터 차감 — 제너레이터 시작 시점에 실행
+    return StreamingResponse(_with_usage_check(gen, user["id"]), headers=SSE_HEADERS)
 
 
 # ─────────────────────────── 커리어 분석 요약 ───────────────────────

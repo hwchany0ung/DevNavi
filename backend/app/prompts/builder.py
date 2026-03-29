@@ -185,19 +185,15 @@ def build_full_prompt(
     level_kr = LEVEL_MAP.get(level, level)
     company_kr = COMPANY_MAP.get(company_type, "무관")
     tasks_per_week = TASKS_PER_WEEK.get(daily_study_hours, 3)
-    # 기간이 길수록 출력 토큰이 급증 → 한도 초과 방지를 위해 태스크 수 상한 조정
-    # 18개월: max 3, 12개월: max 4
-    if months >= 18:
-        tasks_per_week = min(tasks_per_week, 3)
-    elif months >= 12:
-        tasks_per_week = min(tasks_per_week, 4)
+    # build_full_prompt는 ≤6개월 단일 호출 전용
+    # (7개월+ 로드맵은 stream_full_multicall → build_full_prompt_partial 경유)
+    # 12개월·18개월 캡 분기는 이 함수에 도달하지 않으므로 제거
     reference = get_reference(role)
 
     skills_str = ", ".join(skills) if skills else "없음"
     certs_str = ", ".join(certifications) if certifications else "없음"
 
-    # 18개월 이상은 출력 토큰 절약을 위해 태스크 내용 길이 제한
-    content_len_hint = "20자 이내" if months >= 18 else "40자 이내"
+    content_len_hint = "40자 이내"  # ≤6개월은 토큰 여유가 충분
 
     user = f"""[직군 참조 데이터]
 {reference}

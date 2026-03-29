@@ -146,6 +146,13 @@ async def stream_full_multicall(
 
     max_tokens 한도 초과 문제를 해결하기 위해 7개월 이상 로드맵에 사용.
     모든 청크를 asyncio.create_task로 동시 실행 → 순차 대비 ~N배 속도 향상.
+
+    ⚠️  Lambda 배포 전제조건:
+        asyncio.create_task()는 현재 이벤트 루프에서 태스크를 스케줄링한다.
+        Mangum BUFFERED 모드에서는 각 Lambda 호출이 asyncio.run()으로 단일 루프를
+        생성·종료하므로, 이 함수가 완전히 소비되기 전에 루프가 닫히지 않는다 → 안전.
+        RESPONSE_STREAM 모드로 전환 시 이벤트 루프 생명주기가 달라질 수 있으니
+        반드시 재검증 후 전환할 것.
     """
     import logging
     import time as _time
@@ -178,18 +185,28 @@ async def stream_full_multicall(
         for system, user_msg in prompt_pairs
     ]
 
-    # 전체 진행 상황 알림 (프론트엔드 progress bar용)
-    for idx in range(total_chunks):
-        yield f"data: {json.dumps({'type': 'progress', 'step': idx + 1, 'total': total_chunks})}\n\n"
-
-    # 모든 태스크 완료 대기 — 주기적으로 keepalive 전송
+    # 태스크 완료 시점마다 progress event 전송 + keepalive 유지
+    # (태스크 생성 직후 일괄 전송하면 progress가 실제 진행률을 반영하지 못함)
+    notified: set[int] = set()
     last_keepalive = _time.monotonic()
+
     while not all(t.done() for t in tasks):
         await asyncio.sleep(1)
+        # 새로 완료된 태스크에 대해 progress event 발행
+        for i, t in enumerate(tasks):
+            if t.done() and i not in notified:
+                notified.add(i)
+                yield f"data: {json.dumps({'type': 'progress', 'step': len(notified), 'total': total_chunks})}\n\n"
         now = _time.monotonic()
         if now - last_keepalive > _KEEPALIVE_INTERVAL:
             yield ": keepalive\n\n"
             last_keepalive = now
+
+    # 루프 종료 후 마지막 sleep 사이에 완료된 태스크 처리
+    for i, t in enumerate(tasks):
+        if i not in notified:
+            notified.add(i)
+            yield f"data: {json.dumps({'type': 'progress', 'step': len(notified), 'total': total_chunks})}\n\n"
 
     # 순서대로 결과 수집 및 파싱
     all_months: list[dict] = []
