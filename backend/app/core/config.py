@@ -34,6 +34,7 @@ def _load_ssm_params() -> None:
             f"{prefix}CORS_ORIGINS",
             f"{prefix}FREE_DAILY_LIMIT",
             f"{prefix}CLOUDFRONT_SECRET",
+            f"{prefix}DEV_BYPASS_USERS",
         ]
         response = ssm.get_parameters(Names=param_names, WithDecryption=True)
         # 누락된 파라미터 경고 (InvalidParameters 배열)
@@ -80,6 +81,10 @@ class Settings(BaseSettings):
 
     # ── 무료 사용자 일일 생성 한도 ───────────────────────────────
     FREE_DAILY_LIMIT: int = 3
+
+    # ── 개발/테스트 계정 일일 한도 제외 (쉼표 구분 UUID 문자열) ──
+    # 예: DEV_BYPASS_USERS=uuid1,uuid2
+    DEV_BYPASS_USERS: str = ""
 
     @property
     def supabase_ready(self) -> bool:

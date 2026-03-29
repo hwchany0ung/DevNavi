@@ -24,6 +24,7 @@ import httpx
 from fastapi import HTTPException
 
 from app.core.config import settings
+from app.core.config import settings
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
 
 logger = logging.getLogger(__name__)
@@ -36,10 +37,13 @@ DAILY_LIMITS: dict[str, int] = {
 }
 
 # ── 개발/테스트 계정 — 일일 한도 적용 제외 ──────────────────────────
-_DEV_BYPASS_USERS: frozenset[str] = frozenset({
-    "4b2a2646-b9ca-4a20-8ab3-c8ff0d3b675c",
-    "6fc1c49e-fa71-4b1d-860d-c1ae2106a0de",
-})
+# 소스에 UUID를 박지 않고 환경변수(DEV_BYPASS_USERS=uuid1,uuid2)로 관리
+# 로컬: .env, 프로덕션: SSM /devnavi/prod/DEV_BYPASS_USERS
+def _load_bypass_users() -> frozenset[str]:
+    raw = settings.DEV_BYPASS_USERS
+    return frozenset(u.strip() for u in raw.split(",") if u.strip())
+
+_DEV_BYPASS_USERS: frozenset[str] = _load_bypass_users()
 
 
 async def check_and_increment(user_id: str, endpoint: str) -> None:

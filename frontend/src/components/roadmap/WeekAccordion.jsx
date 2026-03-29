@@ -4,6 +4,17 @@ import TaskItem from './TaskItem'
 /**
  * 주차 아코디언 — WeekPlan 1개
  */
+// 이 주차에 속한 task_id 중 하나라도 done 상태가 바뀌었을 때만 리렌더.
+// doneSet은 toggle마다 새 Set 참조가 생성되므로 기본 memo(===)로는 매 toggle마다
+// 모든 WeekAccordion이 리렌더됨 — custom comparator로 실제 변경 여부만 비교.
+function _arePropsEqual(prev, next) {
+  if (prev.week !== next.week || prev.monthIdx !== next.monthIdx || prev.onToggle !== next.onToggle) return false
+  return prev.week.tasks.every((_, ti) => {
+    const id = `${prev.monthIdx}-${prev.week.week}-${ti}`
+    return prev.doneSet.has(id) === next.doneSet.has(id)
+  })
+}
+
 const WeekAccordion = memo(function WeekAccordion({ week, monthIdx, doneSet, onToggle }) {
   const total = week.tasks.length
   const doneCount = week.tasks.filter((_, ti) => doneSet.has(`${monthIdx}-${week.week}-${ti}`)).length
@@ -74,6 +85,6 @@ const WeekAccordion = memo(function WeekAccordion({ week, monthIdx, doneSet, onT
       )}
     </div>
   )
-})
+}, _arePropsEqual)
 
 export default WeekAccordion

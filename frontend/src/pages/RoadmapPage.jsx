@@ -129,25 +129,30 @@ export default function RoadmapPage() {
   }, [user, id, navigate])
 
   // ── 로드맵 로드 ─────────────────────────────────────────────────
+  // loadedForIdRef: 현재 id로 이미 성공 로드 시 TOKEN_REFRESHED 등 user 변경으로 재요청 방지
+  const loadedForIdRef = useRef(null)
   useEffect(() => {
     if (authLoading) return  // 인증 확인 완료 전 대기
+    if (loadedForIdRef.current === id) return  // 이미 이 id로 로드 완료 (flicker 방지)
     setLoading(true)
     const local = loadRoadmapLocal(id)
     if (local) {
       setRoadmap(local)
       setDoneSet(loadDoneLocal(id))
       setLoading(false)
-    } else {
-      const headers = user?.accessToken ? { Authorization: `Bearer ${user.accessToken}` } : {}
-      request(`/roadmap/${id}`, { headers })
-        .then((data) => {
-          const rm = data.data ?? data
-          setRoadmap(rm)
-          setDoneSet(loadDoneLocal(id))
-        })
-        .catch((e) => setError(e.message))
-        .finally(() => setLoading(false))
+      loadedForIdRef.current = id
+      return
     }
+    const headers = user?.accessToken ? { Authorization: `Bearer ${user.accessToken}` } : {}
+    request(`/roadmap/${id}`, { headers })
+      .then((data) => {
+        const rm = data.data ?? data
+        setRoadmap(rm)
+        setDoneSet(loadDoneLocal(id))
+        loadedForIdRef.current = id  // 성공 시만 set — 실패 시 user 변경으로 재시도 허용
+      })
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false))
   }, [id, user, authLoading])
 
   // ── 로그인 시 Supabase completions 동기화 ───────────────────────

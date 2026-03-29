@@ -66,7 +66,9 @@ export function useRoadmapStream({ onSaved } = {}) {
             .replace(/```(?:json)?\s*/g, '')
             .replace(/```\s*$/g, '')
             .trim()
-          // JSON 완전성 체크 — 끝이 }가 아니면 max_tokens로 잘린 것
+          // JSON 완전성 벨트-서스펜더 체크.
+          // 서버는 max_tokens 도달 시 [DONE] 대신 error 이벤트를 전송하지만,
+          // 만약 청크 스트림이 정상 종료처럼 보이면서도 JSON이 잘렸을 경우 대비.
           if (!cleaned.endsWith('}')) {
             setError(new Error('로드맵이 너무 길어 생성이 중단됐습니다. 목표 기간을 줄이거나 다시 시도해 주세요.'))
             return

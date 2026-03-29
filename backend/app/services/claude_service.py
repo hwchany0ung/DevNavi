@@ -114,7 +114,11 @@ _MULTICALL_CHUNK = 6  # 한 번에 생성할 최대 개월 수
 
 
 async def _fetch_chunk(client, system: str, user_msg: str) -> tuple[str, str | None]:
-    """단일 청크를 수집 후 (raw_text, stop_reason) 반환 — 병렬 호출용."""
+    """단일 청크를 수집 후 (raw_text, stop_reason) 반환 — 병렬 호출용.
+
+    try/except 없음: 예외는 asyncio.Task로 래핑되어 호출부(stream_full_multicall)의
+    task.result()에서 포착 → 거기서 SSE error 이벤트로 변환.
+    """
     raw = ""
     stop_reason = None
     async with client.messages.stream(
