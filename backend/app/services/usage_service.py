@@ -24,7 +24,6 @@ import httpx
 from fastapi import HTTPException
 
 from app.core.config import settings
-from app.core.config import settings
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
 
 logger = logging.getLogger(__name__)

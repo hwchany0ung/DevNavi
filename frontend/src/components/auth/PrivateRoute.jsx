@@ -8,7 +8,11 @@ import { useAuth } from '../../hooks/useAuth'
 export default function PrivateRoute({ children }) {
   const { user, loading } = useAuth()
 
-  if (loading) return null   // 인증 상태 로딩 중 → 깜빡임 방지
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+      <div className="w-8 h-8 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+    </div>
+  )
 
   if (!user) return <Navigate to="/" replace />
 

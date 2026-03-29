@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import PropTypes from 'prop-types'
 import { useTheme } from '../../contexts/ThemeContext'
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -67,6 +68,14 @@ export default function GrassCalendar({ activity = [], totalDone = 0 }) {
       </div>
     </div>
   )
+}
+
+GrassCalendar.propTypes = {
+  activity:  PropTypes.arrayOf(PropTypes.shape({
+    activity_date: PropTypes.string.isRequired,
+    count:         PropTypes.number.isRequired,
+  })),
+  totalDone: PropTypes.number,
 }
 
 function Cell({ day, maxCount, colors }) {

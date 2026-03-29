@@ -1,3 +1,4 @@
+import json
 import re
 from pydantic import BaseModel, Field, field_validator
 from typing import Literal, Optional, Union
@@ -54,6 +55,12 @@ class FullRoadmapRequest(BaseModel):
         return _truncate_items(v) if isinstance(v, list) else v
 
 
+_TASK_ID_RE = re.compile(r'^\d{1,3}-\d{1,2}-\d{1,3}$')
+
+# 페이로드 크기 제한 (512KB) — Supabase 스토리지 남용 방지
+_ROADMAP_MAX_BYTES = 512 * 1024
+
+
 class RerouteRequest(BaseModel):
     original_role: Literal[
         "backend", "frontend", "cloud_devops", "fullstack",
@@ -66,6 +73,11 @@ class RerouteRequest(BaseModel):
     weeks_left: int = Field(ge=1, le=80)
     daily_study_hours: Literal["under1h", "1to2h", "3to4h", "over5h"] = "1to2h"
 
+    @field_validator("done_contents", mode="before")
+    @classmethod
+    def sanitize_done_contents(cls, v: list) -> list[str]:
+        return _truncate_items(v) if isinstance(v, list) else v
+
 
 class PersistRequest(BaseModel):
     """스트리밍 완료 후 프론트가 POST /roadmap/persist 로 보내는 바디."""
@@ -77,11 +89,28 @@ class PersistRequest(BaseModel):
     roadmap: dict                          # FullRoadmapResponse JSON
     parent_id: Optional[str] = None       # GPS 재탐색 시 원본 roadmap_id
 
+    @field_validator("roadmap", mode="after")
+    @classmethod
+    def check_roadmap_size(cls, v: dict) -> dict:
+        size = len(json.dumps(v, ensure_ascii=False).encode("utf-8"))
+        if size > _ROADMAP_MAX_BYTES:
+            raise ValueError(
+                f"roadmap 페이로드가 너무 큽니다 ({size // 1024}KB > 512KB)."
+            )
+        return v
+
 
 class CompletionToggleRequest(BaseModel):
     """태스크 완료/취소 토글 요청."""
     task_id: str       # "{month}-{week}-{taskIndex}"
     completed: bool
+
+    @field_validator("task_id")
+    @classmethod
+    def validate_task_id(cls, v: str) -> str:
+        if not _TASK_ID_RE.match(v):
+            raise ValueError("task_id 형식이 잘못됐습니다. '{월}-{주}-{인덱스}' 형식이어야 합니다.")
+        return v
 
 
 # ───────────────────────────── 응답 모델 ─────────────────────────────

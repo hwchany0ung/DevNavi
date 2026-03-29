@@ -119,7 +119,10 @@ export default function AuthModal({ open, onClose }) {
                 focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-500/50 text-sm"
             />
 
-            {/* 약관 동의 (회원가입 전용) */}
+            {/* 약관 동의 (회원가입 전용)
+                TODO Phase 6: PIPA 준수를 위해 동의 이력(타임스탬프, IP, 버전)을
+                서버에 기록해야 합니다. 현재는 클라이언트 전용 처리.
+            */}
             {mode === 'signup' && (
               <div className="space-y-2 py-1">
                 <label className="flex items-start gap-2 cursor-pointer">

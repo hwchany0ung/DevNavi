@@ -73,6 +73,7 @@ export default function RoadmapPage() {
   const [showSummary,  setShowSummary]  = useState(false)
   const [careerSummary, setCareerSummary] = useState(null)
   const [autoSaveError, setAutoSaveError] = useState(false)
+  const [rerouteError, setRerouteError] = useState(null)
 
   useEffect(() => {
     document.title = '나의 로드맵 — DevNavi'
@@ -216,11 +217,13 @@ export default function RoadmapPage() {
   const handleReroute = () => {
     if (!roadmap) return
     if (!user) { setAuthOpen(true); return }
+    setRerouteError(null)
     setRerouteModalOpen(true)
   }
 
   // ── GPS 재탐색 — 실제 API 호출 ──────────────────────────────────
   const handleRerouteConfirm = async () => {
+    setRerouteError(null)
     setRerouteModalOpen(false)
     setRerouteLoading(true)
     const doneContents = []
@@ -252,7 +255,7 @@ export default function RoadmapPage() {
       const msg = e.message === 'Failed to fetch'
         ? '서버 응답 시간이 초과됐어요. 잠시 후 다시 시도해주세요.'
         : '재탐색 중 오류: ' + e.message
-      alert(msg)
+      setRerouteError(msg)
     } finally {
       setRerouteLoading(false)
     }
@@ -360,8 +363,18 @@ export default function RoadmapPage() {
       {/* 자동 저장 실패 알림 */}
       {autoSaveError && (
         <div className="bg-amber-50 dark:bg-amber-500/10 border-b border-amber-200 dark:border-amber-500/20 px-4 py-2 flex items-center justify-between text-xs text-amber-700 dark:text-amber-400">
-          <span>로드맵 서버 저장에 실패했습니다. 로컬에는 저장되어 있으니 다시 시도해주세요.</span>
-          <button onClick={() => setAutoSaveError(false)} className="ml-4 font-bold hover:opacity-70">✕</button>
+          <span>로드맵 서버 저장에 실패했습니다. 로컬에는 저장되어 있습니다.</span>
+          <div className="flex items-center gap-2 ml-4">
+            <button
+              onClick={() => {
+                setAutoSaveError(false)
+                autoSaveDoneRef.current = false
+              }}
+              className="font-bold underline hover:opacity-70">
+              다시 시도
+            </button>
+            <button onClick={() => setAutoSaveError(false)} className="font-bold hover:opacity-70">✕</button>
+          </div>
         </div>
       )}
 
@@ -527,10 +540,15 @@ export default function RoadmapPage() {
               ))}
             </div>
 
+            {/* 재탐색 오류 메시지 */}
+            {rerouteError && (
+              <p className="text-red-500 dark:text-red-400 text-xs px-1">{rerouteError}</p>
+            )}
+
             {/* 버튼 */}
             <div className="flex gap-2 pt-1">
               <button
-                onClick={() => setRerouteModalOpen(false)}
+                onClick={() => { setRerouteModalOpen(false); setRerouteError(null) }}
                 className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-white/10
                   text-gray-500 dark:text-white/50 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                 취소
