@@ -66,7 +66,11 @@ export default function AuthCallbackPage() {
 
   useEffect(() => {
     if (status !== 'success') return
-    const timer = setTimeout(() => navigate('/', { replace: true }), 3000)
+    // 이메일 링크로 열린 탭은 window.close()로 닫힘
+    // 원래 탭(가입 화면)은 onAuthStateChange를 통해 자동 로그인 감지
+    window.close()
+    // window.close()가 브라우저에 의해 차단된 경우 fallback: 홈으로 이동
+    const timer = setTimeout(() => navigate('/', { replace: true }), 1500)
     return () => clearTimeout(timer)
   }, [status, navigate])
 
@@ -108,7 +112,7 @@ export default function AuthCallbackPage() {
         <div className="text-5xl">✅</div>
         <h1 className="text-xl font-black text-gray-900 dark:text-white">이메일 인증 완료!</h1>
         <p className="text-sm text-gray-500 dark:text-white/60">
-          잠시 후 메인 화면으로 이동합니다…
+          인증이 완료됐습니다. 이 창은 자동으로 닫힙니다.
         </p>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../hooks/useAuth'
 import { isSupabaseReady } from '../../lib/supabase'
 import { validatePassword, PASSWORD_ERROR_MSG } from '../../lib/validation'
@@ -29,7 +29,13 @@ export default function AuthModal({ open, onClose }) {
   const [agreePrivacy, setAgreePrivacy] = useState(false)
   const [privacyModalOpen, setPrivacyModalOpen] = useState(false)
 
-  const { signInWithEmail, signUpWithEmail, signInWithGoogle, resetPasswordForEmail, error } = useAuth()
+  const { signInWithEmail, signUpWithEmail, signInWithGoogle, resetPasswordForEmail, error, user } = useAuth()
+
+  // 다른 탭(이메일 인증 탭)에서 로그인 완료되면 모달 자동 닫힘
+  // Supabase onAuthStateChange는 localStorage 기반으로 모든 탭에 동기화됨
+  useEffect(() => {
+    if (user && open) onClose()
+  }, [user, open, onClose])
 
   if (!open) return null
 

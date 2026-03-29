@@ -42,6 +42,8 @@ beforeEach(() => {
   vi.useFakeTimers()
   mockAuthStateCallback = null
   mockGetSession.mockResolvedValue({ data: { session: null }, error: null })
+  // JSDOM에서 window.close()는 document를 파괴하므로 mock으로 대체
+  vi.spyOn(window, 'close').mockImplementation(() => {})
 })
 
 afterEach(() => {
@@ -80,7 +82,7 @@ describe('AuthCallbackPage', () => {
       expect(screen.getByText('이메일 인증 완료!')).toBeInTheDocument()
     )
 
-    act(() => vi.advanceTimersByTime(3000))
+    act(() => vi.advanceTimersByTime(1500))
     expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true })
   })
 
