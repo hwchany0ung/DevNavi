@@ -96,7 +96,23 @@ export function useAuth() {
     setUser(null)
   }, [])
 
-  return { user, loading, error, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut }
+  const resetPasswordForEmail = useCallback(async (email) => {
+    setError(null)
+    const { error: err } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    })
+    if (err) setError(err.message)
+    return !err
+  }, [])
+
+  const updatePassword = useCallback(async (password) => {
+    setError(null)
+    const { error: err } = await supabase.auth.updateUser({ password })
+    if (err) setError(err.message)
+    return !err
+  }, [])
+
+  return { user, loading, error, signInWithEmail, signUpWithEmail, signInWithGoogle, signOut, resetPasswordForEmail, updatePassword }
 }
 
 function _toUser(session) {
