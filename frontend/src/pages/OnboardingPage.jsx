@@ -186,6 +186,13 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(STEP.S1)  // STEP.S1 | STEP.S2 | STEP.SUMMARY
   const [step1, setStep1] = useState(STEP1_INITIAL)
   const [step2, setStep2] = useState(STEP2_INITIAL)
+
+  // ── step1/step2 최신값 ref (useCallback deps 안정화용) ──────────────
+  const step1Ref = useRef(step1)
+  const step2Ref = useRef(step2)
+  useEffect(() => { step1Ref.current = step1 }, [step1])
+  useEffect(() => { step2Ref.current = step2 }, [step2])
+
   const [careerSummary, setCareerSummary] = useState(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [summaryError, setSummaryError] = useState(null)
@@ -243,6 +250,8 @@ export default function OnboardingPage() {
 
   // ── 커리어 분석 API 실제 호출 (로그인 확인 후 실행) ──────────────
   const _doCareerSummary = useCallback(async () => {
+    const { role, period, level } = step1Ref.current
+    const { skills, certifications, company_type } = step2Ref.current
     setSummaryLoading(true)
     setSummaryError(null)
     setStep(STEP.SUMMARY)
@@ -251,12 +260,12 @@ export default function OnboardingPage() {
         method: 'POST',
         headers: user ? { Authorization: `Bearer ${user.accessToken}` } : {},
         body: JSON.stringify({
-          role: step1.role,
-          period: step1.period,
-          level: step1.level,
-          skills: step2.skills,
-          certifications: step2.certifications,
-          company_type: step2.company_type,
+          role,
+          period,
+          level,
+          skills,
+          certifications,
+          company_type,
         }),
       })
       setCareerSummary(data)
@@ -265,7 +274,7 @@ export default function OnboardingPage() {
     } finally {
       setSummaryLoading(false)
     }
-  }, [user, step1, step2])
+  }, [user])  // step1/step2 replaced with refs
 
   // ── 로그인 완료 감지 → pending 액션 실행 ─────────────────────────
   useEffect(() => {
@@ -280,64 +289,69 @@ export default function OnboardingPage() {
   // 티저 스트리밍
   const { text: teaserText, isStreaming: teaserStreaming, error: teaserError, start: startTeaser } = useSSE()
 
+  // ── 스트리밍 콜백 (useCallback으로 참조 안정화) ──
+  const handleStreamError = useCallback(() => {
+    generatingRef.current = false
+  }, [])
+
+  const handleStreamSaved = useCallback(async (id, roadmap) => {
+    generatingRef.current = false
+    // _meta에 입력 정보 저장 (GPS 재탐색 + 파라미터 캐시용)
+    const withMeta = {
+      ...roadmap,
+      _meta: {
+        role: step1Ref.current.role,
+        period: step1Ref.current.period,
+        level: step1Ref.current.level,
+        skills: step2Ref.current.skills,
+        certifications: step2Ref.current.certifications,
+        company_type: step2Ref.current.company_type,
+        daily_study_hours: step2Ref.current.daily_study_hours,
+        paramsKey: computeParamsKey(step1Ref.current, step2Ref.current),
+      },
+    }
+
+    // 1. localStorage에 항상 저장 (오프라인 대응)
+    // _isLocal: true → 비로그인 상태로 생성된 로드맵 표시 (RoadmapPage에서 로그인 시 자동 서버 저장용)
+    if (!user) withMeta._isLocal = true
+    localStorage.setItem(`devnavi_roadmap_${id}`, JSON.stringify(withMeta))
+    if (careerSummary) {
+      localStorage.setItem(`devnavi_summary_${id}`, JSON.stringify(careerSummary))
+    }
+
+    // 2. 로그인 상태면 Supabase에도 저장
+    if (user) {
+      try {
+        const { roadmap_id: serverId } = await request('/roadmap/persist', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${user.accessToken}` },
+          body: JSON.stringify({
+            role: step1Ref.current.role,
+            period: step1Ref.current.period,
+            roadmap: withMeta,
+          }),
+        })
+        // localStorage를 서버 ID로 이전
+        localStorage.setItem(`devnavi_roadmap_${serverId}`, JSON.stringify(withMeta))
+        if (careerSummary) {
+          localStorage.setItem(`devnavi_summary_${serverId}`, JSON.stringify(careerSummary))
+        }
+        localStorage.removeItem(`devnavi_roadmap_${id}`)
+        if (careerSummary) localStorage.removeItem(`devnavi_summary_${id}`)
+        navigate(`/roadmap/${serverId}`)
+        return
+      } catch {
+        // Supabase 저장 실패 → 로컬 ID로 계속
+      }
+    }
+
+    navigate(`/roadmap/${id}`)
+  }, [user, careerSummary, navigate])  // step1/step2 replaced with refs
+
   // 전체 로드맵 스트리밍
   const { isStreaming: fullStreaming, progress, error: fullError, start: startFull } = useRoadmapStream({
-    onError: () => {
-      generatingRef.current = false
-    },
-    onSaved: async (id, roadmap) => {
-      generatingRef.current = false
-      // _meta에 입력 정보 저장 (GPS 재탐색 + 파라미터 캐시용)
-      const withMeta = {
-        ...roadmap,
-        _meta: {
-          role: step1.role,
-          period: step1.period,
-          level: step1.level,
-          skills: step2.skills,
-          certifications: step2.certifications,
-          company_type: step2.company_type,
-          daily_study_hours: step2.daily_study_hours,
-          paramsKey: computeParamsKey(step1, step2),
-        },
-      }
-
-      // 1. localStorage에 항상 저장 (오프라인 대응)
-      // _isLocal: true → 비로그인 상태로 생성된 로드맵 표시 (RoadmapPage에서 로그인 시 자동 서버 저장용)
-      if (!user) withMeta._isLocal = true
-      localStorage.setItem(`devnavi_roadmap_${id}`, JSON.stringify(withMeta))
-      if (careerSummary) {
-        localStorage.setItem(`devnavi_summary_${id}`, JSON.stringify(careerSummary))
-      }
-
-      // 2. 로그인 상태면 Supabase에도 저장
-      if (user) {
-        try {
-          const { roadmap_id: serverId } = await request('/roadmap/persist', {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${user.accessToken}` },
-            body: JSON.stringify({
-              role: step1.role,
-              period: step1.period,
-              roadmap: withMeta,
-            }),
-          })
-          // localStorage를 서버 ID로 이전
-          localStorage.setItem(`devnavi_roadmap_${serverId}`, JSON.stringify(withMeta))
-          if (careerSummary) {
-            localStorage.setItem(`devnavi_summary_${serverId}`, JSON.stringify(careerSummary))
-          }
-          localStorage.removeItem(`devnavi_roadmap_${id}`)
-          if (careerSummary) localStorage.removeItem(`devnavi_summary_${id}`)
-          navigate(`/roadmap/${serverId}`)
-          return
-        } catch {
-          // Supabase 저장 실패 → 로컬 ID로 계속
-        }
-      }
-
-      navigate(`/roadmap/${id}`)
-    },
+    onError: handleStreamError,
+    onSaved: handleStreamSaved,
   })
 
   // Step 1 제출 → 티저 스트리밍
