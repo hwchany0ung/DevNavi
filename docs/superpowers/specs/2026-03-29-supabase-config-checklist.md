@@ -7,7 +7,7 @@
 | 항목 | 값 |
 |------|-----|
 | Enabled | true |
-| Host | smtp.hiworks.com |
+| Host | smtps.hiworks.com |
 | Port | 465 |
 | Username | support@devnavi.kr |
 | Password | [하이웍스 비밀번호 입력] |

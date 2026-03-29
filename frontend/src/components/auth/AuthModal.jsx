@@ -8,6 +8,8 @@ import PrivacyConsentModal from './PrivacyConsentModal'
  * 로그인 / 회원가입 / 비밀번호 찾기 모달
  * - mode: 'login' | 'signup' | 'forgot'
  * - 비밀번호 정책: 8자 이상 + 특수문자 1개 이상 (signup 전용)
+ * - 비밀번호 확인 필드 (signup)
+ * - 비밀번호 표시/숨김 토글 (눈 아이콘)
  * - 개인정보 동의 모달 연결
  *
  * @param {boolean}  open
@@ -17,6 +19,9 @@ export default function AuthModal({ open, onClose }) {
   const [mode, setMode]         = useState('login')  // 'login' | 'signup' | 'forgot'
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword]       = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [loading, setLoading]   = useState(false)
   const [success, setSuccess]   = useState('')
   const [localError, setLocalError] = useState('')
@@ -32,6 +37,9 @@ export default function AuthModal({ open, onClose }) {
     setMode(next)
     setEmail('')
     setPassword('')
+    setConfirmPassword('')
+    setShowPassword(false)
+    setShowConfirmPassword(false)
     setSuccess('')
     setLocalError('')
     setAgreeTerms(false)
@@ -52,9 +60,15 @@ export default function AuthModal({ open, onClose }) {
       return
     }
 
-    if (mode === 'signup' && !validatePassword(password)) {
-      setLocalError(PASSWORD_ERROR_MSG)
-      return
+    if (mode === 'signup') {
+      if (!validatePassword(password)) {
+        setLocalError(PASSWORD_ERROR_MSG)
+        return
+      }
+      if (password !== confirmPassword) {
+        setLocalError('비밀번호가 일치하지 않습니다')
+        return
+      }
     }
 
     setLoading(true)
@@ -74,6 +88,28 @@ export default function AuthModal({ open, onClose }) {
   }
 
   const displayError = localError || error
+
+  // 공통 비밀번호 입력 스타일
+  const inputCls = `w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/10
+    bg-white dark:bg-white/5 text-gray-900 dark:text-white
+    placeholder:text-gray-400 dark:placeholder:text-white/30
+    focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-500/50 text-sm`
+
+  // 눈 아이콘 SVG
+  const EyeIcon = ({ open: eyeOpen }) => eyeOpen ? (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  ) : (
+    <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+  )
 
   return (
     <>
@@ -159,25 +195,55 @@ export default function AuthModal({ open, onClose }) {
                 type="email" name="email" id="email" autoComplete="email" required
                 value={email} onChange={(e) => setEmail(e.target.value)}
                 placeholder="이메일"
-                className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/10
-                  bg-white dark:bg-white/5 text-gray-900 dark:text-white
-                  placeholder:text-gray-400 dark:placeholder:text-white/30
-                  focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-500/50 text-sm"
+                className={inputCls}
               />
 
               {/* 비밀번호 입력 — forgot 모드에서는 숨김 */}
               {mode !== 'forgot' && (
-                <input
-                  type="password" name="password" id="password"
-                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                  required minLength={mode === 'login' ? 6 : 8}
-                  value={password} onChange={(e) => setPassword(e.target.value)}
-                  placeholder={mode === 'login' ? '비밀번호' : '비밀번호 (8자 이상, 특수문자 포함)'}
-                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-white/10
-                    bg-white dark:bg-white/5 text-gray-900 dark:text-white
-                    placeholder:text-gray-400 dark:placeholder:text-white/30
-                    focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-500/50 text-sm"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password" id="password"
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    required minLength={mode === 'login' ? 6 : 8}
+                    value={password} onChange={(e) => setPassword(e.target.value)}
+                    placeholder={mode === 'login' ? '비밀번호' : '비밀번호 (8자 이상, 특수문자 포함)'}
+                    className={`${inputCls} pr-11`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/40
+                      hover:text-gray-600 dark:hover:text-white/70 transition-colors"
+                    aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
+                  >
+                    <EyeIcon open={showPassword} />
+                  </button>
+                </div>
+              )}
+
+              {/* 비밀번호 확인 — signup 전용 */}
+              {mode === 'signup' && (
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    name="confirmPassword" id="confirmPassword"
+                    autoComplete="new-password"
+                    required minLength={8}
+                    value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="비밀번호 확인"
+                    className={`${inputCls} pr-11`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(v => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-white/40
+                      hover:text-gray-600 dark:hover:text-white/70 transition-colors"
+                    aria-label={showConfirmPassword ? '비밀번호 숨기기' : '비밀번호 표시'}
+                  >
+                    <EyeIcon open={showConfirmPassword} />
+                  </button>
+                </div>
               )}
 
               {/* 비밀번호 찾기 링크 — login 모드 전용 */}

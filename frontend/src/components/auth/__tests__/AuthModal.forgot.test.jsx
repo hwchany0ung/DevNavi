@@ -76,6 +76,7 @@ describe('AuthModal password policy', () => {
     fireEvent.click(screen.getByText('회원가입'))
     fireEvent.change(screen.getByPlaceholderText('이메일'), { target: { value: 'test@test.com' } })
     fireEvent.change(screen.getByPlaceholderText('비밀번호 (8자 이상, 특수문자 포함)'), { target: { value: 'abcdefgh' } })
+    fireEvent.change(screen.getByPlaceholderText('비밀번호 확인'), { target: { value: 'abcdefgh' } })
     // Check agreeTerms and agreePrivacy checkboxes so form is not disabled
     const checkboxes = screen.getAllByRole('checkbox')
     checkboxes.forEach(cb => fireEvent.click(cb))
