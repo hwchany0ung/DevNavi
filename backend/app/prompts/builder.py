@@ -231,6 +231,15 @@ def build_full_prompt_partial(
     level_kr = LEVEL_MAP.get(level, level)
     company_kr = COMPANY_MAP.get(company_type, "무관")
     tasks_per_week = TASKS_PER_WEEK.get(daily_study_hours, 3)
+    # 멀티콜은 전체 기간이 길수록 청크당 출력도 많아져 max_tokens 초과 위험
+    # total_months 기준으로 캡 적용 (build_full_prompt와 동일 기준)
+    if total_months >= 18:
+        tasks_per_week = min(tasks_per_week, 3)
+    elif total_months >= 12:
+        tasks_per_week = min(tasks_per_week, 4)
+    else:
+        tasks_per_week = min(tasks_per_week, 5)
+    content_len_hint = "20자 이내" if total_months >= 18 else "30자 이내"
     reference = get_reference(role)
 
     skills_str = ", ".join(skills) if skills else "없음"
@@ -254,6 +263,7 @@ def build_full_prompt_partial(
 보유 자격증: {certs_str}
 목표 회사 유형: {company_kr}
 하루 학습 시간: {daily_study_hours} → 주당 태스크 {tasks_per_week}개 기준
+태스크 content 길이: {content_len_hint} (엄수)
 
 [중요]
 - months 배열에 {month_start}번부터 {month_end}번 월차만 생성 (총 {month_end - month_start + 1}개월)
