@@ -56,7 +56,7 @@ async function fetchActivity(user) {
 export default function RoadmapPage() {
   const { id }    = useParams()
   const navigate  = useNavigate()
-  const { user, signOut } = useAuth()
+  const { user, signOut, loading: authLoading } = useAuth()
 
   const [roadmap,      setRoadmap]      = useState(null)
   const [loading,      setLoading]      = useState(true)
@@ -124,6 +124,7 @@ export default function RoadmapPage() {
 
   // ── 로드맵 로드 ─────────────────────────────────────────────────
   useEffect(() => {
+    if (authLoading) return  // 인증 확인 완료 전 대기
     setLoading(true)
     const local = loadRoadmapLocal(id)
     if (local) {
@@ -131,7 +132,8 @@ export default function RoadmapPage() {
       setDoneSet(loadDoneLocal(id))
       setLoading(false)
     } else {
-      request(`/roadmap/${id}`)
+      const headers = user?.accessToken ? { Authorization: `Bearer ${user.accessToken}` } : {}
+      request(`/roadmap/${id}`, { headers })
         .then((data) => {
           const rm = data.data ?? data
           setRoadmap(rm)
@@ -140,7 +142,7 @@ export default function RoadmapPage() {
         .catch((e) => setError(e.message))
         .finally(() => setLoading(false))
     }
-  }, [id])
+  }, [id, user, authLoading])
 
   // ── 로그인 시 Supabase completions 동기화 ───────────────────────
   useEffect(() => {

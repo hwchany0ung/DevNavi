@@ -191,11 +191,19 @@ export default function OnboardingPage() {
     // OAuth 복원 중이면 스킵 (sessionStorage draft가 있을 때)
     const hasDraft = !!sessionStorage.getItem(DRAFT_KEY)
     if (hasDraft) return
+
+    // localStorage 먼저 확인 (같은 기기)
     const keys = Object.keys(localStorage).filter(k => k.startsWith('devnavi_roadmap_'))
     if (keys.length > 0) {
       const id = keys[keys.length - 1].replace('devnavi_roadmap_', '')
       setExistingRoadmapId(id)
+      return
     }
+
+    // localStorage에 없으면 서버 조회 (다른 기기 또는 로그아웃 후 재로그인)
+    request('/roadmap/my', { headers: { Authorization: `Bearer ${user.accessToken}` } })
+      .then(({ roadmap_id }) => { if (roadmap_id) setExistingRoadmapId(roadmap_id) })
+      .catch(() => {}) // 실패 시 신규 생성으로 진행
   }, [user])
 
   // ── Google OAuth 리다이렉트 복원 ──────────────────────────────────
