@@ -25,7 +25,7 @@ export default function MonthTimeline({ months, activeMonth, doneSet, onSelect }
           <button
             key={m.month}
             onClick={() => onSelect(m.month)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors min-h-[44px]
               ${isActive
                 ? 'bg-indigo-600 text-white'
                 : 'hover:bg-gray-100 dark:hover:bg-white/10 text-gray-600 dark:text-white/85'

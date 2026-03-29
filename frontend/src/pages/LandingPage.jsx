@@ -220,7 +220,7 @@ export default function LandingPage() {
             /* 비로그인 상태 */
             <button
               onClick={() => setAuthOpen(true)}
-              className="text-sm px-4 py-2 rounded-xl transition-all backdrop-blur-sm"
+              className="text-sm px-4 py-2 rounded-xl transition-all backdrop-blur-sm min-h-[44px]"
               style={{
                 border: `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : '#e5e7eb'}`,
                 color: isDark ? 'rgba(255,255,255,0.7)' : '#4b5563',

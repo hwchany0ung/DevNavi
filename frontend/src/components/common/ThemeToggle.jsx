@@ -17,7 +17,7 @@ export default function ThemeToggle({ className = '' }) {
         backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
         color: isDark ? 'rgba(255,255,255,0.7)' : '#374151',
       }}
-      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 ${className}`}
+      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all active:scale-95 min-h-[44px] ${className}`}
     >
       <span>{isDark ? '🌙' : '☀️'}</span>
       <span>{isDark ? '다크' : '라이트'}</span>
