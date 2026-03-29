@@ -9,12 +9,13 @@ import { validatePassword, PASSWORD_ERROR_MSG } from '../lib/validation'
  *
  * 흐름:
  * 1. ?code= 없으면 즉시 / 리다이렉트 (직접 접근 차단)
- * 2. exchangeCodeForSession(code) — PKCE 세션 교환
- * 3. 새 비밀번호 폼 표시
+ * 2. Supabase JS v2가 detectSessionInUrl:true 로 ?code= 자동 교환
+ *    → exchangeCodeForSession 수동 호출 시 double-exchange 발생하므로 사용 금지
+ * 3. onAuthStateChange PASSWORD_RECOVERY / SIGNED_IN 이벤트로 폼 표시
  * 4. updateUser({ password }) → / 이동
  *
  * 보안:
- * - 링크 만료 시 명확한 에러 + 로그인 이동
+ * - 링크 만료/오류 시 명확한 에러 + signOut으로 부분 세션 제거
  * - PASSWORD_RE 검증 (8자+특수문자)
  * - 비밀번호 확인 불일치 차단
  */
@@ -24,9 +25,9 @@ export default function ResetPasswordPage() {
   const { updatePassword } = useAuth()
 
   const [step, setStep] = useState('exchanging') // 'exchanging' | 'form' | 'expired'
-  const [newPassword, setNewPassword]   = useState('')
+  const [newPassword, setNewPassword]       = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [loading, setLoading]     = useState(false)
   const [localError, setLocalError] = useState('')
 
   useEffect(() => {
@@ -36,18 +37,43 @@ export default function ResetPasswordPage() {
       return
     }
 
-    async function exchange() {
-      const { error } = await supabase.auth.exchangeCodeForSession(code)
-      if (error) {
-        // 코드 교환 실패 시 부분적으로 생성된 세션을 반드시 제거
-        // (Supabase가 에러를 반환하면서도 세션을 만드는 경우 방지)
-        await supabase.auth.signOut()
-        setStep('expired')
-      } else {
-        setStep('form')
+    // Supabase JS v2 with detectSessionInUrl:true auto-exchanges PKCE ?code= on init.
+    // Calling exchangeCodeForSession() manually causes double-exchange (code already
+    // consumed → "invalid_grant" error). Use onAuthStateChange instead.
+    let settled = false
+    const settle = (newStep) => {
+      if (!settled) {
+        settled = true
+        setStep(newStep)
       }
     }
-    exchange()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        settle('form')
+      } else if (event === 'SIGNED_IN' && session) {
+        // Some Supabase versions emit SIGNED_IN instead of PASSWORD_RECOVERY
+        settle('form')
+      }
+    })
+
+    // Immediate check: auto-exchange may have completed before subscription registered
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) settle('form')
+    })
+
+    // If no session within 10s, code was expired or invalid
+    const timer = setTimeout(async () => {
+      if (!settled) {
+        await supabase.auth.signOut()
+        settle('expired')
+      }
+    }, 10000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timer)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e) => {

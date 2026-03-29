@@ -9,16 +9,22 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => mockNavigate }
 })
 
-const mockExchangeCodeForSession = vi.fn()
+// Capture the onAuthStateChange callback so tests can trigger auth events
+let mockAuthStateCallback = null
 const mockGetSession = vi.fn()
+const mockSignOut = vi.fn()
 const mockUpdatePassword = vi.fn()
 
 vi.mock('../../lib/supabase', () => ({
   supabase: {
     auth: {
-      exchangeCodeForSession: (...args) => mockExchangeCodeForSession(...args),
+      // Capture the callback so tests can fire auth events manually
+      onAuthStateChange: vi.fn((cb) => {
+        mockAuthStateCallback = cb
+        return { data: { subscription: { unsubscribe: vi.fn() } } }
+      }),
       getSession: (...args) => mockGetSession(...args),
-      onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
+      signOut: (...args) => mockSignOut(...args),
     },
   },
   isSupabaseReady: true,
@@ -51,8 +57,9 @@ function renderWithUrl(search = '') {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockAuthStateCallback = null
   mockGetSession.mockResolvedValue({ data: { session: null }, error: null })
-  mockExchangeCodeForSession.mockResolvedValue({ error: null })
+  mockSignOut.mockResolvedValue({})
   mockUpdatePassword.mockResolvedValue(true)
 })
 
@@ -62,25 +69,40 @@ describe('ResetPasswordPage', () => {
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true }))
   })
 
-  it('shows new password form after successful code exchange', async () => {
+  it('shows spinner initially when code is present', () => {
     renderWithUrl('?code=valid-code')
+    expect(screen.getByText('링크 확인 중…')).toBeInTheDocument()
+  })
+
+  it('shows form when PASSWORD_RECOVERY event fires via onAuthStateChange', async () => {
+    renderWithUrl('?code=valid-code')
+    // Wait for the subscription to be registered
+    await waitFor(() => expect(mockAuthStateCallback).not.toBeNull())
+    // Simulate Supabase auto-exchange completing and firing PASSWORD_RECOVERY
+    mockAuthStateCallback('PASSWORD_RECOVERY', { user: { id: '123' }, access_token: 'tok' })
     await waitFor(() =>
       expect(screen.getByPlaceholderText('새 비밀번호 (8자 이상, 특수문자 포함)')).toBeInTheDocument()
     )
     expect(screen.getByPlaceholderText('새 비밀번호 확인')).toBeInTheDocument()
   })
 
-  it('shows expired link error when exchange fails', async () => {
-    mockExchangeCodeForSession.mockResolvedValue({
-      error: { message: 'Token has expired or is invalid' },
+  it('shows form when getSession returns session (race condition path)', async () => {
+    // Session already established before subscription fires
+    mockGetSession.mockResolvedValue({
+      data: { session: { user: { id: '123' }, access_token: 'tok' } },
+      error: null,
     })
-    renderWithUrl('?code=expired')
+    renderWithUrl('?code=valid-code')
     await waitFor(() =>
-      expect(screen.getByText('링크가 만료됐습니다. 다시 요청해 주세요.')).toBeInTheDocument()
+      expect(screen.getByPlaceholderText('새 비밀번호 (8자 이상, 특수문자 포함)')).toBeInTheDocument()
     )
   })
 
   it('prevents submit when passwords do not match', async () => {
+    mockGetSession.mockResolvedValue({
+      data: { session: { user: { id: '123' }, access_token: 'tok' } },
+      error: null,
+    })
     renderWithUrl('?code=valid')
     await waitFor(() => screen.getByPlaceholderText('새 비밀번호 (8자 이상, 특수문자 포함)'))
     fireEvent.change(screen.getByPlaceholderText('새 비밀번호 (8자 이상, 특수문자 포함)'), {
@@ -95,6 +117,10 @@ describe('ResetPasswordPage', () => {
   })
 
   it('prevents submit when password does not meet policy', async () => {
+    mockGetSession.mockResolvedValue({
+      data: { session: { user: { id: '123' }, access_token: 'tok' } },
+      error: null,
+    })
     renderWithUrl('?code=valid')
     await waitFor(() => screen.getByPlaceholderText('새 비밀번호 (8자 이상, 특수문자 포함)'))
     fireEvent.change(screen.getByPlaceholderText('새 비밀번호 (8자 이상, 특수문자 포함)'), {
@@ -109,6 +135,10 @@ describe('ResetPasswordPage', () => {
   })
 
   it('redirects to / on successful password update', async () => {
+    mockGetSession.mockResolvedValue({
+      data: { session: { user: { id: '123' }, access_token: 'tok' } },
+      error: null,
+    })
     renderWithUrl('?code=valid')
     await waitFor(() => screen.getByPlaceholderText('새 비밀번호 (8자 이상, 특수문자 포함)'))
     fireEvent.change(screen.getByPlaceholderText('새 비밀번호 (8자 이상, 특수문자 포함)'), {

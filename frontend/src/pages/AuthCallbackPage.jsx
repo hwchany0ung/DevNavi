@@ -9,7 +9,8 @@ import { supabase } from '../lib/supabase'
  * 실패: "인증에 실패했습니다" + "처음으로" 버튼
  * 보안:
  *   - code 없이 접근 → 즉시 / 리다이렉트
- *   - 이미 인증된 사용자 → 즉시 / 리다이렉트
+ *   - Supabase JS v2 detectSessionInUrl:true가 ?code= 자동 교환
+ *     → exchangeCodeForSession 수동 호출 금지 (double-exchange 방지)
  */
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
@@ -32,23 +33,35 @@ export default function AuthCallbackPage() {
       return
     }
 
-    async function exchange() {
-      // 이미 인증된 사용자면 홈으로
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) {
-        navigate('/', { replace: true })
-        return
-      }
-
-      const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
-      if (exchangeError) {
-        setStatus('error')
-      } else {
-        setStatus('success')
+    // Supabase JS v2 with detectSessionInUrl:true auto-exchanges PKCE ?code= on init.
+    // Calling exchangeCodeForSession() manually causes double-exchange.
+    // Use onAuthStateChange to detect when session is established.
+    let settled = false
+    const settle = (newStatus) => {
+      if (!settled) {
+        settled = true
+        setStatus(newStatus)
       }
     }
 
-    exchange()
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        settle('success')
+      }
+    })
+
+    // Immediate check: auto-exchange may have completed before subscription
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) settle('success')
+    })
+
+    // If no session within 10s, code was expired or invalid
+    const timer = setTimeout(() => settle('error'), 10000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timer)
+    }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
