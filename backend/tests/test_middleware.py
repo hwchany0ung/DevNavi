@@ -3,14 +3,14 @@ import os
 import pytest
 from httpx import AsyncClient, ASGITransport
 
-# app.core.config のモジュールを確実にロードするため、テスト実行前にインポートしておく。
-# conftest.py が ENV/ANTHROPIC_API_KEY を setdefault で設定しているが、
-# シェル環境に空文字列が既にセットされている場合は上書きされないため、
-# ここで os.environ を直接上書きして Settings() のバリデーションを通過させる。
+# app.core.config 모듈을 테스트 실행 전에 임포트해 두기 위함.
+# conftest.py가 ENV/ANTHROPIC_API_KEY를 setdefault로 설정하지만,
+# 셸 환경에 빈 문자열이 이미 설정된 경우 덮어쓰지 않으므로,
+# os.environ을 직접 설정해 Settings() 유효성 검사를 통과시킨다.
 os.environ["ANTHROPIC_API_KEY"] = os.environ.get("ANTHROPIC_API_KEY") or "test-key"
 
-from app.core import config  # noqa: E402  — モジュール確実にロード済み
-from app.main import app as _app  # noqa: E402  — app をキャッシュ
+from app.core import config  # noqa: E402  — 모듈 로드 확인
+from app.main import app as _app  # noqa: E402  — app 캐시
 
 
 @pytest.fixture
