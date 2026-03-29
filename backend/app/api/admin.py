@@ -130,7 +130,7 @@ async def get_stats(request: Request, admin: dict = Depends(require_admin)) -> d
     # ── 오늘 api_usage (엔드포인트 분석용) ───────────────────────
     usage_resp = await client.get(
         sb_url("api_usage"),
-        params={"select": "endpoint,count", "usage_date": f"eq.{today}"},
+        params={"select": "endpoint,count", "usage_date": f"eq.{today}", "limit": "10000"},
         headers=sb_headers(),
     )
     usage_rows: list[dict] = usage_resp.json() if usage_resp.status_code == 200 else []
