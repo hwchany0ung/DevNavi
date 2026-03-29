@@ -15,8 +15,16 @@ permissions:
   contents: read
 
 jobs:
+  test:
+    name: Run Tests
+    uses: ./.github/workflows/test.yml
+    permissions:
+      id-token: write
+      contents: read
+
   deploy:
     name: Build & Deploy to S3 + CloudFront
+    needs: test
     runs-on: ubuntu-latest
 
     steps:
