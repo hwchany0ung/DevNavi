@@ -8,12 +8,16 @@ Claude API 호출 서비스.
 """
 import asyncio
 import json
+import logging
 import re
+import time
 from typing import AsyncGenerator
 
 import anthropic
+from fastapi import HTTPException
 
 from app.core.config import settings
+from app.prompts.builder import build_full_prompt_partial
 
 # Anthropic 공식 모델명 (https://docs.anthropic.com/models)
 HAIKU  = "claude-haiku-4-5"    # 티저용 (빠르고 저렴)
@@ -21,6 +25,8 @@ SONNET = "claude-sonnet-4-6"   # 전체 로드맵 + 재탐색
 
 # CloudFront idle-connection timeout = 60s → 55초마다 keepalive 전송
 _KEEPALIVE_INTERVAL = 55
+
+_logger = logging.getLogger(__name__)
 
 _client: anthropic.AsyncAnthropic | None = None
 
@@ -38,8 +44,6 @@ def _get_client() -> anthropic.AsyncAnthropic:
 
 async def stream_teaser(system: str, user: str) -> AsyncGenerator[str, None]:
     """Haiku로 티저 텍스트를 SSE data 형식으로 스트리밍."""
-    import logging
-    _logger = logging.getLogger(__name__)
     client = _get_client()
     try:
         async with client.messages.stream(
@@ -70,10 +74,6 @@ async def stream_full(system: str, user: str) -> AsyncGenerator[str, None]:
     - claude-sonnet-4-6 최대 출력 8192 토큰 → 1년 이상 로드맵도 완전 생성
     - max_tokens 도달 시 [DONE] 대신 error 이벤트 전송 (불완전 JSON 파싱 방지)
     """
-    import time
-
-    import logging
-    _logger = logging.getLogger(__name__)
     client = _get_client()
     last_chunk_time = time.monotonic()
     stop_reason: str | None = None
@@ -159,11 +159,6 @@ async def stream_full_multicall(
         RESPONSE_STREAM 모드로 전환 시 이벤트 루프 생명주기가 달라질 수 있으니
         반드시 재검증 후 전환할 것.
     """
-    import logging
-    import time as _time
-    from app.prompts.builder import build_full_prompt_partial
-
-    _logger = logging.getLogger(__name__)
     client = _get_client()
 
     # 6개월씩 청크 분할: [(1,6), (7,12), (13,18)]
@@ -193,7 +188,7 @@ async def stream_full_multicall(
     # 태스크 완료 시점마다 progress event 전송 + keepalive 유지
     # (태스크 생성 직후 일괄 전송하면 progress가 실제 진행률을 반영하지 못함)
     notified: set[int] = set()
-    last_keepalive = _time.monotonic()
+    last_keepalive = time.monotonic()
 
     while not all(t.done() for t in tasks):
         await asyncio.sleep(1)
@@ -202,7 +197,7 @@ async def stream_full_multicall(
             if t.done() and i not in notified:
                 notified.add(i)
                 yield f"data: {json.dumps({'type': 'progress', 'step': len(notified), 'total': total_chunks})}\n\n"
-        now = _time.monotonic()
+        now = time.monotonic()
         if now - last_keepalive > _KEEPALIVE_INTERVAL:
             yield ": keepalive\n\n"
             last_keepalive = now
@@ -278,9 +273,11 @@ async def stream_full_multicall(
 
 
 async def call_reroute(system: str, user: str) -> str:
-    """Sonnet 단일 호출로 재탐색 JSON 문자열 반환."""
-    import logging
-    _logger = logging.getLogger(__name__)
+    """Sonnet 단일 호출로 재탐색 JSON 문자열 반환.
+
+    max_tokens 도달 시 HTTPException(422) 발생 — JSON이 잘린 채
+    반환되면 호출부에서 파싱 실패(422)가 되므로 명시적으로 처리.
+    """
     client = _get_client()
     response = await client.messages.create(
         model=SONNET,
@@ -290,7 +287,6 @@ async def call_reroute(system: str, user: str) -> str:
     )
     if response.stop_reason == "max_tokens":
         _logger.warning("call_reroute max_tokens 도달 — JSON 불완전 종료")
-        from fastapi import HTTPException
         raise HTTPException(
             status_code=422,
             detail="재탐색 로드맵이 너무 길어 생성이 중단됐습니다. 완료된 항목을 줄이거나 다시 시도해 주세요.",
