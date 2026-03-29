@@ -12,10 +12,14 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f
 
 /** 로그인 후 /dashboard 진입 시 최근 로드맵 또는 온보딩으로 이동 */
 function DashboardRedirect() {
-  const keys = Object.keys(localStorage).filter(k => k.startsWith('devnavi_roadmap_'))
-  if (keys.length > 0) {
-    const id = keys[keys.length - 1].replace('devnavi_roadmap_', '')
-    if (UUID_RE.test(id)) return <Navigate to={`/roadmap/${id}`} replace />
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('devnavi_roadmap_'))
+    if (keys.length > 0) {
+      const id = keys[keys.length - 1].replace('devnavi_roadmap_', '')
+      if (UUID_RE.test(id)) return <Navigate to={`/roadmap/${id}`} replace />
+    }
+  } catch {
+    // localStorage 접근 불가(보안 정책 등) → 온보딩으로 폴백
   }
   return <Navigate to="/onboarding" replace />
 }

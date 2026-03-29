@@ -122,7 +122,9 @@ export default function LandingPage() {
     request('/admin/me', { headers: { Authorization: `Bearer ${user.accessToken}` } })
       .then(() => setIsAdmin(true))
       .catch((err) => {
-        console.error('[isAdmin] /admin/me 실패:', err?.status, err?.message)
+        if (import.meta.env.DEV) {
+          console.error('[isAdmin] /admin/me 실패:', err?.status, err?.message)
+        }
         setIsAdmin(false)
       })
   }, [user])

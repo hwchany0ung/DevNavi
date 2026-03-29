@@ -1,4 +1,5 @@
 import asyncio
+import hmac
 import logging
 from contextlib import asynccontextmanager
 from typing import Callable
@@ -64,6 +65,44 @@ _SECURITY_HEADERS = {
 _LOG_SKIP_PATHS = {"/health"}
 
 
+class CloudFrontSecretMiddleware:
+    """CloudFront → Lambda 직접 접근 차단 — Pure ASGI, SSE 스트리밍 안전.
+
+    CLOUDFRONT_SECRET 미설정 시(로컬 개발) 검증 스킵.
+    /health 경로는 헬스체크 목적으로 항상 통과.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        secret = settings.CLOUDFRONT_SECRET
+        if not secret:
+            # 로컬 개발 환경 — 검증 비활성화
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
+        if path == "/health":
+            await self.app(scope, receive, send)
+            return
+
+        # X-CF-Secret 헤더 추출
+        headers = dict(scope.get("headers", []))
+        cf_secret = headers.get(b"x-cf-secret", b"").decode("utf-8", errors="ignore")
+
+        if not hmac.compare_digest(cf_secret, secret):
+            response = JSONResponse({"detail": "Forbidden"}, status_code=403)
+            await response(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send)
+
+
 class SecurityHeadersMiddleware:
     """보안 응답 헤더 추가 — Pure ASGI, SSE 스트리밍 안전."""
 
@@ -119,9 +158,10 @@ class ErrorLoggingMiddleware:
 
 
 # ── 미들웨어 등록 순서 (add_middleware: 나중에 추가할수록 outermost) ──
-# 실행 순서 (안→밖): FastAPI → ErrorLogging → SecurityHeaders → CORS
+# 실행 순서 (안→밖): FastAPI → ErrorLogging → SecurityHeaders → CloudFrontSecret → CORS
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(ErrorLoggingMiddleware)
+app.add_middleware(CloudFrontSecretMiddleware)
 
 
 

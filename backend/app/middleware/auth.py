@@ -12,7 +12,6 @@ Legacy HS256 Secret이 있는 경우 폴백으로 검증.
       return {"user_id": user["id"]}
 """
 import logging
-from datetime import datetime, timezone
 from typing import Optional
 
 import jwt
@@ -177,44 +176,5 @@ async def require_admin(authorization: Optional[str] = Header(None)) -> dict:
     return {**user, "role": role}
 
 
-async def require_premium(authorization: Optional[str] = Header(None)) -> dict:
-    """구독 사용자만 허용. 미구독 또는 만료 시 402."""
-    user = await require_user(authorization)
-    if not settings.supabase_ready:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="DB 미설정")
-
-    client = get_supabase_client()
-    resp = await client.get(
-        sb_url("user_profiles"),
-        params={"id": f"eq.{user['id']}", "select": "is_premium,premium_expires_at"},
-        headers=sb_headers(),
-    )
-    resp.raise_for_status()
-
-    rows = resp.json()
-    profile = rows[0] if rows else None
-
-    if not profile or not profile.get("is_premium"):
-        raise HTTPException(status_code=status.HTTP_402_PAYMENT_REQUIRED, detail="프리미엄 구독이 필요합니다.")
-
-    # 만료일 검증 — is_premium=True여도 만료됐으면 차단
-    expires_at = profile.get("premium_expires_at")
-    if expires_at:
-        try:
-            expires_dt = datetime.fromisoformat(expires_at.replace("Z", "+00:00"))
-            # naive datetime(timezone 정보 없음)은 UTC로 간주
-            if expires_dt.tzinfo is None:
-                expires_dt = expires_dt.replace(tzinfo=timezone.utc)
-            if expires_dt < datetime.now(timezone.utc):
-                raise HTTPException(
-                    status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                    detail="구독이 만료됐습니다. 갱신 후 이용해 주세요.",
-                )
-        except ValueError:
-            # 날짜 형식 이상 → 만료로 간주해 차단 (통과 허용하면 만료 구독자 접근 가능)
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail="구독 정보 오류가 있습니다. 고객지원에 문의해 주세요.",
-            )
-
-    return user
+# require_premium: Phase 6 결제 연동 시 구현 예정
+# 현재 미사용 — 구현 필요 시 user_profiles.is_premium + premium_expires_at 기반으로 작성

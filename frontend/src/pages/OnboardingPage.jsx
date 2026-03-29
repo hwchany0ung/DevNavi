@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Footer from '../components/common/Footer'
 import ThemeToggle from '../components/common/ThemeToggle'
@@ -27,12 +27,16 @@ const VALID_COMPANY_TYPES = ['startup', 'msp', 'bigco', 'si', 'foreign', 'any']
 const VALID_STUDY_HOURS = ['under1h', '1to2h', '3to4h', 'over5h']
 
 function _isValidDraft(s1, s2) {
+  const isValidItems = (arr) =>
+    Array.isArray(arr) &&
+    arr.every(item => typeof item === 'string' && item.length < 100)
+
   return (
     VALID_ROLES.includes(s1?.role) &&
     VALID_PERIODS.includes(s1?.period) &&
     VALID_LEVELS.includes(s1?.level) &&
-    Array.isArray(s2?.skills) &&
-    Array.isArray(s2?.certifications) &&
+    isValidItems(s2?.skills) &&
+    isValidItems(s2?.certifications) &&
     VALID_COMPANY_TYPES.includes(s2?.company_type) &&
     VALID_STUDY_HOURS.includes(s2?.daily_study_hours)
   )
@@ -77,13 +81,24 @@ function restoreArchivedRoadmap(id) {
   }
 }
 
-/** 오래된 보관 로드맵 정리 (최대 3개 유지) */
+/** 오래된 보관 로드맵 정리 (최대 3개 유지, _archivedAt 타임스탬프 기준) */
 function pruneArchivedRoadmaps() {
   const keys = Object.keys(localStorage)
     .filter(k => k.startsWith('devnavi_archived_') && !k.includes('_summary_'))
   if (keys.length <= 3) return
-  // 가장 오래된 것부터 제거 (키 기준 정렬)
-  keys.sort().slice(0, keys.length - 3).forEach(k => {
+  // _archivedAt 타임스탬프 기준 오름차순 정렬 → 가장 오래된 것부터 제거
+  keys.sort((a, b) => {
+    try {
+      const aData = JSON.parse(localStorage.getItem(a))
+      const bData = JSON.parse(localStorage.getItem(b))
+      const aTs = aData?._archivedAt ?? 0
+      const bTs = bData?._archivedAt ?? 0
+      return aTs - bTs
+    } catch {
+      return 0
+    }
+  })
+  keys.slice(0, keys.length - 3).forEach(k => {
     const id = k.replace('devnavi_archived_', '')
     localStorage.removeItem(k)
     localStorage.removeItem(`devnavi_archived_summary_${id}`)
@@ -226,19 +241,8 @@ export default function OnboardingPage() {
     }
   }, [user])
 
-  // ── 로그인 완료 감지 → pending 액션 실행 ─────────────────────────
-  useEffect(() => {
-    if (!user || !pendingActionRef.current) return
-    if (pendingActionRef.current === 'summary') {
-      pendingActionRef.current = null
-      setShowAuth(false)
-      _doCareerSummary()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
-
   // ── 커리어 분석 API 실제 호출 (로그인 확인 후 실행) ──────────────
-  const _doCareerSummary = async () => {
+  const _doCareerSummary = useCallback(async () => {
     setSummaryLoading(true)
     setSummaryError(null)
     setStep(STEP.SUMMARY)
@@ -261,14 +265,28 @@ export default function OnboardingPage() {
     } finally {
       setSummaryLoading(false)
     }
-  }
+  }, [user, step1, step2])
+
+  // ── 로그인 완료 감지 → pending 액션 실행 ─────────────────────────
+  useEffect(() => {
+    if (!user || !pendingActionRef.current) return
+    if (pendingActionRef.current === 'summary') {
+      pendingActionRef.current = null
+      setShowAuth(false)
+      _doCareerSummary()
+    }
+  }, [user, _doCareerSummary])
 
   // 티저 스트리밍
   const { text: teaserText, isStreaming: teaserStreaming, error: teaserError, start: startTeaser } = useSSE()
 
   // 전체 로드맵 스트리밍
   const { isStreaming: fullStreaming, progress, error: fullError, start: startFull } = useRoadmapStream({
+    onError: () => {
+      generatingRef.current = false
+    },
     onSaved: async (id, roadmap) => {
+      generatingRef.current = false
       // _meta에 입력 정보 저장 (GPS 재탐색 + 파라미터 캐시용)
       const withMeta = {
         ...roadmap,
@@ -376,7 +394,7 @@ export default function OnboardingPage() {
       },
       user ? { Authorization: `Bearer ${user.accessToken}` } : {},
     )
-    generatingRef.current = false
+    // generatingRef.current은 onSaved/onError 콜백에서 리셋 (스트리밍 완료 전 중복 클릭 방지)
   }
 
   const stepIndex = step === STEP.S1 ? 0
@@ -394,7 +412,15 @@ export default function OnboardingPage() {
       .forEach(k => {
         const id = k.replace('devnavi_roadmap_', '')
         const data = localStorage.getItem(k)
-        if (data) localStorage.setItem(`devnavi_archived_${id}`, data)
+        if (data) {
+          try {
+            const parsed = JSON.parse(data)
+            parsed._archivedAt = Date.now()
+            localStorage.setItem(`devnavi_archived_${id}`, JSON.stringify(parsed))
+          } catch {
+            localStorage.setItem(`devnavi_archived_${id}`, data)
+          }
+        }
         localStorage.removeItem(k)
 
         const summary = localStorage.getItem(`devnavi_summary_${id}`)

@@ -1,4 +1,5 @@
 import { memo, useState } from 'react'
+import PropTypes from 'prop-types'
 import TaskItem from './TaskItem'
 
 /**
@@ -86,5 +87,15 @@ const WeekAccordion = memo(function WeekAccordion({ week, monthIdx, doneSet, onT
     </div>
   )
 }, _arePropsEqual)
+
+WeekAccordion.propTypes = {
+  week:     PropTypes.shape({
+    week:   PropTypes.number.isRequired,
+    tasks:  PropTypes.arrayOf(PropTypes.object).isRequired,
+  }).isRequired,
+  monthIdx: PropTypes.number.isRequired,
+  doneSet:  PropTypes.instanceOf(Set).isRequired,
+  onToggle: PropTypes.func.isRequired,
+}
 
 export default WeekAccordion

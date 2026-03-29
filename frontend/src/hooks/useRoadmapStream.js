@@ -28,7 +28,7 @@ export function loadRoadmapLocal(id) {
  *
  * @returns {{ isStreaming, progress, error, start, stop }}
  */
-export function useRoadmapStream({ onSaved } = {}) {
+export function useRoadmapStream({ onSaved, onError } = {}) {
   const [isStreaming, setIsStreaming] = useState(false)
   const [progress, setProgress]     = useState(0)   // 0~100 추정 (청크 수 기반)
   const [error, setError]           = useState(null)
@@ -77,16 +77,19 @@ export function useRoadmapStream({ onSaved } = {}) {
           const id = saveRoadmapLocal(roadmap)
           onSaved?.(id, roadmap)
         } catch (e) {
-          setError(new Error('로드맵 파싱 실패: ' + e.message))
+          const parseErr = new Error('로드맵 파싱 실패: ' + e.message)
+          setError(parseErr)
+          onError?.(parseErr)
         }
       },
       (err) => {
         setError(err)
         setIsStreaming(false)
+        onError?.(err)
       },
       headers,
     )
-  }, [onSaved])
+  }, [onSaved, onError])
 
   const stop = useCallback(() => {
     controllerRef.current?.abort()

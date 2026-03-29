@@ -142,14 +142,14 @@ async def get_stats(request: Request, admin: dict = Depends(require_admin)) -> d
     # ── 최근 7일 일별 데이터 ──────────────────────────────────────
     user_rows_resp = await client.get(
         sb_url("users"),
-        params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "1000"},
+        params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "10000"},
         headers=sb_headers(),
     )
     user_rows: list[dict] = user_rows_resp.json() if user_rows_resp.status_code == 200 else []
 
     roadmap_rows_resp = await client.get(
         sb_url("roadmaps"),
-        params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "1000"},
+        params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "10000"},
         headers=sb_headers(),
     )
     roadmap_rows: list[dict] = roadmap_rows_resp.json() if roadmap_rows_resp.status_code == 200 else []

@@ -74,7 +74,12 @@ async def _with_usage_check(
     try:
         await check_and_increment(user_id, "full")
     except HTTPException as e:
-        yield f"data: {json.dumps({'type': 'error', 'message': e.detail})}\n\n"
+        message = (
+            e.detail.get("message", str(e.detail))
+            if isinstance(e.detail, dict)
+            else e.detail
+        )
+        yield f"data: {json.dumps({'type': 'error', 'message': message})}\n\n"
         return
     async for chunk in gen:
         yield chunk
@@ -130,7 +135,9 @@ async def _stream_teaser_and_cache(
         # [DONE] 이전 청크에서 텍스트 수집
         if not chunk.startswith("data: [DONE]"):
             try:
-                data = json.loads(chunk[len("data: "):].strip())
+                prefix = "data: "
+                payload = chunk[len(prefix):].strip() if chunk.startswith(prefix) else chunk.strip()
+                data = json.loads(payload)
                 if data.get("type") == "text":
                     buffer.append(data.get("chunk", ""))
             except Exception:

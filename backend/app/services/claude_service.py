@@ -53,6 +53,7 @@ async def stream_teaser(system: str, user: str) -> AsyncGenerator[str, None]:
     except Exception as e:
         _logger.error("stream_teaser 오류: %s", e, exc_info=True)
         yield f"data: {json.dumps({'type': 'error', 'message': 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'})}\n\n"
+        return
     yield "data: [DONE]\n\n"
 
 
@@ -278,6 +279,8 @@ async def stream_full_multicall(
 
 async def call_reroute(system: str, user: str) -> str:
     """Sonnet 단일 호출로 재탐색 JSON 문자열 반환."""
+    import logging
+    _logger = logging.getLogger(__name__)
     client = _get_client()
     response = await client.messages.create(
         model=SONNET,
@@ -285,6 +288,13 @@ async def call_reroute(system: str, user: str) -> str:
         system=system,
         messages=[{"role": "user", "content": user}],
     )
+    if response.stop_reason == "max_tokens":
+        _logger.warning("call_reroute max_tokens 도달 — JSON 불완전 종료")
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=422,
+            detail="재탐색 로드맵이 너무 길어 생성이 중단됐습니다. 완료된 항목을 줄이거나 다시 시도해 주세요.",
+        )
     return response.content[0].text
 
 
