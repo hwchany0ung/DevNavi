@@ -7,6 +7,8 @@ import PrivacyPage from './pages/PrivacyPage'
 import AdminPage from './pages/AdminPage'
 import NotFoundPage from './pages/NotFoundPage'
 import PrivateRoute from './components/auth/PrivateRoute'
+import AuthCallbackPage from './pages/AuthCallbackPage'
+import ResetPasswordPage from './pages/ResetPasswordPage'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
@@ -38,6 +40,10 @@ export default function App() {
       <Route path="/dashboard" element={<PrivateRoute><DashboardRedirect /></PrivateRoute>} />
       {/* BUG-004: /roadmap (ID 없음) 접근 시 홈으로 */}
       <Route path="/roadmap" element={<Navigate to="/" replace />} />
+      {/* 이메일 인증 콜백: PKCE code → session exchange */}
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
+      {/* 비밀번호 재설정: PKCE code → new password form */}
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       {/* BUG-002: catch-all 404 */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
