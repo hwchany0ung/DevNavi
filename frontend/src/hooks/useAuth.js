@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase, isSupabaseReady, cleanAuthParams } from '../lib/supabase'
+import { request } from '../lib/api'
 
 /**
  * Supabase 인증 상태 훅.
@@ -52,6 +53,25 @@ export function useAuth() {
         }
         localStorage.setItem('devnavi_last_user_id', session.user.id)
         cleanAuthParams()
+
+        // PIPA: 최초 로그인 시 약관 동의 이력을 서버에 기록
+        // user_metadata에 agreed_terms_at이 있으면 신규 가입 사용자로 판단
+        // localStorage 플래그로 중복 전송 방지 (디바이스당 1회, 서버는 upsert로 멱등 처리)
+        const consentKey = `devnavi_consent_sent_${session.user.id}`
+        const meta = session.user.user_metadata || {}
+        if (meta.agreed_terms_at && !localStorage.getItem(consentKey)) {
+          request('/auth/consent', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${session.access_token}` },
+            body: JSON.stringify({
+              agreed_terms_at:   meta.agreed_terms_at,
+              agreed_privacy_at: meta.agreed_privacy_at || meta.agreed_terms_at,
+              consent_version:   meta.consent_version || '2026-01-01',
+            }),
+          })
+            .then(() => localStorage.setItem(consentKey, '1'))
+            .catch((err) => console.warn('[useAuth] consent 기록 실패 (재시도 예정):', err.message))
+        }
       }
       if (event === 'TOKEN_REFRESHED') {
         cleanAuthParams()
