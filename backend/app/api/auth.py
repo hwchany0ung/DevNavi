@@ -5,6 +5,7 @@
   POST /auth/consent — PIPA 약관 동의 이력 서버 기록
 """
 import logging
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -20,8 +21,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 class ConsentRequest(BaseModel):
-    agreed_terms_at:   str              # ISO 8601 타임스탬프 (동의 시각)
-    agreed_privacy_at: str              # ISO 8601 타임스탬프 (동의 시각)
+    agreed_terms_at:   datetime         # ISO 8601 타임스탬프 — Pydantic이 형식 검증 (잘못된 값 → 422)
+    agreed_privacy_at: datetime         # ISO 8601 타임스탬프 — Pydantic이 형식 검증 (잘못된 값 → 422)
     consent_version:   str = "2026-01-01"
 
 
@@ -57,8 +58,8 @@ async def record_consent(
 
     payload = {
         "user_id":           user["id"],
-        "agreed_terms_at":   body.agreed_terms_at,
-        "agreed_privacy_at": body.agreed_privacy_at,
+        "agreed_terms_at":   body.agreed_terms_at.isoformat(),
+        "agreed_privacy_at": body.agreed_privacy_at.isoformat(),
         "consent_version":   body.consent_version,
         "ip_address":        ip_address,
         "user_agent":        user_agent,
