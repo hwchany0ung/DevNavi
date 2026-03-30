@@ -1,33 +1,59 @@
+import { supabase } from './supabase'
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
+function _parseError(err, status) {
+  let detailMsg
+  // FastAPI validation 오류는 detail이 배열({loc,msg,type})로 올 수 있음
+  if (typeof err.detail === 'string') {
+    detailMsg = err.detail
+  } else if (Array.isArray(err.detail)) {
+    detailMsg = err.detail.map(d => d.msg || JSON.stringify(d)).join(', ')
+  } else if (err.detail && typeof err.detail === 'object') {
+    detailMsg = err.detail.message || JSON.stringify(err.detail)
+  } else {
+    detailMsg = `HTTP ${status}`
+  }
+  const error = new Error(detailMsg)
+  error.status = status
+  return error
+}
+
 /**
- * 일반 REST 요청
+ * 일반 REST 요청.
+ * 401 응답 시 Supabase 세션 갱신 후 1회 자동 재시도 (I12).
  */
 export async function request(path, options = {}) {
-  // headers를 먼저 분리한 뒤 나머지를 spread해야
-  // Content-Type이 options.headers에 덮어씌워지지 않음
   const { headers: extraHeaders = {}, ...rest } = options
+
   const res = await fetch(`${BASE_URL}${path}`, {
     headers: { 'Content-Type': 'application/json', ...extraHeaders },
     ...rest,
   })
+
+  // 401: 토큰 만료 → 세션 갱신 후 1회 재시도
+  if (res.status === 401 && supabase) {
+    const { data } = await supabase.auth.refreshSession().catch(() => ({ data: null }))
+    if (data?.session?.access_token) {
+      const retryHeaders = {
+        ...extraHeaders,
+        Authorization: `Bearer ${data.session.access_token}`,
+      }
+      const retryRes = await fetch(`${BASE_URL}${path}`, {
+        headers: { 'Content-Type': 'application/json', ...retryHeaders },
+        ...rest,
+      })
+      if (!retryRes.ok) {
+        const err = await retryRes.json().catch(() => ({}))
+        throw _parseError(err, retryRes.status)
+      }
+      return retryRes.json()
+    }
+  }
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    // FastAPI validation 오류는 detail이 배열({loc,msg,type})로 올 수 있음
-    let detailMsg
-    if (typeof err.detail === 'string') {
-      detailMsg = err.detail
-    } else if (Array.isArray(err.detail)) {
-      detailMsg = err.detail.map(d => d.msg || JSON.stringify(d)).join(', ')
-    } else if (err.detail && typeof err.detail === 'object') {
-      // 객체 detail — {message: '...'} 형태 우선, 없으면 JSON 직렬화
-      detailMsg = err.detail.message || JSON.stringify(err.detail)
-    } else {
-      detailMsg = `HTTP ${res.status}`
-    }
-    const error = new Error(detailMsg)
-    error.status = res.status
-    throw error
+    throw _parseError(err, res.status)
   }
   return res.json()
 }
