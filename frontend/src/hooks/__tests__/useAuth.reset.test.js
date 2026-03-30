@@ -1,3 +1,4 @@
+import React from 'react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 
@@ -17,7 +18,10 @@ vi.mock('../../lib/supabase', () => {
 })
 
 import { useAuth } from '../useAuth'
+import { AuthProvider } from '../../contexts/AuthContext'
 import { supabase } from '../../lib/supabase'
+
+const wrapper = ({ children }) => <AuthProvider>{children}</AuthProvider>
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -31,7 +35,7 @@ describe('resetPasswordForEmail', () => {
   it('calls supabase with correct redirectTo and returns true on success', async () => {
     supabase.auth.resetPasswordForEmail.mockResolvedValue({ error: null })
 
-    const { result } = renderHook(() => useAuth())
+    const { result } = renderHook(() => useAuth(), { wrapper })
     let ok
     await act(async () => {
       ok = await result.current.resetPasswordForEmail('user@example.com')
@@ -47,7 +51,7 @@ describe('resetPasswordForEmail', () => {
 
   it('returns true even when email does not exist (prevent enumeration)', async () => {
     supabase.auth.resetPasswordForEmail.mockResolvedValue({ error: null })
-    const { result } = renderHook(() => useAuth())
+    const { result } = renderHook(() => useAuth(), { wrapper })
     let ok
     await act(async () => {
       ok = await result.current.resetPasswordForEmail('nonexistent@example.com')
@@ -60,7 +64,7 @@ describe('resetPasswordForEmail', () => {
     supabase.auth.resetPasswordForEmail.mockResolvedValue({
       error: { message: 'rate limit exceeded' },
     })
-    const { result } = renderHook(() => useAuth())
+    const { result } = renderHook(() => useAuth(), { wrapper })
     let ok
     await act(async () => {
       ok = await result.current.resetPasswordForEmail('user@example.com')
@@ -73,7 +77,7 @@ describe('resetPasswordForEmail', () => {
 describe('updatePassword', () => {
   it('calls supabase.auth.updateUser with new password and returns true', async () => {
     supabase.auth.updateUser.mockResolvedValue({ error: null })
-    const { result } = renderHook(() => useAuth())
+    const { result } = renderHook(() => useAuth(), { wrapper })
     let ok
     await act(async () => {
       ok = await result.current.updatePassword('NewPass1!')
@@ -85,7 +89,7 @@ describe('updatePassword', () => {
 
   it('returns false and sets error on failure', async () => {
     supabase.auth.updateUser.mockResolvedValue({ error: { message: 'Auth session missing!' } })
-    const { result } = renderHook(() => useAuth())
+    const { result } = renderHook(() => useAuth(), { wrapper })
     let ok
     await act(async () => {
       ok = await result.current.updatePassword('NewPass1!')
