@@ -41,17 +41,20 @@ export function AuthProvider({ children }) {
         localStorage.setItem('devnavi_last_user_id', session.user.id)
         cleanAuthParams()
 
-        // PIPA: 최초 로그인 시 약관 동의 이력을 서버에 기록
+        // PIPA: 약관 동의 이력을 서버에 기록
+        // - 이메일 가입: user_metadata에 agreed_terms_at 포함 → 그대로 기록
+        // - Google OAuth: user_metadata에 agreed_terms_at 없음 → 최초 SIGNED_IN 시각을 동의 시각으로 기록
         const consentKey = `devnavi_consent_sent_${session.user.id}`
-        const meta = session.user.user_metadata || {}
-        if (meta.agreed_terms_at && !localStorage.getItem(consentKey)) {
+        if (!localStorage.getItem(consentKey)) {
+          const meta = session.user.user_metadata || {}
+          const now  = new Date().toISOString()
           request('/auth/consent', {
             method: 'POST',
             headers: { Authorization: `Bearer ${session.access_token}` },
             body: JSON.stringify({
-              agreed_terms_at:   meta.agreed_terms_at,
-              agreed_privacy_at: meta.agreed_privacy_at || meta.agreed_terms_at,
-              consent_version:   meta.consent_version || '2026-01-01',
+              agreed_terms_at:   meta.agreed_terms_at   || now,
+              agreed_privacy_at: meta.agreed_privacy_at || meta.agreed_terms_at || now,
+              consent_version:   meta.consent_version   || '2026-01-01',
             }),
           })
             .then(() => localStorage.setItem(consentKey, '1'))

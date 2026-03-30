@@ -91,6 +91,7 @@ export default function RoadmapPage() {
     setCareerSummary(null)
     setAutoSaveError(false)
     autoSaveDoneRef.current = false
+    loadedForIdRef.current = null  // I-4: A→B→A 재방문 시 stale 상태 방지
   }, [id])
 
   // ── 커리어 분석 로드 ────────────────────────────────────────────
