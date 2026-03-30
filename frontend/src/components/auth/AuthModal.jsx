@@ -37,6 +37,14 @@ export default function AuthModal({ open, onClose }) {
     if (user && open) onClose()
   }, [user, open, onClose])
 
+  // 모달이 다시 열릴 때 이전 오류/성공 메시지 초기화
+  useEffect(() => {
+    if (open) {
+      setLocalError('')
+      setSuccess('')
+    }
+  }, [open])
+
   if (!open) return null
 
   const switchMode = (next) => {
@@ -82,7 +90,11 @@ export default function AuthModal({ open, onClose }) {
       const ok = await signInWithEmail(email, password)
       if (ok) onClose()
     } else {
-      const ok = await signUpWithEmail(email, password)
+      const now = new Date().toISOString()
+      const ok = await signUpWithEmail(email, password, {
+        agreedTermsAt:   now,
+        agreedPrivacyAt: now,
+      })
       if (ok) setSuccess('가입 확인 이메일을 전송했습니다. 메일을 확인해주세요!')
     }
     setLoading(false)

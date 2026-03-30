@@ -81,6 +81,18 @@ export default function RoadmapPage() {
     return () => { document.title = 'DevNavi — IT 직군 맞춤형 AI 로드맵' }
   }, [])
 
+  // ── id 변경 시 이전 로드맵 상태 초기화 ────────────────────────────
+  // 다른 로드맵으로 이동할 때 이전 데이터가 잠깐 노출되지 않도록 즉시 초기화
+  useEffect(() => {
+    setRoadmap(null)
+    setError(null)
+    setActiveMonth(1)
+    setDoneSet(new Set())
+    setCareerSummary(null)
+    setAutoSaveError(false)
+    autoSaveDoneRef.current = false
+  }, [id])
+
   // ── 커리어 분석 로드 ────────────────────────────────────────────
   useEffect(() => {
     try {

@@ -79,6 +79,12 @@ async def _with_usage_check(
             if isinstance(e.detail, dict)
             else e.detail
         )
+        # M1: SSE 에러는 HTTP 200으로 전송되어 ErrorLoggingMiddleware가 감지 못 함
+        # → 429는 정상 비즈니스 로직이므로 INFO, 그 외는 WARNING으로 서버 측 기록
+        if e.status_code == 429:
+            logger.info("SSE usage limit (user=%s): %s", user_id, message)
+        else:
+            logger.warning("SSE error event (user=%s, status=%d): %s", user_id, e.status_code, message)
         yield f"data: {json.dumps({'type': 'error', 'message': message})}\n\n"
         return
     async for chunk in gen:
@@ -236,9 +242,7 @@ async def career_summary(
         logger.info("career-summary raw response: %s", raw[:200])
     except Exception as e:
         logger.exception("career-summary AI 호출 실패")
-        raise HTTPException(status_code=500, detail="AI 호출에 실패했습니다. 잠시 후 다시 시도해주세요.")
-    # AI 호출 성공 후에만 사용량 차감 (실패 시 차감하지 않음)
-    await check_and_increment(user["id"], "career-summary")
+        raise HTTPException(status_code=500, detail={"message": "AI 호출에 실패했습니다. 잠시 후 다시 시도해주세요."})
 
     # JSON 추출 — 코드블록 제거 후 첫 번째 { } 구간 파싱
     cleaned = re.sub(r"```(?:json)?", "", raw).replace("```", "").strip()
@@ -247,14 +251,17 @@ async def career_summary(
     end   = cleaned.rfind("}") + 1
     if start == -1 or end == 0:
         logger.error("career-summary JSON 구조 없음. 원문(200자): %s", cleaned[:200])
-        raise HTTPException(status_code=422, detail="응답 파싱에 실패했습니다. 다시 시도해주세요.")
+        raise HTTPException(status_code=422, detail={"message": "응답 파싱에 실패했습니다. 다시 시도해주세요."})
     json_str = cleaned[start:end]
 
     try:
         data = json.loads(json_str)
     except json.JSONDecodeError as e:
         logger.error("career-summary JSON 파싱 실패: %s\n원문: %s", e, json_str[:300])
-        raise HTTPException(status_code=422, detail="응답 파싱에 실패했습니다. 다시 시도해주세요.")
+        raise HTTPException(status_code=422, detail={"message": "응답 파싱에 실패했습니다. 다시 시도해주세요."})
+
+    # JSON 파싱 성공 후에만 사용량 차감 (파싱 실패 시 차감하지 않음)
+    await check_and_increment(user["id"], "career-summary")
 
     # 모델 검증 — 실패 시 raw dict 반환 (프론트가 방어적으로 처리)
     try:
@@ -304,7 +311,7 @@ async def reroute(
     try:
         roadmap = parse_full_roadmap(raw)
     except ValueError as e:
-        raise HTTPException(status_code=422, detail=str(e))
+        raise HTTPException(status_code=422, detail={"message": "로드맵 파싱에 실패했습니다. 다시 시도해주세요."})
     return roadmap
 
 
@@ -329,7 +336,7 @@ async def get(roadmap_id: str, user: dict = Depends(require_user)):
     """저장된 로드맵 조회 (인증 필수, 본인 소유 검증)."""
     data = await get_roadmap(roadmap_id, user_id=user["id"])
     if not data:
-        raise HTTPException(status_code=404, detail="로드맵을 찾을 수 없습니다.")
+        raise HTTPException(status_code=404, detail={"message": "로드맵을 찾을 수 없습니다."})
     return data
 
 

@@ -119,57 +119,34 @@ async def check_and_increment(user_id: str, endpoint: str) -> None:
 async def _legacy_check_and_increment(
     client, user_id: str, endpoint: str, today: str, limit: int
 ) -> None:
-    """기존 2단계(조회+upsert) 방식 — RPC 미존재 시 폴백용."""
+    """원자적 increment_api_usage RPC 폴백 — increment_and_check_usage 미존재 시 사용.
 
-    # 1. 현재 사용량 조회
+    I3: 기존 SELECT→UPDATE 2단계는 동시 요청 시 race condition 발생.
+    increment_api_usage RPC(migrations/002)로 원자적 카운터 증가 후 limit 검사.
+    """
     try:
-        resp = await client.get(
-            sb_url("api_usage"),
+        rpc_resp = await client.post(
+            f"{settings.SUPABASE_URL}/rest/v1/rpc/increment_api_usage",
             headers=sb_headers(),
-            params={
-                "user_id":    f"eq.{user_id}",
-                "usage_date": f"eq.{today}",
-                "endpoint":   f"eq.{endpoint}",
-                "select":     "count",
+            json={
+                "p_user_id":  user_id,
+                "p_endpoint": endpoint,
+                "p_date":     today,
             },
         )
-        resp.raise_for_status()
-        rows = resp.json()
-        current: int = rows[0]["count"] if rows else 0
-    except httpx.HTTPStatusError as e:
-        logger.warning(
-            "사용량 조회 실패 — 제한 없이 통과 (user=%s, endpoint=%s): %s",
-            user_id, endpoint, e.response.text[:100],
-        )
-        return
+        rpc_resp.raise_for_status()
+        new_count: int = rpc_resp.json()
     except Exception as e:
-        logger.warning("사용량 조회 예외 — 통과 처리: %s", e)
+        logger.warning("increment_api_usage RPC 실패 — 제한 없이 통과 (user=%s): %s", user_id, e)
         return
 
-    # 2. 한도 초과 검사
-    if current >= limit:
+    if new_count > limit:
         raise HTTPException(
             status_code=429,
             detail={
                 "code":    "DAILY_LIMIT_EXCEEDED",
                 "message": f"하루 최대 {limit}회까지 사용 가능합니다. 내일 다시 이용해 주세요.",
-                "current": current,
+                "current": new_count,
                 "limit":   limit,
             },
         )
-
-    # 3. 카운터 증가 (upsert)
-    try:
-        resp = await client.post(
-            sb_url("api_usage"),
-            headers=sb_headers(prefer="resolution=merge-duplicates,return=minimal"),
-            json={
-                "user_id":    user_id,
-                "usage_date": today,
-                "endpoint":   endpoint,
-                "count":      current + 1,
-            },
-        )
-        resp.raise_for_status()
-    except Exception as e:
-        logger.warning("사용량 카운터 업데이트 실패 (user=%s): %s", user_id, e)

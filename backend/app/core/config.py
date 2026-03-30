@@ -5,9 +5,13 @@
 Lambda (production): AWS SSM Parameter Store에서 로드
   → /devnavi/prod/ANTHROPIC_API_KEY 등
 """
+import logging
 import os
 from typing import Optional
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
+
+_logger = logging.getLogger(__name__)
 
 
 def _load_ssm_params() -> None:
@@ -85,6 +89,16 @@ class Settings(BaseSettings):
     # ── 개발/테스트 계정 일일 한도 제외 (쉼표 구분 UUID 문자열) ──
     # 예: DEV_BYPASS_USERS=uuid1,uuid2
     DEV_BYPASS_USERS: str = ""
+
+    @model_validator(mode="after")
+    def _check_production_secrets(self) -> "Settings":
+        if self.ENV == "production" and not self.CLOUDFRONT_SECRET:
+            raise ValueError(
+                "CLOUDFRONT_SECRET이 설정되지 않았습니다. "
+                "프로덕션에서는 Lambda Function URL 직접 접근 차단을 위해 필수입니다. "
+                "SSM Parameter Store(/devnavi/prod/CLOUDFRONT_SECRET)를 확인하세요."
+            )
+        return self
 
     @property
     def supabase_ready(self) -> bool:

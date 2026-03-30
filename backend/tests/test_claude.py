@@ -36,7 +36,7 @@ async def test_call_reroute_max_tokens_raises_422(mock_anthropic):
         await call_reroute("system prompt", "user prompt")
 
     assert exc_info.value.status_code == 422
-    assert "재탐색" in exc_info.value.detail
+    assert "재탐색" in exc_info.value.detail["message"]
 
 
 @pytest.mark.asyncio

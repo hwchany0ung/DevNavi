@@ -56,6 +56,7 @@ class FullRoadmapRequest(BaseModel):
 
 
 _TASK_ID_RE = re.compile(r'^\d{1,3}-\d{1,2}-\d{1,3}$')
+_UUID_RE    = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
 
 # 페이로드 크기 제한 (512KB) — Supabase 스토리지 남용 방지
 _ROADMAP_MAX_BYTES = 512 * 1024
@@ -88,6 +89,13 @@ class PersistRequest(BaseModel):
     period: Literal["3months", "6months", "1year", "1year_plus"]
     roadmap: dict                          # FullRoadmapResponse JSON
     parent_id: Optional[str] = None       # GPS 재탐색 시 원본 roadmap_id
+
+    @field_validator("parent_id", mode="after")
+    @classmethod
+    def validate_parent_id(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not _UUID_RE.match(v):
+            raise ValueError("parent_id는 UUID 형식이어야 합니다.")
+        return v
 
     @field_validator("roadmap", mode="after")
     @classmethod

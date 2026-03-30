@@ -18,6 +18,7 @@ from app.core.limiter import limiter
 from app.core.supabase_client import close_supabase_client, get_supabase_client, sb_headers, sb_url
 from app.api.roadmap import router as roadmap_router
 from app.api.admin import router as admin_router, save_error_log
+from app.api.auth import router as auth_router
 
 logger = logging.getLogger(__name__)
 
@@ -182,6 +183,7 @@ if settings.ENV != "production":
 
 app.include_router(roadmap_router)
 app.include_router(admin_router)
+app.include_router(auth_router)
 
 
 @app.get("/health")
