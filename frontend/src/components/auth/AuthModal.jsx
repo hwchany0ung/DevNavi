@@ -278,8 +278,8 @@ export default function AuthModal({ open, onClose }) {
               )}
 
               {/* 약관 동의 — signup 전용
-                  TODO Phase 6: PIPA 준수를 위해 동의 이력(타임스탬프, IP, 버전)을
-                  서버에 기록해야 합니다. 현재는 클라이언트 전용 처리.
+                  동의 이력(타임스탬프, IP, 버전)은 AuthContext의 SIGNED_IN 핸들러에서
+                  /auth/consent 엔드포인트를 통해 서버에 기록됩니다.
               */}
               {mode === 'signup' && (
                 <div className="space-y-2 py-1">

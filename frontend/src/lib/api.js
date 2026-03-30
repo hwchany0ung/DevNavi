@@ -82,20 +82,7 @@ export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        let detailMsg
-        if (typeof err.detail === 'string') {
-          detailMsg = err.detail
-        } else if (Array.isArray(err.detail)) {
-          detailMsg = err.detail.map(d => d.msg || JSON.stringify(d)).join(', ')
-        } else if (err.detail && typeof err.detail === 'object') {
-          // 객체 detail — {message: '...'} 형태 우선, 없으면 JSON 직렬화
-          detailMsg = err.detail.message || JSON.stringify(err.detail)
-        } else {
-          detailMsg = `HTTP ${res.status}`
-        }
-        const error = new Error(detailMsg)
-        error.status = res.status
-        onError?.(error)
+        onError?.(_parseError(err, res.status))
         return
       }
 
