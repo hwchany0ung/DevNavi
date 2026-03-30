@@ -166,7 +166,11 @@ async def require_admin(authorization: Optional[str] = Header(None)) -> dict:
         headers=sb_headers(),
     )
 
-    rows = resp.json() if resp.status_code == 200 else []
+    try:
+        rows = resp.json() if resp.status_code == 200 else []
+    except Exception:
+        logger.warning("require_admin: Supabase 비-JSON 응답 (status=%d)", resp.status_code)
+        rows = []
     role = rows[0].get("role", "user") if rows else "user"
 
     if role != "admin":

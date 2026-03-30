@@ -287,7 +287,7 @@ export default function OnboardingPage() {
   }, [user, _doCareerSummary])
 
   // 티저 스트리밍
-  const { text: teaserText, isStreaming: teaserStreaming, error: teaserError, start: startTeaser } = useSSE()
+  const { text: teaserText, isStreaming: teaserStreaming, error: teaserError, start: startTeaser, stop: stopTeaser } = useSSE()
 
   // ── 스트리밍 콜백 (useCallback으로 참조 안정화) ──
   const handleStreamError = useCallback(() => {
@@ -349,10 +349,18 @@ export default function OnboardingPage() {
   }, [user, careerSummary, navigate])  // step1/step2 replaced with refs
 
   // 전체 로드맵 스트리밍
-  const { isStreaming: fullStreaming, progress, error: fullError, start: startFull } = useRoadmapStream({
+  const { isStreaming: fullStreaming, progress, error: fullError, start: startFull, stop: stopFull } = useRoadmapStream({
     onError: handleStreamError,
     onSaved: handleStreamSaved,
   })
+
+  // 언마운트 시 진행 중인 SSE 스트림 정리 (메모리 누수 방지)
+  useEffect(() => {
+    return () => {
+      stopTeaser()
+      stopFull()
+    }
+  }, [stopTeaser, stopFull])
 
   // Step 1 제출 → 티저 스트리밍
   const handleStep1Submit = () => {

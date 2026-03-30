@@ -291,6 +291,9 @@ async def call_reroute(system: str, user: str) -> str:
             status_code=422,
             detail="재탐색 로드맵이 너무 길어 생성이 중단됐습니다. 완료된 항목을 줄이거나 다시 시도해 주세요.",
         )
+    if not response.content:
+        _logger.warning("call_reroute content 비어있음 (safety filter 등)")
+        raise HTTPException(status_code=422, detail="AI 응답이 비어있습니다. 다시 시도해 주세요.")
     return response.content[0].text
 
 
@@ -303,4 +306,7 @@ async def call_haiku(system: str, user: str) -> str:
         system=system,
         messages=[{"role": "user", "content": user}],
     )
+    if not response.content:
+        _logger.warning("call_haiku content 비어있음 (safety filter 등)")
+        raise HTTPException(status_code=422, detail="AI 응답이 비어있습니다. 다시 시도해 주세요.")
     return response.content[0].text
