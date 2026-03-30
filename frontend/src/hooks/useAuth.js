@@ -68,9 +68,25 @@ export function useAuth() {
     return !err
   }, [])
 
-  const signUpWithEmail = useCallback(async (email, password) => {
+  /**
+   * @param {string} email
+   * @param {string} password
+   * @param {{ agreedTermsAt: string, agreedPrivacyAt: string }} consentData
+   *   ISO 타임스탬프 — PIPA 준수를 위해 약관 동의 시각을 user_metadata에 기록
+   */
+  const signUpWithEmail = useCallback(async (email, password, consentData) => {
     setError(null)
-    const { error: err } = await supabase.auth.signUp({ email, password })
+    const { error: err } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          agreed_terms_at:   consentData?.agreedTermsAt   ?? null,
+          agreed_privacy_at: consentData?.agreedPrivacyAt ?? null,
+          consent_version:   '2026-01-01',  // 약관 버전 — 약관 변경 시 갱신
+        },
+      },
+    })
     if (err) setError(err.message)
     return !err
   }, [])

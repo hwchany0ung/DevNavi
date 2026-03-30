@@ -91,11 +91,12 @@ class Settings(BaseSettings):
     DEV_BYPASS_USERS: str = ""
 
     @model_validator(mode="after")
-    def _warn_missing_secrets(self) -> "Settings":
+    def _check_production_secrets(self) -> "Settings":
         if self.ENV == "production" and not self.CLOUDFRONT_SECRET:
-            _logger.warning(
+            raise ValueError(
                 "CLOUDFRONT_SECRET이 설정되지 않았습니다. "
-                "Lambda Function URL에 대한 직접 접근 차단이 비활성화됩니다."
+                "프로덕션에서는 Lambda Function URL 직접 접근 차단을 위해 필수입니다. "
+                "SSM Parameter Store(/devnavi/prod/CLOUDFRONT_SECRET)를 확인하세요."
             )
         return self
 
