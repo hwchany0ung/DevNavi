@@ -138,14 +138,20 @@ async def require_user(authorization: Optional[str] = Header(None)) -> dict:
 
 
 async def optional_user(authorization: Optional[str] = Header(None)) -> Optional[dict]:
-    """Bearer JWT 선택. 없으면 None 반환 (공개 엔드포인트용)."""
+    """Bearer JWT 선택. 없으면 None 반환 (공개 엔드포인트용).
+
+    토큰이 있지만 유효하지 않은 경우(401) → None 반환 (미인증으로 처리).
+    JWKS/인증 서비스 장애(503) → 예외 전파 (silent 허용 안 됨 — M2).
+    """
     token = _extract_token(authorization)
     if not token:
         return None
     try:
         return await _verify_token_async(token)
-    except HTTPException:
-        return None
+    except HTTPException as e:
+        if e.status_code == status.HTTP_503_SERVICE_UNAVAILABLE:
+            raise  # 인증 인프라 장애 — 요청 차단
+        return None  # 401: 토큰 무효/만료 — 미인증으로 처리
 
 
 async def require_admin(authorization: Optional[str] = Header(None)) -> dict:

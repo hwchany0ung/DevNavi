@@ -91,6 +91,18 @@ jobs:
             --output table \
             --no-cli-pager
 
+      # M7: 배포 후 불변 버전 스냅샷 생성 — 롤백 시 이 버전 번호를 사용
+      - name: Publish Lambda version (rollback snapshot)
+        id: publish_version
+        run: |
+          VERSION=$(aws lambda publish-version \
+            --function-name devnavi-prod-api \
+            --description "deploy: ${{ github.sha }}" \
+            --query 'Version' --output text --no-cli-pager)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📌 Lambda version published: $VERSION"
+          echo "💡 Rollback 명령어: aws lambda update-function-code --function-name devnavi-prod-api --function-version $VERSION"
+
       - name: Invalidate CloudFront cache
         run: |
           aws cloudfront create-invalidation \
@@ -99,7 +111,28 @@ jobs:
             --no-cli-pager
         continue-on-error: true   # CF_API_DISTRIBUTION_ID 미설정 시 배포 차단 방지
 
+      # I13: Lambda 콜드 스타트 검증 — 잘못된 SSM 파라미터로 배포된 경우 즉시 감지
+      - name: Cold start health check
+        run: |
+          echo "🔍 Lambda 콜드 스타트 검증 중 (최대 5회 재시도)..."
+          for i in 1 2 3 4 5; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 https://api.devnavi.kr/health)
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Health check passed (시도 $i)"
+              exit 0
+            fi
+            echo "⏳ 시도 $i 실패 (HTTP $STATUS) — 10초 후 재시도..."
+            sleep 10
+          done
+          echo "❌ Health check 5회 모두 실패"
+          echo ""
+          echo "⚠️  롤백 방법:"
+          echo "  이전 Lambda 버전으로 수동 롤백하거나 이전 커밋으로 재배포하세요."
+          echo "  발행된 버전 확인: aws lambda list-versions-by-function --function-name devnavi-prod-api"
+          exit 1
+
       - name: Deploy summary
         run: |
           echo "✅ Backend deployed successfully"
           echo "🔗 API URL: https://api.devnavi.kr"
+          echo "📌 Lambda version: ${{ steps.publish_version.outputs.version }}"

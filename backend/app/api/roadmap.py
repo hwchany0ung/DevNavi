@@ -79,6 +79,12 @@ async def _with_usage_check(
             if isinstance(e.detail, dict)
             else e.detail
         )
+        # M1: SSE 에러는 HTTP 200으로 전송되어 ErrorLoggingMiddleware가 감지 못 함
+        # → 429는 정상 비즈니스 로직이므로 INFO, 그 외는 WARNING으로 서버 측 기록
+        if e.status_code == 429:
+            logger.info("SSE usage limit (user=%s): %s", user_id, message)
+        else:
+            logger.warning("SSE error event (user=%s, status=%d): %s", user_id, e.status_code, message)
         yield f"data: {json.dumps({'type': 'error', 'message': message})}\n\n"
         return
     async for chunk in gen:
