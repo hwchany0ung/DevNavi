@@ -1,5 +1,6 @@
 import { Navigate, Routes, Route } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
+import LandingPageMockup from './pages/LandingPageMockup'
 import OnboardingPage from './pages/OnboardingPage'
 import RoadmapPage from './pages/RoadmapPage'
 import TermsPage from './pages/TermsPage'
@@ -44,6 +45,8 @@ export default function App() {
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       {/* 비밀번호 재설정: PKCE code → new password form */}
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+      {/* 랜딩 목업 미리보기 — 실제 적용 전 확인용 */}
+      <Route path="/mockup" element={<LandingPageMockup />} />
       {/* BUG-002: catch-all 404 */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
