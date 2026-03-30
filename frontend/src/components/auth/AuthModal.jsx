@@ -37,6 +37,14 @@ export default function AuthModal({ open, onClose }) {
     if (user && open) onClose()
   }, [user, open, onClose])
 
+  // 모달이 다시 열릴 때 이전 오류/성공 메시지 초기화
+  useEffect(() => {
+    if (open) {
+      setLocalError('')
+      setSuccess('')
+    }
+  }, [open])
+
   if (!open) return null
 
   const switchMode = (next) => {
