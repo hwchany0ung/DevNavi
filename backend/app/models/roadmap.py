@@ -66,7 +66,7 @@ class RerouteRequest(BaseModel):
         "backend", "frontend", "cloud_devops", "fullstack",
         "data", "ai_ml", "security", "ios_android", "qa"
     ]
-    original_period: Literal["3months", "6months", "1year", "1year_plus"]
+    original_period: Literal["1month", "3months", "6months", "1year", "1year_plus"]
     company_type: Literal["startup", "msp", "bigco", "si", "foreign", "any"] = "any"
     completion_rate: float = Field(ge=0, le=100)
     done_contents: list[str] = Field(default_factory=list, max_length=50)

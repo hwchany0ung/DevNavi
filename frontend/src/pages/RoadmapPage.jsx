@@ -73,6 +73,7 @@ export default function RoadmapPage() {
   const [showSummary,  setShowSummary]  = useState(false)
   const [careerSummary, setCareerSummary] = useState(null)
   const [autoSaveError, setAutoSaveError] = useState(false)
+  const [autoSaveRetry, setAutoSaveRetry] = useState(0)
   const [rerouteError, setRerouteError] = useState(null)
 
   useEffect(() => {
@@ -127,7 +128,7 @@ export default function RoadmapPage() {
       autoSaveDoneRef.current = false  // 실패 시 재시도 허용
       setAutoSaveError(true)
     })
-  }, [user, id, navigate])
+  }, [user, id, navigate, autoSaveRetry])
 
   // ── 로드맵 로드 ─────────────────────────────────────────────────
   // loadedForIdRef: 현재 id로 이미 성공 로드 시 TOKEN_REFRESHED 등 user 변경으로 재요청 방지
@@ -135,6 +136,8 @@ export default function RoadmapPage() {
   useEffect(() => {
     if (authLoading) return  // 인증 확인 완료 전 대기
     if (loadedForIdRef.current === id) return  // 이미 이 id로 로드 완료 (flicker 방지)
+    // autoSave 진행 중이면 로드 스킵 — autoSave가 navigate로 새 id로 전환하거나 실패 시 재시도
+    if (autoSaveDoneRef.current) return
     setLoading(true)
     const local = loadRoadmapLocal(id)
     if (local) {
@@ -154,7 +157,7 @@ export default function RoadmapPage() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [id, user, authLoading])
+  }, [id, user, authLoading, autoSaveRetry])
 
   // ── 로그인 시 Supabase completions 동기화 ───────────────────────
   useEffect(() => {
@@ -367,8 +370,9 @@ export default function RoadmapPage() {
           <div className="flex items-center gap-2 ml-4">
             <button
               onClick={() => {
-                setAutoSaveError(false)
                 autoSaveDoneRef.current = false
+                setAutoSaveError(false)
+                setAutoSaveRetry((n) => n + 1)
               }}
               className="font-bold underline hover:opacity-70">
               다시 시도
@@ -555,8 +559,9 @@ export default function RoadmapPage() {
               </button>
               <button
                 onClick={handleRerouteConfirm}
+                disabled={rerouteLoading}
                 className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700
-                  text-white text-sm font-bold transition-colors">
+                  text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
                 재생성 시작
               </button>
             </div>
