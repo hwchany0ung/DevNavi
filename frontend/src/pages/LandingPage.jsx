@@ -235,13 +235,14 @@ export default function LandingPage() {
   }, [])
 
   useEffect(() => {
-    if (!user) { setIsAdmin(false); return }
+    if (!user?.accessToken) { setIsAdmin(false); return }
     request('/admin/me', { headers: { Authorization: `Bearer ${user.accessToken}` } })
       .then(() => setIsAdmin(true))
       .catch(() => setIsAdmin(false))
   }, [user])
 
   const goToMyRoadmap = useCallback(() => {
+    if (!user?.accessToken) { navigate('/onboarding'); return }
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     const localKeys = Object.keys(localStorage)
       .filter(k => k.startsWith('devnavi_roadmap_')).sort()
