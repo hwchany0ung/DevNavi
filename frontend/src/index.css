@@ -4,3 +4,33 @@
 
 * { box-sizing: border-box; }
 body { font-family: 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif; }
+
+/* ── Landing page animations ── */
+@keyframes floatY {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-12px); }
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.hero-preview-float {
+  animation: floatY 4s ease-in-out infinite;
+}
+
+.stream-item {
+  animation: fadeSlideIn 0.3s ease forwards;
+}
+
+.cursor-blink::after {
+  content: '|';
+  color: #6366f1;
+  animation: blink 0.7s step-end infinite;
+}
