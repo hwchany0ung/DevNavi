@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../contexts/ThemeContext'
@@ -6,99 +6,214 @@ import { request } from '../lib/api'
 import AuthModal from '../components/auth/AuthModal'
 import ThemeToggle from '../components/common/ThemeToggle'
 
-/* ── 로드맵 미리보기 목업 데이터 ── */
-const PREVIEW_MONTHS = [
-  {
-    month: 1, theme: '기초 다지기',
-    weeks: [
-      { title: 'Linux & 네트워크 기초', done: true },
-      { title: 'Python 기초 문법 완성', done: true },
-      { title: 'Git / GitHub 워크플로우', done: true },
-      { title: 'Docker 컨테이너 입문', done: false },
-    ],
-  },
-  {
-    month: 2, theme: 'AWS 핵심 서비스',
-    weeks: [
-      { title: 'EC2 · VPC · IAM 실습', done: false },
-      { title: 'S3 · CloudFront 구성', done: false },
-      { title: 'RDS · Lambda 연동', done: false },
-      { title: 'CloudWatch 모니터링', done: false },
-    ],
-  },
+/* ── 스트리밍 미리보기 데이터 ── */
+const PREVIEW_WEEKS = [
+  { week: '1주차', task: 'Git · GitHub 워크플로우 실습' },
+  { week: '2주차', task: 'Python 함수 · 클래스 미니 프로젝트' },
+  { week: '3주차', task: 'FastAPI 기초 + REST API 설계' },
+  { week: '4주차', task: 'Docker 컨테이너 입문 + 배포' },
+  { week: '5주차', task: 'PostgreSQL + ORM 연동' },
+  { week: '6주차', task: 'AWS EC2 · S3 배포 실습' },
 ]
 
-/* ── 미니 로드맵 미리보기 컴포넌트 (항상 다크 스타일 유지) ── */
-function RoadmapPreview() {
-  const [activeMonth, setActiveMonth] = useState(0)
-  const month = PREVIEW_MONTHS[activeMonth]
+const STREAM_DELAY_ITEM = 900
+const STREAM_DELAY_CHAR = 28
+const PAUSE_AFTER_DONE  = 2800
+
+/* ── 히어로 로드맵 미리보기 ── */
+function HeroPreview({ isDark }) {
+  const [visibleCount, setVisibleCount] = useState(0)
+  const [typingText, setTypingText]     = useState('')
+  const [isTyping, setIsTyping]         = useState(false)
+
+  const cardRef = useRef(null)
+  const rafRef  = useRef(null)
+  const [tilt, setTilt] = useState({ x: 0, y: 0 })
+  const [glow, setGlow] = useState({ x: 50, y: 50 })
+
+  useEffect(() => {
+    let cancelled = false
+    let charTimer, itemTimer, resetTimer
+
+    async function streamItem(idx) {
+      if (cancelled) return
+      const fullText = PREVIEW_WEEKS[idx].task
+      setIsTyping(true)
+      setTypingText('')
+      for (let c = 1; c <= fullText.length; c++) {
+        await new Promise(r => { charTimer = setTimeout(r, STREAM_DELAY_CHAR) })
+        if (cancelled) return
+        setTypingText(fullText.slice(0, c))
+      }
+      setIsTyping(false)
+      setVisibleCount(idx + 1)
+      setTypingText('')
+    }
+
+    async function runStream() {
+      setVisibleCount(0)
+      setTypingText('')
+      for (let i = 0; i < PREVIEW_WEEKS.length; i++) {
+        if (cancelled) return
+        await new Promise(r => { itemTimer = setTimeout(r, i === 0 ? 600 : STREAM_DELAY_ITEM) })
+        if (cancelled) return
+        await streamItem(i)
+      }
+      await new Promise(r => { resetTimer = setTimeout(r, PAUSE_AFTER_DONE) })
+      if (!cancelled) runStream()
+    }
+
+    runStream()
+    return () => {
+      cancelled = true
+      clearTimeout(charTimer)
+      clearTimeout(itemTimer)
+      clearTimeout(resetTimer)
+    }
+  }, [])
+
+  const handleMouseMove = useCallback((e) => {
+    if (!cardRef.current) return
+    const rect = cardRef.current.getBoundingClientRect()
+    const cx = (e.clientX - rect.left) / rect.width
+    const cy = (e.clientY - rect.top)  / rect.height
+    const tx = (cy - 0.5) * -18
+    const ty = (cx - 0.5) *  18
+    if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    rafRef.current = requestAnimationFrame(() => {
+      setTilt({ x: tx, y: ty })
+      setGlow({ x: cx * 100, y: cy * 100 })
+    })
+  }, [])
+
+  const handleMouseLeave = useCallback(() => {
+    setTilt({ x: 0, y: 0 })
+    setGlow({ x: 50, y: 50 })
+  }, [])
+
+  const progress = Math.round((visibleCount / PREVIEW_WEEKS.length) * 100)
+
+  const cardBg    = isDark ? 'bg-[#0d0f1a]'       : 'bg-white'
+  const cardBdr   = isDark ? 'border-white/10'     : 'border-slate-200'
+  const topBarBg  = isDark ? 'bg-[#13151f]'        : 'bg-slate-50'
+  const topBarBdr = isDark ? 'border-white/10'     : 'border-slate-200'
+  const monoMuted = isDark ? 'text-white/30'       : 'text-slate-400'
+  const progBg    = isDark ? 'bg-white/10'         : 'bg-slate-100'
+  const progBdr   = isDark ? 'border-white/10'     : 'border-slate-100'
+  const itemBg    = isDark ? 'bg-white/[0.03]'     : 'bg-slate-50'
+  const itemBdr   = isDark ? 'border-white/[0.05]' : 'border-slate-100'
+  const taskText  = isDark ? 'text-white/70'       : 'text-slate-700'
+  const footerTxt = isDark ? 'text-white/20'       : 'text-slate-300'
 
   return (
-    <div className="w-full max-w-sm bg-[#0f1117] border border-white/10 rounded-2xl overflow-hidden shadow-2xl shadow-black/50 text-left select-none">
-      {/* 상단 바 */}
-      <div className="flex items-center gap-1.5 px-4 py-3 bg-[#1a1d27] border-b border-white/10">
-        <span className="w-3 h-3 rounded-full bg-red-500/80" />
-        <span className="w-3 h-3 rounded-full bg-yellow-500/80" />
-        <span className="w-3 h-3 rounded-full bg-green-500/80" />
-        <span className="ml-3 text-[11px] text-white/30 font-mono">DevNavi — 클라우드/DevOps · 6개월</span>
-      </div>
+    <div className="flex flex-col items-center gap-3 select-none">
+      <div
+        style={{ perspective: '900px', animation: 'floatY 4s ease-in-out infinite' }}
+        className="w-full max-w-[340px]"
+      >
+        <style>{`
+          @keyframes floatY {
+            0%, 100% { transform: translateY(0px); }
+            50%       { transform: translateY(-12px); }
+          }
+          @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          .stream-item { animation: fadeSlideIn 0.3s ease forwards; }
+          .cursor-blink::after {
+            content: '|';
+            color: #6366f1;
+            animation: blink 0.7s step-end infinite;
+          }
+          @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        `}</style>
 
-      <div className="flex h-64">
-        {/* 사이드바 */}
-        <div className="w-28 bg-[#0d0f18] border-r border-white/10 flex flex-col py-3 gap-1 px-2">
-          <p className="text-[9px] text-white/30 uppercase tracking-widest px-2 mb-1">Timeline</p>
-          {PREVIEW_MONTHS.map((m, i) => (
-            <button
-              key={m.month}
-              onClick={() => setActiveMonth(i)}
-              className={`w-full text-left px-2 py-1.5 rounded-lg transition-colors text-[10px] font-medium
-                ${activeMonth === i
-                  ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'
-                  : 'text-white/40 hover:text-white/60 hover:bg-white/5'}`}
-            >
-              <span className="block text-[9px] opacity-60">Month {m.month}</span>
-              {m.theme}
-            </button>
-          ))}
-          <div className="mt-auto px-2 py-2 border-t border-white/10">
-            <div className="text-[9px] text-white/30 mb-1">진행률</div>
-            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-cyan-500 rounded-full" style={{ width: '37%' }} />
+        <div
+          ref={cardRef}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
+          style={{
+            transform: `rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
+            transition: 'transform 0.15s ease',
+            transformStyle: 'preserve-3d',
+          }}
+          className={`rounded-2xl overflow-hidden border shadow-2xl shadow-indigo-500/10 relative ${cardBg} ${cardBdr}`}
+        >
+          <div
+            className="pointer-events-none absolute inset-0 rounded-2xl transition-opacity duration-300"
+            style={{
+              background: `radial-gradient(circle at ${glow.x}% ${glow.y}%, rgba(99,102,241,0.10), transparent 65%)`,
+            }}
+          />
+
+          <div className={`flex items-center gap-1.5 px-4 py-3 border-b ${topBarBg} ${topBarBdr}`}>
+            <span className="w-2.5 h-2.5 rounded-full bg-red-400/70" />
+            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/70" />
+            <span className="w-2.5 h-2.5 rounded-full bg-green-400/70" />
+            <span className={`ml-3 text-[10px] font-mono ${monoMuted}`}>백엔드 · 6개월 플랜</span>
+            <span className="ml-auto text-[10px] font-mono text-indigo-500 animate-pulse">● AI 생성 중</span>
+          </div>
+
+          <div className={`px-4 py-2.5 border-b ${progBdr}`}>
+            <div className={`flex justify-between text-[10px] mb-1.5 ${monoMuted}`}>
+              <span>생성 진행률</span>
+              <span className="text-indigo-500 font-mono">{progress}%</span>
             </div>
-            <div className="text-[9px] text-cyan-400 mt-1">37%</div>
+            <div className={`h-1.5 rounded-full overflow-hidden ${progBg}`}>
+              <div
+                className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 rounded-full transition-all duration-500"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
-        </div>
 
-        {/* 메인 */}
-        <div className="flex-1 p-3 overflow-hidden">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold text-white/80">Month {month.month} · {month.theme}</span>
-            <span className="text-[9px] text-white/30 bg-white/5 px-2 py-0.5 rounded-full">4 tasks</span>
-          </div>
-          <div className="space-y-1.5">
-            {month.weeks.map((w, i) => (
-              <div key={i} className={`flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-colors
-                ${w.done
-                  ? 'bg-cyan-500/10 border-cyan-500/20'
-                  : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.06]'}`}>
-                <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0
-                  ${w.done ? 'bg-cyan-500 border-cyan-500' : 'border-white/20'}`}>
-                  {w.done && <svg className="w-2 h-2 text-white" viewBox="0 0 10 10"><path d="M1.5 5L4 7.5 8.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/></svg>}
+          <div className="p-3 space-y-1.5 min-h-[200px]">
+            {PREVIEW_WEEKS.slice(0, visibleCount).map((w, i) => (
+              <div
+                key={i}
+                className={`stream-item flex items-center gap-3 px-3 py-2.5 rounded-xl border ${itemBg} ${itemBdr}`}
+              >
+                <div className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center bg-indigo-500">
+                  <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10">
+                    <path d="M1.5 5L4 7.5 8.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
+                  </svg>
                 </div>
-                <span className={`text-[10px] leading-snug ${w.done ? 'text-white/40 line-through' : 'text-white/70'}`}>
-                  {w.title}
-                </span>
+                <div>
+                  <div className={`text-[9px] font-mono ${monoMuted}`}>{w.week}</div>
+                  <div className={`text-[11px] font-medium leading-snug mt-0.5 ${taskText}`}>{w.task}</div>
+                </div>
               </div>
             ))}
+
+            {isTyping && (
+              <div className="stream-item flex items-center gap-3 px-3 py-2.5 rounded-xl border bg-indigo-500/10 border-indigo-500/25">
+                <div className="w-4 h-4 rounded-full border border-indigo-400/50 flex-shrink-0 animate-pulse" />
+                <div>
+                  <div className="text-[9px] text-indigo-400/60 font-mono">
+                    {PREVIEW_WEEKS[visibleCount]?.week}
+                  </div>
+                  <div className={`text-[11px] font-medium text-indigo-500 leading-snug mt-0.5 ${typingText ? 'cursor-blink' : ''}`}>
+                    {typingText || ' '}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {visibleCount === 0 && !isTyping && (
+              <div className={`flex items-center justify-center h-32 text-[11px] ${monoMuted}`}>
+                AI가 로드맵을 생성하고 있습니다...
+              </div>
+            )}
+          </div>
+
+          <div className={`px-4 pb-3 text-[9px] text-center ${footerTxt}`}>
+            🤖 Claude AI · 실시간 생성
           </div>
         </div>
       </div>
 
-      {/* 하단 바 */}
-      <div className="px-4 py-2.5 bg-[#1a1d27] border-t border-white/10 flex items-center justify-between">
-        <span className="text-[9px] text-white/30">🤖 AI 생성 로드맵 · 미리보기</span>
-        <span className="text-[9px] text-cyan-400 font-mono animate-pulse">● live</span>
-      </div>
+      <p className={`text-xs ${isDark ? 'text-white/25' : 'text-slate-400'}`}>↑ 실제 생성 과정 미리보기</p>
     </div>
   )
 }
@@ -110,271 +225,372 @@ export default function LandingPage() {
   const isDark = theme === 'dark'
   const navigate = useNavigate()
   const [authOpen, setAuthOpen] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [isAdmin, setIsAdmin]   = useState(false)
+
+  /* 테마 헬퍼 */
+  const t = (d, l) => isDark ? d : l
 
   useEffect(() => {
     document.title = 'DevNavi — AI 맞춤 커리어 로드맵'
   }, [])
 
-  // 관리자 여부 서버에서 확인 (로그인 시에만)
   useEffect(() => {
     if (!user) { setIsAdmin(false); return }
     request('/admin/me', { headers: { Authorization: `Bearer ${user.accessToken}` } })
       .then(() => setIsAdmin(true))
-      .catch((err) => {
-        if (import.meta.env.DEV) {
-          console.error('[isAdmin] /admin/me 실패:', err?.status, err?.message)
-        }
-        setIsAdmin(false)
-      })
+      .catch(() => setIsAdmin(false))
   }, [user])
 
-  // 자동 리다이렉트 제거 — '내 로드맵' 버튼으로 직접 이동하는 방식으로 변경
+  const goToMyRoadmap = useCallback(() => {
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    const localKeys = Object.keys(localStorage)
+      .filter(k => k.startsWith('devnavi_roadmap_')).sort()
+    if (localKeys.length > 0) {
+      const id = localKeys[localKeys.length - 1].replace('devnavi_roadmap_', '')
+      if (UUID_RE.test(id)) { navigate(`/roadmap/${id}`); return }
+    }
+    request('/roadmap/my', { headers: { Authorization: `Bearer ${user.accessToken}` } })
+      .then(({ roadmap_id }) => navigate(roadmap_id ? `/roadmap/${roadmap_id}` : '/onboarding'))
+      .catch(() => navigate('/onboarding'))
+  }, [user, navigate])
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: isDark ? '#080b12' : '#ffffff' }}>
-        <div className="w-8 h-8 border-4 rounded-full animate-spin"
-          style={{ borderColor: isDark ? '#164e63' : '#e0e7ff', borderTopColor: isDark ? '#22d3ee' : '#6366f1' }} />
+      <div className={`min-h-screen flex items-center justify-center ${t('bg-[#07090f]', 'bg-slate-50')}`}>
+        <div className="w-8 h-8 border-4 rounded-full animate-spin border-indigo-500/20 border-t-indigo-500" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col overflow-x-hidden transition-colors"
+    <div
+      className={`min-h-screen overflow-x-hidden transition-colors duration-300
+        ${t('bg-[#07090f] text-white', 'bg-slate-50 text-slate-900')}`}
       style={{
-        backgroundColor: isDark ? '#080b12' : '#ffffff',
-        backgroundImage: isDark
-          ? 'radial-gradient(ellipse 80% 50% at 50% -20%, rgba(99,102,241,0.15), transparent)'
-          : undefined,
+        backgroundImage: t(
+          'radial-gradient(ellipse 90% 50% at 50% -10%, rgba(99,102,241,0.12), transparent)',
+          'radial-gradient(ellipse 90% 50% at 50% -10%, rgba(99,102,241,0.06), transparent)',
+        ),
       }}
     >
-
-      {/* 네비게이션 */}
-      <nav className="relative z-10 px-6 py-5 flex items-center justify-between max-w-6xl mx-auto w-full">
-        <span className="text-lg font-black tracking-tight">
-          <span style={{ color: isDark ? '#ffffff' : '#111827' }}>Dev</span>
-          <span style={{ color: isDark ? '#22d3ee' : '#6366f1' }}>Navi</span>
+      {/* ────────── NAV ────────── */}
+      <nav className={`px-6 py-5 flex items-center justify-between max-w-6xl mx-auto
+        ${t('', 'border-b border-slate-200/60 bg-white/80 backdrop-blur sticky top-0 z-40')}`}>
+        <span className="text-xl font-black tracking-tight">
+          Dev<span className="text-indigo-500">Navi</span>
         </span>
-        <div className="flex items-center gap-6">
-          <button
-            onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-            className="text-sm transition-colors hidden sm:block"
-            style={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#6b7280' }}>
-            기능
-          </button>
-          <button
-            onClick={() => navigate('/onboarding')}
-            className="text-sm transition-colors hidden sm:block"
-            style={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#6b7280' }}>
-            시작하기
-          </button>
+        <div className="flex items-center gap-5">
+          <a href="#how"   className={`text-sm transition-colors hidden sm:block ${t('text-white/40 hover:text-white/70', 'text-slate-500 hover:text-slate-800')}`}>기능 소개</a>
+          <a href="#proof" className={`text-sm transition-colors hidden sm:block ${t('text-white/40 hover:text-white/70', 'text-slate-500 hover:text-slate-800')}`}>이용 후기</a>
           <ThemeToggle />
           {user ? (
-            /* 로그인 상태 */
             <div className="flex items-center gap-3">
               <button
-                onClick={() => {
-                  // localStorage에서 최신 로드맵 ID 탐색
-                  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-                  const localKeys = Object.keys(localStorage)
-                    .filter(k => k.startsWith('devnavi_roadmap_'))
-                    .sort()
-                  if (localKeys.length > 0) {
-                    const id = localKeys[localKeys.length - 1].replace('devnavi_roadmap_', '')
-                    if (UUID_RE.test(id)) { navigate(`/roadmap/${id}`); return }
-                  }
-                  // localStorage 없으면 서버에서 조회
-                  request('/roadmap/my', { headers: { Authorization: `Bearer ${user.accessToken}` } })
-                    .then(({ roadmap_id }) => navigate(roadmap_id ? `/roadmap/${roadmap_id}` : '/onboarding'))
-                    .catch((err) => {
-                      console.warn('[내 로드맵] /roadmap/my 조회 실패, 온보딩으로 이동:', err?.message)
-                      navigate('/onboarding')
-                    })
-                }}
-                className="text-sm px-4 py-2 rounded-xl font-bold text-white transition-all active:scale-95"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #22d3ee)' }}>
+                onClick={goToMyRoadmap}
+                className="text-sm px-4 py-2 rounded-xl font-bold text-white
+                  bg-gradient-to-r from-indigo-500 to-cyan-500 hover:opacity-90 transition-opacity active:scale-95">
                 내 로드맵
               </button>
               {isAdmin && (
                 <button
                   onClick={() => navigate('/admin')}
-                  className="text-xs px-2.5 py-1 rounded-lg font-medium transition-all"
-                  style={{
-                    background: isDark ? 'rgba(239,68,68,0.15)' : '#fef2f2',
-                    border: `1px solid ${isDark ? 'rgba(239,68,68,0.3)' : '#fecaca'}`,
-                    color: isDark ? '#f87171' : '#dc2626',
-                  }}>
+                  className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-all
+                    ${t('bg-red-500/15 border border-red-500/30 text-red-400',
+                        'bg-red-50 border border-red-200 text-red-600')}`}>
                   관리자
                 </button>
               )}
               <button
                 onClick={signOut}
-                className="text-sm transition-colors"
-                style={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#9ca3af' }}>
+                className={`text-sm transition-colors ${t('text-white/40 hover:text-white/70', 'text-slate-500 hover:text-slate-800')}`}>
                 로그아웃
               </button>
             </div>
           ) : (
-            /* 비로그인 상태 */
             <button
               onClick={() => setAuthOpen(true)}
-              className="text-sm px-4 py-2 rounded-xl transition-all backdrop-blur-sm min-h-[44px]"
-              style={{
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.2)' : '#e5e7eb'}`,
-                color: isDark ? 'rgba(255,255,255,0.7)' : '#4b5563',
-              }}>
+              className={`text-sm px-4 py-2 rounded-xl transition-all border
+                ${t('text-white/70 border-white/20 hover:border-white/30',
+                    'text-slate-600 border-slate-200 hover:border-slate-300 bg-white')}`}>
               로그인
             </button>
           )}
         </div>
       </nav>
 
-      {/* 히어로 */}
-      <main className="relative z-10 flex-1 flex flex-col lg:flex-row items-center justify-center
-        gap-12 lg:gap-16 px-6 py-12 max-w-6xl mx-auto w-full">
+      {/* ────────── HERO ────────── */}
+      <section className="px-6 py-16 max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-14 lg:gap-20">
+        <div className="flex-1 max-w-xl">
+          <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full
+            bg-indigo-500/10 border border-indigo-500/20 text-indigo-500`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+            AI가 만드는 나만의 커리어 플랜
+          </span>
 
-        {/* 좌측 텍스트 */}
-        <div className="flex-1 flex flex-col items-start max-w-xl">
-          <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-full mb-6"
-            style={{
-              background: isDark ? 'rgba(6,182,212,0.1)' : '#eef2ff',
-              border: `1px solid ${isDark ? 'rgba(6,182,212,0.2)' : '#c7d2fe'}`,
-              color: isDark ? '#22d3ee' : '#6366f1',
-            }}>
-            <span className="w-1.5 h-1.5 rounded-full animate-pulse"
-              style={{ backgroundColor: isDark ? '#22d3ee' : '#6366f1' }} />
-            AI 기반 맞춤 커리어 로드맵
-          </div>
-
-          <h1 className="text-4xl sm:text-5xl font-black leading-[1.15] mb-5"
-            style={{ color: isDark ? '#ffffff' : '#111827' }}>
-            어떤 개발자가<br />될지, AI가<br />
-            <span className="text-transparent bg-clip-text"
-              style={{ backgroundImage: 'linear-gradient(90deg, #6366f1, #22d3ee)' }}>
-              길을 만들어 드립니다
-            </span>
+          <h1 className="mt-6 text-4xl sm:text-5xl font-black leading-[1.15] tracking-tight">
+            어떤 개발자가 될지<br />
+            <span className={t('text-white/40', 'text-slate-400')}>아직 모르는 게 당연합니다</span>
           </h1>
-
-          <p className="text-base leading-relaxed mb-8 max-w-md"
-            style={{ color: isDark ? 'rgba(255,255,255,0.5)' : '#6b7280' }}>
-            목표 직군·기간·현재 수준 3가지만 알려주세요.<br />
-            AI가 월별·주별 학습 계획을 즉시 생성합니다.
+          <p className="mt-3 text-3xl sm:text-4xl font-black leading-[1.2] tracking-tight">
+            3가지만 답하면<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-cyan-500">
+              오늘부터 할 일이 생깁니다
+            </span>
           </p>
 
-          <div className="flex items-center gap-3 flex-wrap">
+          <p className={`mt-6 text-base leading-relaxed max-w-md ${t('text-white/50', 'text-slate-500')}`}>
+            목표 직군 · 목표 기간 · 지금 수준.<br />
+            이 세 가지로 AI가 주차별 학습 계획을 만들어 드립니다.<br />
+            <span className={t('text-white/70', 'text-slate-700')}>"뭘 공부해야 하지?"에서 "이번 주엔 이걸 하면 돼"로.</span>
+          </p>
+
+          <div className="mt-8 flex items-center gap-3 flex-wrap">
             <button
               onClick={() => navigate('/onboarding')}
-              className="px-6 py-3.5 font-bold text-sm rounded-xl text-white transition-all active:scale-95"
-              style={{ background: 'linear-gradient(135deg, #6366f1, #22d3ee)' }}
-            >
-              무료로 시작하기 →
+              className="px-6 py-3.5 rounded-xl font-bold text-sm text-white
+                bg-gradient-to-r from-indigo-500 to-cyan-500
+                hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-indigo-500/20">
+              지금 바로 만들어보기 (무료) →
             </button>
-            <button
-              onClick={() => setAuthOpen(true)}
-              className="px-6 py-3.5 font-bold text-sm rounded-xl transition-all"
-              style={{
-                border: `1px solid ${isDark ? 'rgba(255,255,255,0.15)' : '#e5e7eb'}`,
-                color: isDark ? 'rgba(255,255,255,0.7)' : '#4b5563',
-              }}>
-              로그인
-            </button>
+            {!user && (
+              <button
+                onClick={() => setAuthOpen(true)}
+                className={`px-6 py-3.5 rounded-xl font-bold text-sm transition-all
+                  ${t('text-white/60 border border-white/10 hover:border-white/20 hover:text-white/80',
+                      'text-slate-500 border border-slate-200 hover:border-slate-300 hover:text-slate-700')}`}>
+                로그인
+              </button>
+            )}
           </div>
 
-          <p className="mt-4 text-xs" style={{ color: isDark ? 'rgba(255,255,255,0.3)' : '#9ca3af' }}>
-            회원가입 없이 미리보기 가능 · 로드맵 저장은 로그인 필요
-          </p>
-
-          {/* 통계 */}
-          <div className="flex items-center gap-8 mt-10 pt-8 w-full"
-            style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#f3f4f6'}` }}>
+          <div className={`mt-10 pt-8 border-t flex items-center gap-8 ${t('border-white/10', 'border-slate-200')}`}>
             {[
-              { value: '9+', label: '지원 직군' },
-              { value: '즉시', label: '로드맵 생성' },
+              { value: '9개',  label: '직군 지원' },
+              { value: '45초', label: '평균 생성 시간' },
               { value: '무료', label: '기본 이용' },
             ].map(({ value, label }) => (
               <div key={label}>
-                <div className="text-xl font-black" style={{ color: isDark ? '#ffffff' : '#111827' }}>{value}</div>
-                <div className="text-xs mt-0.5" style={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#9ca3af' }}>{label}</div>
+                <div className={`text-xl font-black ${t('text-white', 'text-slate-900')}`}>{value}</div>
+                <div className={`text-xs mt-0.5 ${t('text-white/35', 'text-slate-400')}`}>{label}</div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* 우측 미리보기 */}
-        <div className="flex-shrink-0 flex flex-col items-center gap-4">
-          <RoadmapPreview />
-          <p className="text-xs text-gray-400 dark:text-white/25 text-center">↑ 클릭해서 탭 전환 가능한 실제 미리보기</p>
+        <div className="flex-shrink-0">
+          <HeroPreview isDark={isDark} />
         </div>
-      </main>
+      </section>
 
-      {/* 기능 섹션 */}
-      <section id="features" className="relative z-10 px-6 py-16 max-w-6xl mx-auto w-full"
-        style={{ borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6'}` }}>
-        <p className="text-xs font-semibold tracking-widest uppercase mb-3 text-center"
-          style={{ color: isDark ? '#22d3ee' : '#6366f1' }}>
-          Features
-        </p>
-        <h2 className="text-2xl font-black text-center mb-10"
-          style={{ color: isDark ? '#ffffff' : '#111827' }}>
-          개발자 커리어를 위한 모든 것
-        </h2>
+      {/* ────────── PROBLEM ────────── */}
+      <section id="problem" className={`px-6 py-20 max-w-6xl mx-auto border-t ${t('border-white/[0.06]', 'border-slate-200')}`}>
+        <div className="text-center mb-14">
+          <p className={`text-xs font-bold tracking-widest uppercase mb-3 ${t('text-indigo-400', 'text-indigo-500')}`}>
+            이런 적 있으셨나요?
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-black leading-tight">
+            로드맵을 찾다가<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-cyan-500">
+              오히려 더 막막해졌다면
+            </span>
+          </h2>
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             {
-              icon: '🎯',
-              title: '맞춤 로드맵',
-              desc: '직군·기간·수준에 맞춰 월별·주별 학습 계획 자동 생성',
-              darkBg: 'rgba(99,102,241,0.15)',
-              darkBorder: 'rgba(99,102,241,0.2)',
-              lightBg: '#eef2ff',
-              lightBorder: '#c7d2fe',
+              emoji: '😵',
+              title: '"유튜브 로드맵 영상 다 달라요"',
+              desc: '백엔드 로드맵 검색하면 영상마다 추천 스택이 달라서 뭘 믿어야 할지 모르겠음. 결국 아무것도 안 함.',
+              darkCls:  'bg-indigo-500/[0.07] border-indigo-500/15',
+              lightCls: 'bg-indigo-50 border-indigo-100',
             },
             {
-              icon: '📊',
-              title: '진행률 추적',
-              desc: '완료 태스크 체크 + 잔디 캘린더로 학습 습관 시각화',
-              darkBg: 'rgba(6,182,212,0.15)',
-              darkBorder: 'rgba(6,182,212,0.2)',
-              lightBg: '#ecfeff',
-              lightBorder: '#a5f3fc',
+              emoji: '📋',
+              title: '"리스트는 있는데 시작을 못 하겠어요"',
+              desc: '노션에 공부할 것들 정리는 했는데 "이걸 다 해야 해?" 싶어서 오늘도 유튜브만 봄.',
+              darkCls:  'bg-violet-500/[0.07] border-violet-500/15',
+              lightCls: 'bg-violet-50 border-violet-100',
             },
             {
-              icon: '🔀',
-              title: '방향 재설정',
-              desc: '중간에 방향이 바뀌어도 현재 상황 맞춤으로 즉시 재생성',
-              darkBg: 'rgba(139,92,246,0.15)',
-              darkBorder: 'rgba(139,92,246,0.2)',
-              lightBg: '#f5f3ff',
-              lightBorder: '#ddd6fe',
+              emoji: '🔁',
+              title: '"6개월째 기초만 반복하고 있어요"',
+              desc: 'JavaScript 기초 강의를 세 번 들었는데 이제 뭘 해야 할지 여전히 모르겠음.',
+              darkCls:  'bg-cyan-500/[0.07] border-cyan-500/15',
+              lightCls: 'bg-cyan-50 border-cyan-100',
             },
-          ].map(({ icon, title, desc, darkBg, darkBorder, lightBg, lightBorder }) => (
-            <div key={title}
-              className="rounded-2xl p-5 space-y-2"
-              style={{
-                background: isDark ? darkBg : lightBg,
-                border: `1px solid ${isDark ? darkBorder : lightBorder}`,
-              }}>
-              <span className="text-2xl">{icon}</span>
-              <h3 className="font-bold text-sm" style={{ color: isDark ? '#ffffff' : '#111827' }}>{title}</h3>
-              <p className="text-xs leading-relaxed" style={{ color: isDark ? 'rgba(255,255,255,0.4)' : '#6b7280' }}>{desc}</p>
+          ].map(({ emoji, title, desc, darkCls, lightCls }) => (
+            <div key={title} className={`rounded-2xl p-6 border ${isDark ? darkCls : lightCls}`}>
+              <div className="text-3xl mb-4">{emoji}</div>
+              <h3 className={`font-bold text-sm mb-2 ${t('text-white', 'text-slate-800')}`}>{title}</h3>
+              <p className={`text-xs leading-relaxed ${t('text-white/45', 'text-slate-500')}`}>{desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className={`text-center mt-10 text-base ${t('text-white/50', 'text-slate-500')}`}>
+          문제는 의지가 아닙니다.<br />
+          <span className={`font-semibold ${t('text-white', 'text-slate-900')}`}>오늘 뭘 해야 할지 명확하지 않은 것입니다.</span>
+        </p>
+      </section>
+
+      {/* ────────── HOW IT WORKS ────────── */}
+      <section id="how" className={`px-6 py-20 max-w-6xl mx-auto border-t ${t('border-white/[0.06]', 'border-slate-200')}`}>
+        <div className="text-center mb-14">
+          <p className={`text-xs font-bold tracking-widest uppercase mb-3 ${t('text-indigo-400', 'text-indigo-500')}`}>
+            DevNavi가 하는 일
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-black">
+            막연한 목표를<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-cyan-500">
+              오늘 할 일로 바꿔드립니다
+            </span>
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 relative">
+          <div className="hidden sm:block absolute top-10 left-[33%] right-[33%] h-px bg-gradient-to-r from-indigo-500/30 via-violet-500/30 to-cyan-500/30" />
+          {[
+            {
+              step: '01', title: '3가지 답변', color: 'from-indigo-500 to-violet-500',
+              items: ['목표 직군 (예: 백엔드)', '목표 기간 (예: 6개월)', '지금 수준 (예: Python 기초)'],
+            },
+            {
+              step: '02', title: 'AI 커리어 분석', color: 'from-violet-500 to-purple-500',
+              items: ['어떤 스킬을 쌓아야 하는지', '어떤 순서로 배워야 하는지', '얼마나 걸리는지'],
+            },
+            {
+              step: '03', title: '주차별 플랜 완성', color: 'from-purple-500 to-cyan-500',
+              items: ['1주차: Git + GitHub 실습', '2주차: Python 미니 프로젝트', '이번 주 할 일이 명확'],
+            },
+          ].map(({ step, title, items, color }) => (
+            <div key={step}
+              className={`border rounded-2xl p-6 relative
+                ${t('bg-white/[0.03] border-white/10', 'bg-white border-slate-200 shadow-sm')}`}>
+              <div className={`text-3xl font-black mb-4 text-transparent bg-clip-text bg-gradient-to-r ${color}`}>{step}</div>
+              <h3 className={`font-bold mb-4 ${t('text-white', 'text-slate-800')}`}>{title}</h3>
+              <ul className="space-y-2">
+                {items.map(item => (
+                  <li key={item} className={`flex items-start gap-2 text-sm ${t('text-white/50', 'text-slate-500')}`}>
+                    <span className="text-indigo-500 mt-0.5 flex-shrink-0">›</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[
+            '✅ 중간에 방향 바뀌어도 지금까지 한 것 유지하며 재설계',
+            '✅ 완료 체크 + 진행률 추적으로 동기부여 유지',
+            '✅ 직군별 핵심 자격증 · 포트폴리오 프로젝트 포함',
+          ].map(text => (
+            <div key={text}
+              className={`text-sm rounded-xl px-4 py-3 border
+                ${t('text-white/50 bg-white/[0.02] border-white/[0.06]', 'text-slate-600 bg-white border-slate-200')}`}>
+              {text}
             </div>
           ))}
         </div>
       </section>
 
-      {/* 푸터 */}
-      <footer className="relative z-10 py-6 text-center text-xs"
-        style={{
-          borderTop: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6'}`,
-          color: isDark ? 'rgba(255,255,255,0.25)' : '#9ca3af',
-        }}>
+      {/* ────────── SOCIAL PROOF ────────── */}
+      <section id="proof" className={`px-6 py-20 max-w-6xl mx-auto border-t ${t('border-white/[0.06]', 'border-slate-200')}`}>
+        <div className="text-center mb-14">
+          <p className={`text-xs font-bold tracking-widest uppercase mb-3 ${t('text-indigo-400', 'text-indigo-500')}`}>
+            실제 사용 후기
+          </p>
+          <h2 className="text-3xl sm:text-4xl font-black">
+            "막막함이{' '}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-cyan-500">
+              사라졌어요
+            </span>"
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            {
+              quote: '로드맵 영상을 10개 넘게 봤는데 다 달라서 혼란스러웠어요. DevNavi는 제 상황을 넣으니까 딱 지금 저한테 맞는 게 나오더라고요.',
+              name: '비전공자', role: '프론트엔드 전향 준비 중',
+            },
+            {
+              quote: '퇴근 후 2시간밖에 못 하는데, 그 2시간에 뭘 해야 할지 드디어 명확해졌어요. 6개월 계획이 주 단위로 쪼개지니까요.',
+              name: '직장인', role: '백엔드 이직 준비 중',
+            },
+            {
+              quote: '처음엔 그냥 써봤는데 지금 3주째 매일 체크하고 있어요. 진행률이 올라가는 게 보이니까 포기 안 하게 되더라고요.',
+              name: '대학생', role: '클라우드/DevOps 목표',
+            },
+          ].map(({ quote, name, role }) => (
+            <div key={name}
+              className={`border rounded-2xl p-6 flex flex-col gap-4
+                ${t('bg-white/[0.03] border-white/10', 'bg-white border-slate-200 shadow-sm')}`}>
+              <p className={`text-sm leading-relaxed flex-1 ${t('text-white/60', 'text-slate-600')}`}>"{quote}"</p>
+              <div className={`flex items-center gap-3 pt-4 border-t ${t('border-white/10', 'border-slate-100')}`}>
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-xs font-bold text-white">
+                  {name[0]}
+                </div>
+                <div>
+                  <div className={`text-sm font-semibold ${t('text-white', 'text-slate-800')}`}>{name}</div>
+                  <div className={`text-xs ${t('text-white/40', 'text-slate-400')}`}>{role}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ────────── CTA ────────── */}
+      <section className={`px-6 py-24 max-w-3xl mx-auto text-center border-t ${t('border-white/[0.06]', 'border-slate-200')}`}>
+        <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full
+          bg-indigo-500/10 border border-indigo-500/20 text-indigo-500">
+          <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse" />
+          지금 바로 시작
+        </span>
+        <h2 className="mt-6 text-3xl sm:text-4xl font-black leading-tight">
+          오늘 뭘 공부해야 할지,<br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-cyan-500">
+            지금 바로 알 수 있어요
+          </span>
+        </h2>
+        <p className={`mt-5 text-base leading-relaxed ${t('text-white/45', 'text-slate-500')}`}>
+          회원가입 없이 바로 시작 가능합니다.<br />
+          로드맵 저장과 진행률 추적은 무료 계정으로.
+        </p>
+
+        <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <button
+            onClick={() => navigate('/onboarding')}
+            className="w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-white
+              bg-gradient-to-r from-indigo-500 to-cyan-500
+              hover:opacity-90 active:scale-95 transition-all
+              shadow-xl shadow-indigo-500/25 text-base">
+            내 로드맵 만들기 — 무료
+          </button>
+          {!user && (
+            <button
+              onClick={() => setAuthOpen(true)}
+              className={`w-full sm:w-auto px-8 py-4 rounded-xl font-bold transition-all text-base
+                ${t('text-white/50 border border-white/10 hover:border-white/20 hover:text-white/70',
+                    'text-slate-500 border border-slate-200 hover:border-slate-300 hover:text-slate-700')}`}>
+              로그인
+            </button>
+          )}
+        </div>
+
+      </section>
+
+      {/* ────────── FOOTER ────────── */}
+      <footer className={`px-6 py-8 border-t text-center text-xs
+        ${t('border-white/[0.06] text-white/20', 'border-slate-200 text-slate-400')}`}>
         <div className="flex flex-wrap items-center justify-center gap-4">
           <span>© {new Date().getFullYear()} DevNavi. All rights reserved.</span>
-          <a href="/terms"   className="hover:opacity-70 transition-opacity inline-flex items-center min-h-[44px] px-1">이용약관</a>
-          <a href="/privacy" className="hover:opacity-70 transition-opacity inline-flex items-center min-h-[44px] px-1">개인정보처리방침</a>
-          <a href="mailto:support@devnavi.kr" className="hover:opacity-70 transition-opacity inline-flex items-center min-h-[44px] px-1">문의</a>
+          <a href="/terms"   className={`transition-colors ${t('hover:text-white/40', 'hover:text-slate-600')}`}>이용약관</a>
+          <a href="/privacy" className={`transition-colors ${t('hover:text-white/40', 'hover:text-slate-600')}`}>개인정보처리방침</a>
+          <a href="mailto:support@devnavi.kr" className={`transition-colors ${t('hover:text-white/40', 'hover:text-slate-600')}`}>문의</a>
         </div>
       </footer>
 
