@@ -20,6 +20,7 @@ export default function GrassCalendar({ activity = [], totalDone = 0 }) {
   const isDark = theme === 'dark'
   const colors = isDark ? DARK_COLORS : LIGHT_COLORS
 
+  // FI-10: activity 참조만으로 충분 (buildGrid 내부에서 Date 객체를 새로 생성)
   const { grid, maxCount } = useMemo(() => buildGrid(activity, WEEKS_TO_SHOW), [activity])
 
   return (
@@ -121,20 +122,24 @@ function buildGrid(activity, weeks) {
 
   let maxCount = 1
   const grid = []
-  let current = new Date(startDate)
+  // FI-10: 루프 내에서 Date를 mutation하지 않고 타임스탬프 산술 사용
+  const startMs = startDate.getTime()
+  const todayMs = today.getTime()
+  const dayMs = 86400000
 
   for (let w = 0; w < weeks; w++) {
     const week = []
     for (let d = 0; d < 7; d++) {
-      if (current > today) {
+      const cellMs = startMs + (w * 7 + d) * dayMs
+      if (cellMs > todayMs) {
         week.push(null)
       } else {
-        const key = toLocalDateStr(current)
+        const cellDate = new Date(cellMs)
+        const key = toLocalDateStr(cellDate)
         const count = map[key] || 0
         if (count > maxCount) maxCount = count
         week.push({ date: key, count })
       }
-      current.setDate(current.getDate() + 1)
     }
     grid.push(week)
   }

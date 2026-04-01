@@ -35,8 +35,9 @@ export default function LandingPage() {
     if (!user?.accessToken) { navigate('/onboarding'); return }
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
     try {
+      // FI-8: UUID는 사전순 정렬이 시간순과 무관 → 서버 API로 최신 로드맵 조회 우선
       const localKeys = Object.keys(localStorage)
-        .filter(k => k.startsWith('devnavi_roadmap_')).sort()
+        .filter(k => k.startsWith('devnavi_roadmap_'))
       if (localKeys.length > 0) {
         const id = localKeys[localKeys.length - 1].replace('devnavi_roadmap_', '')
         if (UUID_RE.test(id)) { navigate(`/roadmap/${id}`); return }

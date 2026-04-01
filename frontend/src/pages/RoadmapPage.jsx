@@ -527,7 +527,9 @@ export default function RoadmapPage() {
 
       {/* ── 재탐색 기간 선택 모달 ── */}
       {rerouteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          role="dialog" aria-modal="true" aria-label="방향 재설정"
+          onKeyDown={(e) => { if (e.key === 'Escape') { setRerouteModalOpen(false); setRerouteError(null) } }}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"
             onClick={() => setRerouteModalOpen(false)} />
           <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-6 space-y-5">
@@ -595,7 +597,9 @@ export default function RoadmapPage() {
 
       {/* 커리어 분석 모달 */}
       {showSummary && careerSummary && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
+          role="dialog" aria-modal="true" aria-label="커리어 분석"
+          onKeyDown={(e) => { if (e.key === 'Escape') setShowSummary(false) }}>
           {/* 배경 오버레이 */}
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setShowSummary(false)} />

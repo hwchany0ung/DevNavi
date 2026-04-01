@@ -11,10 +11,17 @@ export default function TaskItem({ task, taskId, done, onToggle }) {
   const cat = CATEGORY[task.category] ?? CATEGORY.learn
 
   return (
-    <label
+    <div
+      role="checkbox"
+      aria-checked={done}
+      aria-label={task.content}
+      tabIndex={0}
       onClick={() => onToggle(taskId)}
+      onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onToggle(taskId) } }}
       className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer
         transition-colors hover:bg-gray-50 dark:hover:bg-white/5 group
+        focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-1
+        dark:focus:ring-offset-gray-900
         ${done ? 'opacity-60' : ''}`}
     >
       {/* 커스텀 체크박스 */}
@@ -43,6 +50,6 @@ export default function TaskItem({ task, taskId, done, onToggle }) {
       <span className={`text-xs px-2 py-0.5 rounded-full border font-medium shrink-0 ${cat.cls}`}>
         {cat.label}
       </span>
-    </label>
+    </div>
   )
 }
