@@ -99,7 +99,12 @@ class PersistRequest(BaseModel):
 
     @field_validator("roadmap", mode="after")
     @classmethod
-    def check_roadmap_size(cls, v: dict) -> dict:
+    def check_roadmap_structure(cls, v: dict) -> dict:
+        """BI-9: roadmap dict에 최소 필수 키가 존재하는지 검증."""
+        if "months" not in v or not isinstance(v.get("months"), list):
+            raise ValueError("roadmap에 months 배열이 필요합니다.")
+        if len(v["months"]) == 0:
+            raise ValueError("roadmap.months가 비어있습니다.")
         size = len(json.dumps(v, ensure_ascii=False).encode("utf-8"))
         if size > _ROADMAP_MAX_BYTES:
             raise ValueError(

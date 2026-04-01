@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 
 /**
  * 기존 로드맵 존재 안내 모달
@@ -15,6 +15,10 @@ export default function ExistingRoadmapModal({ roadmapId, onGoExisting, onDelete
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [handleKeyDown])
+
+  // FI-6: 모달 오픈 시 첫 버튼에 자동 포커스
+  const firstBtnRef = useRef(null)
+  useEffect(() => { firstBtnRef.current?.focus() }, [])
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-4"
@@ -39,6 +43,7 @@ export default function ExistingRoadmapModal({ roadmapId, onGoExisting, onDelete
         {/* 버튼 */}
         <div className="space-y-2.5">
           <button
+            ref={firstBtnRef}
             onClick={onGoExisting}
             className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-2xl transition-colors"
           >

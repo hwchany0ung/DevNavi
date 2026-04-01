@@ -9,6 +9,8 @@ import uuid
 from enum import Enum
 from typing import Optional
 
+_UUID_RE = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.IGNORECASE)
+
 import httpx
 from fastapi import HTTPException
 
@@ -114,6 +116,9 @@ async def get_roadmap(roadmap_id: str, user_id: Optional[str] = None) -> dict | 
     user_id=None 허용을 유지하되, 공유 라우트 추가 시 별도 share_token 검증 필수.
     """
     if not settings.supabase_ready:
+        return None
+    # BI-10: PostgREST 파라미터 UUID 형식 검증 (라우트 검증 후 이중 방어)
+    if not _UUID_RE.match(roadmap_id):
         return None
     client = get_supabase_client()
     params: dict = {"id": f"eq.{roadmap_id}", "select": "*"}

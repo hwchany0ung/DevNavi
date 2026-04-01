@@ -44,6 +44,15 @@ def _extract_token(authorization: Optional[str]) -> Optional[str]:
     return parts[1]
 
 
+class _AuthError(Exception):
+    """BI-3: 스레드 내에서 HTTPException 대신 사용하는 커스텀 예외.
+    asyncio.to_thread 내에서 HTTPException을 직접 raise하면 동작하지만,
+    ASGI 컨텍스트 밖에서의 사용이므로 커스텀 예외로 분리 후 변환."""
+    def __init__(self, status_code: int, detail: str):
+        self.status_code = status_code
+        self.detail = detail
+
+
 async def _verify_token_async(token: str) -> dict:
     """Supabase JWT 검증 → {"id": "...", "email": "..."} 반환 (비동기 래퍼).
 
@@ -51,7 +60,10 @@ async def _verify_token_async(token: str) -> dict:
     asyncio.to_thread로 감싸서 이벤트 루프 블로킹을 방지.
     """
     import asyncio
-    return await asyncio.to_thread(_verify_token_sync, token)
+    try:
+        return await asyncio.to_thread(_verify_token_sync, token)
+    except _AuthError as e:
+        raise HTTPException(status_code=e.status_code, detail=e.detail)
 
 
 def _verify_token_sync(token: str) -> dict:
@@ -75,26 +87,26 @@ def _verify_token_sync(token: str) -> dict:
             )
             sub = payload.get("sub", "")
             if not sub:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="유효하지 않은 토큰입니다. (sub 누락)",
+                raise _AuthError(
+                    status.HTTP_401_UNAUTHORIZED,
+                    "유효하지 않은 토큰입니다. (sub 누락)",
                 )
             return {
                 "id":    sub,
                 "email": payload.get("email", ""),
             }
         except jwt.ExpiredSignatureError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="토큰이 만료됐습니다.",
+            raise _AuthError(
+                status.HTTP_401_UNAUTHORIZED,
+                "토큰이 만료됐습니다.",
             )
         except jwt.InvalidTokenError:
             if jwks_key_found:
                 # BI-1: signing key를 정상 획득했는데 토큰 검증 실패
                 # → 위조된 토큰이므로 HS256 폴백 없이 즉시 거부 (다운그레이드 공격 차단)
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="유효하지 않은 토큰입니다.",
+                raise _AuthError(
+                    status.HTTP_401_UNAUTHORIZED,
+                    "유효하지 않은 토큰입니다.",
                 )
             pass  # signing key 획득 실패 시에만 Legacy HS256 폴백 허용
         except Exception as e:
@@ -113,28 +125,28 @@ def _verify_token_sync(token: str) -> dict:
             )
             sub = payload.get("sub", "")
             if not sub:
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="유효하지 않은 토큰입니다. (sub 누락)",
+                raise _AuthError(
+                    status.HTTP_401_UNAUTHORIZED,
+                    "유효하지 않은 토큰입니다. (sub 누락)",
                 )
             return {
                 "id":    sub,
                 "email": payload.get("email", ""),
             }
         except jwt.ExpiredSignatureError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="토큰이 만료됐습니다.",
+            raise _AuthError(
+                status.HTTP_401_UNAUTHORIZED,
+                "토큰이 만료됐습니다.",
             )
         except jwt.InvalidTokenError:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="유효하지 않은 토큰입니다.",
+            raise _AuthError(
+                status.HTTP_401_UNAUTHORIZED,
+                "유효하지 않은 토큰입니다.",
             )
 
-    raise HTTPException(
-        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        detail="인증 서비스 미설정 (SUPABASE_URL 또는 SUPABASE_JWT_SECRET 필요)",
+    raise _AuthError(
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        "인증 서비스 미설정 (SUPABASE_URL 또는 SUPABASE_JWT_SECRET 필요)",
     )
 
 

@@ -78,7 +78,7 @@ export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {
 
   ;(async () => {
     try {
-      const res = await fetch(`${BASE_URL}${path}`, {
+      let res = await fetch(`${BASE_URL}${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...extraHeaders },
         body: JSON.stringify(body),
@@ -86,9 +86,39 @@ export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {
       })
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        onError?.(_parseError(err, res.status))
-        return
+        // FI-3: 401 시 토큰 갱신 후 1회 재시도 (request()와 동일 패턴)
+        if (res.status === 401 && supabase) {
+          const { data } = await supabase.auth.refreshSession().catch(() => ({ data: null }))
+          if (data?.session?.access_token) {
+            const retryRes = await fetch(`${BASE_URL}${path}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...extraHeaders,
+                Authorization: `Bearer ${data.session.access_token}`,
+              },
+              body: JSON.stringify(body),
+              signal: controller.signal,
+            })
+            if (retryRes.ok) {
+              // 재시도 성공 — 아래 스트림 읽기 로직으로 계속
+              res = retryRes
+            } else {
+              const err = await retryRes.json().catch(() => ({}))
+              onError?.(_parseError(err, retryRes.status))
+              return
+            }
+          } else {
+            const error = new Error('세션이 만료되었습니다. 다시 로그인해 주세요.')
+            error.status = 401
+            onError?.(error)
+            return
+          }
+        } else {
+          const err = await res.json().catch(() => ({}))
+          onError?.(_parseError(err, res.status))
+          return
+        }
       }
 
       // Content-Type 검증: text/event-stream 이 아니면 잘못된 엔드포인트

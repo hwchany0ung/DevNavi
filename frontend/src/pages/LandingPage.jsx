@@ -33,20 +33,21 @@ export default function LandingPage() {
 
   const goToMyRoadmap = useCallback(() => {
     if (!user?.accessToken) { navigate('/onboarding'); return }
-    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    try {
-      // FI-8: UUID는 사전순 정렬이 시간순과 무관 → 서버 API로 최신 로드맵 조회 우선
-      const localKeys = Object.keys(localStorage)
-        .filter(k => k.startsWith('devnavi_roadmap_'))
-      if (localKeys.length > 0) {
-        const id = localKeys[localKeys.length - 1].replace('devnavi_roadmap_', '')
-        if (UUID_RE.test(id)) { navigate(`/roadmap/${id}`); return }
-      }
-    } catch {
-      // 프라이빗 브라우징 등 localStorage 접근 불가 → API 폴백
-    }
+    // FI-8: 서버 API 우선 조회 (UUID 정렬은 시간순과 무관하므로 DB가 정확)
     request('/roadmap/my', { headers: { Authorization: `Bearer ${user.accessToken}` } })
-      .then(({ roadmap_id }) => navigate(roadmap_id ? `/roadmap/${roadmap_id}` : '/onboarding'))
+      .then(({ roadmap_id }) => {
+        if (roadmap_id) { navigate(`/roadmap/${roadmap_id}`); return }
+        // 서버에 없으면 localStorage 폴백 (미저장 로컬 로드맵)
+        const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        try {
+          const localKeys = Object.keys(localStorage).filter(k => k.startsWith('devnavi_roadmap_'))
+          if (localKeys.length > 0) {
+            const id = localKeys[localKeys.length - 1].replace('devnavi_roadmap_', '')
+            if (UUID_RE.test(id)) { navigate(`/roadmap/${id}`); return }
+          }
+        } catch { /* localStorage 접근 실패 무시 */ }
+        navigate('/onboarding')
+      })
       .catch(() => navigate('/onboarding'))
   }, [user, navigate])
 
