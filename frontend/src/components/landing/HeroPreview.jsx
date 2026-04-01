@@ -127,9 +127,9 @@ export default function HeroPreview({ isDark }) {
           />
 
           <div className={`flex items-center gap-1.5 px-4 py-3 border-b ${topBarBg} ${topBarBdr}`}>
-            <span className="w-2.5 h-2.5 rounded-full bg-red-400/70" />
-            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/70" />
-            <span className="w-2.5 h-2.5 rounded-full bg-green-400/70" />
+            <span aria-hidden="true" className="w-2.5 h-2.5 rounded-full bg-red-400/70" />
+            <span aria-hidden="true" className="w-2.5 h-2.5 rounded-full bg-yellow-400/70" />
+            <span aria-hidden="true" className="w-2.5 h-2.5 rounded-full bg-green-400/70" />
             <span className={`ml-3 text-[10px] font-mono ${monoMuted}`}>백엔드 · 6개월 플랜</span>
             <span className="ml-auto text-[10px] font-mono text-indigo-500 animate-pulse">● AI 생성 중</span>
           </div>
@@ -147,14 +147,14 @@ export default function HeroPreview({ isDark }) {
             </div>
           </div>
 
-          <div className="p-3 space-y-1.5 min-h-[200px]">
+          <div aria-live="polite" aria-label="로드맵 생성 진행 현황" className="p-3 space-y-1.5 min-h-[200px]">
             {PREVIEW_WEEKS.slice(0, visibleCount).map((w) => (
               <div
                 key={w.week}
                 className={`stream-item flex items-center gap-3 px-3 py-2.5 rounded-xl border ${itemBg} ${itemBdr}`}
               >
                 <div className="w-4 h-4 rounded-full flex-shrink-0 flex items-center justify-center bg-indigo-500">
-                  <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10">
+                  <svg aria-hidden="true" className="w-2.5 h-2.5 text-white" viewBox="0 0 10 10">
                     <path d="M1.5 5L4 7.5 8.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none" />
                   </svg>
                 </div>
