@@ -56,15 +56,18 @@ function computeParamsKey(s1, s2) {
 
 /** devnavi_archived_* 에서 동일 paramsKey를 가진 보관 로드맵 ID 반환 */
 function findArchivedRoadmap(paramsKey) {
-  const match = Object.keys(localStorage)
-    .filter(k => k.startsWith('devnavi_archived_'))
-    .find(k => {
-      try {
-        const data = JSON.parse(localStorage.getItem(k))
-        return data?._meta?.paramsKey === paramsKey
-      } catch { return false }
-    })
-  return match ? match.replace('devnavi_archived_', '') : null
+  // FC-5: Safari 프라이빗 모드 등 localStorage 접근 자체 실패 방어
+  try {
+    const match = Object.keys(localStorage)
+      .filter(k => k.startsWith('devnavi_archived_'))
+      .find(k => {
+        try {
+          const data = JSON.parse(localStorage.getItem(k))
+          return data?._meta?.paramsKey === paramsKey
+        } catch { return false }
+      })
+    return match ? match.replace('devnavi_archived_', '') : null
+  } catch { return null }
 }
 
 /** 보관된 로드맵을 활성 상태로 복원 */

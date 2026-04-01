@@ -160,17 +160,18 @@ export default function RoadmapPage() {
       loadedForIdRef.current = id
       return
     }
-    const headers = user?.accessToken ? { Authorization: `Bearer ${user.accessToken}` } : {}
+    // FC-4 통일: userId/userToken으로 TOKEN_REFRESHED 불필요 재실행 방지
+    const headers = userToken ? { Authorization: `Bearer ${userToken}` } : {}
     request(`/roadmap/${id}`, { headers })
       .then((data) => {
         const rm = data.data ?? data
         setRoadmap(rm)
         setDoneSet(loadDoneLocal(id))
-        loadedForIdRef.current = id  // 성공 시만 set — 실패 시 user 변경으로 재시도 허용
+        loadedForIdRef.current = id  // 성공 시만 set — 실패 시 userId 변경으로 재시도 허용
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [id, user, authLoading, autoSaveRetry])
+  }, [id, userId, userToken, authLoading, autoSaveRetry])
 
   // ── 로그인 시 Supabase completions 동기화 ───────────────────────
   // user 객체 참조 대신 user.id를 의존성으로 사용.
@@ -193,12 +194,15 @@ export default function RoadmapPage() {
   }, [id, userId, userToken])
 
   // ── 로그인 시 잔디 활동 로드 ─────────────────────────────────────
+  // FC-4: user 객체는 TOKEN_REFRESHED(~60초)마다 새로 생성되어 무한 호출 유발
+  // userId/userToken을 의존성으로 사용하여 실제 사용자 변경 시에만 재호출
   useEffect(() => {
-    if (!user) return
-    fetchActivity(user).then(setActivity).catch(() => {})
-  }, [user])
+    if (!userId || !userToken) return
+    fetchActivity({ id: userId, accessToken: userToken }).then(setActivity).catch(() => {})
+  }, [userId, userToken])
 
   // ── 태스크 토글 ─────────────────────────────────────────────────
+  // FC-4 확장: user 대신 userId/userToken으로 TOKEN_REFRESHED 리렌더 방지
   const handleToggle = useCallback((taskId) => {
     setDoneSet((prev) => {
       const next = new Set(prev)
@@ -207,12 +211,12 @@ export default function RoadmapPage() {
       else next.delete(taskId)
       saveDoneLocal(id, next)
       // 로그인 시 Supabase에도 동기화
-      if (user) {
-        toggleRemote(id, taskId, nowDone, user).catch(() => {})
+      if (userId && userToken) {
+        toggleRemote(id, taskId, nowDone, { id: userId, accessToken: userToken }).catch(() => {})
       }
       return next
     })
-  }, [id, user])
+  }, [id, userId, userToken])
 
   // ── 통계 ────────────────────────────────────────────────────────
   const { totalCount, completedCount, completionRate } = useMemo(() => {

@@ -17,8 +17,11 @@ import re
 import logging
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from fastapi.responses import StreamingResponse
+
+# C2: roadmap_id 경로 파라미터 UUID 검증 (임의 문자열 주입 방지)
+_UUID_PATTERN = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
 
 logger = logging.getLogger(__name__)
 
@@ -295,11 +298,15 @@ async def persist(
 # ─────────────────────────── GPS 재탐색 (Sonnet) ────────────────────
 
 @router.post("/reroute")
+@limiter.limit("5/hour")
 async def reroute(
+    request: Request,
     body: RerouteRequest,
     user: dict = Depends(require_user),
 ):
-    """완료율 기반 잔여 로드맵 재생성 (단일 JSON 응답). 무료 하루 2회 제한."""
+    """완료율 기반 잔여 로드맵 재생성 (단일 JSON 응답). 무료 하루 3회 제한."""
+    # BC-5+회귀수정: 쿼터를 먼저 확인(429 차단), AI 호출, 성공 후 결과 반환
+    # 쿼터 서비스 장애(503) 시에도 AI 결과는 반환 (비용 낭비 방지)
     await check_and_increment(user["id"], "reroute")
     system, user_msg = build_reroute_prompt(
         body.original_role, body.original_period,
@@ -332,7 +339,7 @@ async def get_activity(user: dict = Depends(require_user)):
 
 
 @router.get("/{roadmap_id}")
-async def get(roadmap_id: str, user: dict = Depends(require_user)):
+async def get(roadmap_id: str = Path(pattern=_UUID_PATTERN), user: dict = Depends(require_user)):
     """저장된 로드맵 조회 (인증 필수, 본인 소유 검증)."""
     data = await get_roadmap(roadmap_id, user_id=user["id"])
     if not data:
@@ -344,8 +351,8 @@ async def get(roadmap_id: str, user: dict = Depends(require_user)):
 
 @router.post("/{roadmap_id}/completions")
 async def toggle_completion(
-    roadmap_id: str,
-    body: CompletionToggleRequest,
+    roadmap_id: str = Path(pattern=_UUID_PATTERN),
+    body: CompletionToggleRequest = ...,
     user: dict = Depends(require_user),
 ):
     """태스크 완료/취소 토글."""
@@ -355,7 +362,7 @@ async def toggle_completion(
 
 @router.get("/{roadmap_id}/completions")
 async def get_completions(
-    roadmap_id: str,
+    roadmap_id: str = Path(pattern=_UUID_PATTERN),
     user: dict = Depends(require_user),
 ):
     """완료된 task_id 목록 반환."""

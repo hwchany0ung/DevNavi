@@ -137,8 +137,16 @@ async def _legacy_check_and_increment(
         rpc_resp.raise_for_status()
         new_count: int = rpc_resp.json()
     except Exception as e:
-        logger.warning("increment_api_usage RPC 실패 — 제한 없이 통과 (user=%s): %s", user_id, e)
-        return
+        # BC-6: RPC 2개 모두 실패 시 제한 없이 통과하면 비용 폭탄 위험
+        # 프로덕션에서는 차단, 개발 환경에서만 통과 허용
+        logger.error("increment_api_usage RPC 실패 (user=%s): %s", user_id, e)
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code":    "USAGE_SERVICE_UNAVAILABLE",
+                "message": "사용량 확인 서비스에 일시적 문제가 있습니다. 잠시 후 다시 시도해 주세요.",
+            },
+        )
 
     if new_count > limit:
         raise HTTPException(

@@ -49,6 +49,10 @@ export async function request(path, options = {}) {
       }
       return retryRes.json()
     }
+    // FC-2: 토큰 갱신 실패 시 undefined 반환 대신 명시적 에러 throw
+    const error = new Error('세션이 만료되었습니다. 다시 로그인해 주세요.')
+    error.status = 401
+    throw error
   }
 
   if (!res.ok) {

@@ -75,6 +75,11 @@ export default function AuthModal({ open, onClose }) {
     }
 
     if (mode === 'signup') {
+      // FC-6: 약관 동의 없이 가입 요청 시 클라이언트 검증 (PIPA 준수)
+      if (!agreeTerms || !agreePrivacy) {
+        setLocalError('서비스 이용약관과 개인정보 처리방침에 동의해주세요.')
+        return
+      }
       if (!validatePassword(password)) {
         setLocalError(PASSWORD_ERROR_MSG)
         return

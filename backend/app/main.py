@@ -130,6 +130,8 @@ class ErrorLoggingMiddleware:
 
     def __init__(self, app: ASGIApp) -> None:
         self.app = app
+        # BC-1: create_task 참조를 보관하여 GC에 의한 조기 수거 방지
+        self._pending_tasks: set = set()
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -148,7 +150,7 @@ class ErrorLoggingMiddleware:
         await self.app(scope, receive, send_wrapper)
 
         if status_ref["code"] >= 500 and path not in _LOG_SKIP_PATHS:
-            asyncio.create_task(
+            task = asyncio.create_task(
                 save_error_log(
                     method=method,
                     path=path,
@@ -156,6 +158,8 @@ class ErrorLoggingMiddleware:
                     error_msg=f"HTTP {status_ref['code']}",
                 )
             )
+            self._pending_tasks.add(task)
+            task.add_done_callback(self._pending_tasks.discard)
 
 
 # ── 미들웨어 등록 순서 (add_middleware: 나중에 추가할수록 outermost) ──

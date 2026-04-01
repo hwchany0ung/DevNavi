@@ -62,9 +62,11 @@ def _verify_token_sync(token: str) -> dict:
     """
     # 1. JWKS 기반 검증 (ECC P-256 / ES256 지원)
     jwks_client = _get_jwks_client()
+    jwks_key_found = False  # BI-1: signing key 획득 성공 여부 추적
     if jwks_client:
         try:
             signing_key = jwks_client.get_signing_key_from_jwt(token)
+            jwks_key_found = True  # signing key 획득 성공 → 이후 HS256 폴백 차단
             payload = jwt.decode(
                 token,
                 signing_key.key,
@@ -87,13 +89,20 @@ def _verify_token_sync(token: str) -> dict:
                 detail="토큰이 만료됐습니다.",
             )
         except jwt.InvalidTokenError:
-            pass  # Legacy HS256으로 폴백 (토큰 검증 실패만 허용)
+            if jwks_key_found:
+                # BI-1: signing key를 정상 획득했는데 토큰 검증 실패
+                # → 위조된 토큰이므로 HS256 폴백 없이 즉시 거부 (다운그레이드 공격 차단)
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="유효하지 않은 토큰입니다.",
+                )
+            pass  # signing key 획득 실패 시에만 Legacy HS256 폴백 허용
         except Exception as e:
             # PyJWKClientConnectionError, PyJWKClientError 등 JWKS 네트워크/조회 오류
             # jwt.InvalidTokenError를 상속하지 않아 위 except에서 잡히지 않음 → 폴백
             logger.warning("JWKS 검증 실패, HS256 폴백 시도: %s", e)
 
-    # 2. Legacy HS256 Secret 폴백
+    # 2. Legacy HS256 Secret 폴백 (JWKS 네트워크 장애 시에만 도달)
     if settings.SUPABASE_JWT_SECRET:
         try:
             payload = jwt.decode(

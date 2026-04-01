@@ -27,10 +27,14 @@ class ConsentRequest(BaseModel):
 
 
 def _get_client_ip(request: Request) -> Optional[str]:
-    """CloudFront X-Forwarded-For에서 실제 클라이언트 IP 추출."""
+    """CloudFront X-Forwarded-For에서 실제 클라이언트 IP 추출.
+
+    CloudFront는 실제 뷰어 IP를 XFF 헤더 마지막에 추가하므로
+    split(",")[-1]을 사용해야 클라이언트 주입 IP를 무시할 수 있음.
+    """
     forwarded = request.headers.get("X-Forwarded-For", "")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        return forwarded.split(",")[-1].strip()
     return request.client.host if request.client else None
 
 
@@ -69,9 +73,9 @@ async def record_consent(
         resp = await client.post(
             sb_url("consent_records"),
             headers={
-                **sb_headers(prefer="return=minimal"),
-                # 동일 user_id 재동의 시 upsert (약관 개정 대비)
-                "Prefer": "resolution=merge-duplicates,return=minimal",
+                # BC-3: sb_headers(prefer=...)와 수동 Prefer를 동시 사용하면 덮어쓰기됨
+                # 올바른 값을 직접 전달하여 중복 방지
+                **sb_headers(prefer="resolution=merge-duplicates,return=minimal"),
             },
             json=payload,
         )

@@ -32,13 +32,18 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        const lastUserId = localStorage.getItem('devnavi_last_user_id')
-        if (lastUserId && lastUserId !== session.user.id) {
-          Object.keys(localStorage)
-            .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme' && k !== 'devnavi_last_user_id')
-            .forEach((k) => localStorage.removeItem(k))
+        // FC-1: Safari 프라이빗 모드 등 localStorage 접근 실패 방어
+        try {
+          const lastUserId = localStorage.getItem('devnavi_last_user_id')
+          if (lastUserId && lastUserId !== session.user.id) {
+            Object.keys(localStorage)
+              .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme' && k !== 'devnavi_last_user_id')
+              .forEach((k) => localStorage.removeItem(k))
+          }
+          localStorage.setItem('devnavi_last_user_id', session.user.id)
+        } catch (e) {
+          console.warn('[AuthProvider] localStorage 접근 실패:', e)
         }
-        localStorage.setItem('devnavi_last_user_id', session.user.id)
         cleanAuthParams()
 
         // PIPA: 약관 동의 이력을 서버에 기록
