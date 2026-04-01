@@ -106,7 +106,7 @@ export function AuthProvider({ children }) {
   const signOut = useCallback(async () => {
     if (supabase) await supabase.auth.signOut()
     Object.keys(localStorage)
-      .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme')
+      .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme' && !k.startsWith('devnavi_consent_sent_'))
       .forEach((k) => localStorage.removeItem(k))
     setUser(null)
   }, [])

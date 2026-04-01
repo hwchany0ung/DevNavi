@@ -12,13 +12,13 @@ export default function TaskItem({ task, taskId, done, onToggle }) {
 
   return (
     <label
+      onClick={() => onToggle(taskId)}
       className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer
         transition-colors hover:bg-gray-50 dark:hover:bg-white/5 group
         ${done ? 'opacity-60' : ''}`}
     >
       {/* 커스텀 체크박스 */}
       <div
-        onClick={() => onToggle(taskId)}
         className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0
           transition-colors
           ${done

@@ -62,13 +62,14 @@ export async function request(path, options = {}) {
  * SSE 스트리밍 요청
  * @param {string} path - API 경로
  * @param {object} body - 요청 바디
- * @param {function} onChunk - 청크 수신 콜백 (text) => void
- * @param {function} onDone  - 완료 콜백 () => void
- * @param {function} onError - 에러 콜백 (error) => void
+ * @param {function} onChunk    - 청크 수신 콜백 (text) => void
+ * @param {function} onDone     - 완료 콜백 () => void
+ * @param {function} onError    - 에러 콜백 (error) => void
  * @param {object} [extraHeaders] - 추가 헤더 (Authorization 등)
+ * @param {function} [onProgress] - 멀티콜 진행 콜백 ({ current, total }) => void
  * @returns {AbortController} - 취소용
  */
-export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {}) {
+export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {}, onProgress) {
   const controller = new AbortController()
 
   ;(async () => {
@@ -120,8 +121,11 @@ export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {
                 onError?.(new Error(parsed.message || '서버 오류가 발생했어요.'))
                 return
               }
-              // progress: 멀티콜 진행 알림 — 버퍼에 추가하지 않고 무시
-              if (parsed.type === 'progress') continue
+              // progress: 멀티콜 진행 알림 — onProgress 콜백으로 전달
+              if (parsed.type === 'progress') {
+                onProgress?.(parsed)
+                continue
+              }
               // teaser: { type:'text', chunk } / full: { type:'chunk', chunk }
               if (parsed.chunk !== undefined || parsed.text !== undefined) {
                 onChunk?.(parsed.chunk ?? parsed.text)

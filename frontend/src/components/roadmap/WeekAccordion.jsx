@@ -19,7 +19,7 @@ function _arePropsEqual(prev, next) {
 const WeekAccordion = memo(function WeekAccordion({ week, monthIdx, doneSet, onToggle }) {
   const total = week.tasks.length
   const doneCount = week.tasks.filter((_, ti) => doneSet.has(`${monthIdx}-${week.week}-${ti}`)).length
-  const allDone = doneCount === total
+  const allDone = total > 0 && doneCount === total
 
   const [open, setOpen] = useState(true)
 

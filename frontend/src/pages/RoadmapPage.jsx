@@ -173,9 +173,14 @@ export default function RoadmapPage() {
   }, [id, user, authLoading, autoSaveRetry])
 
   // ── 로그인 시 Supabase completions 동기화 ───────────────────────
+  // user 객체 참조 대신 user.id를 의존성으로 사용.
+  // _toUser()가 TOKEN_REFRESHED 마다 새 객체를 생성하므로 user 자체를 쓰면
+  // 토큰 갱신(~60초)마다 불필요한 API 재호출이 발생함.
+  const userId = user?.id
+  const userToken = user?.accessToken
   useEffect(() => {
-    if (!user) return
-    fetchRemoteCompletions(id, user)
+    if (!userId || !userToken) return
+    fetchRemoteCompletions(id, { id: userId, accessToken: userToken })
       .then((remote) => {
         // remote와 local 병합 (remote 우선)
         setDoneSet((local) => {
@@ -185,7 +190,7 @@ export default function RoadmapPage() {
         })
       })
       .catch(() => {}) // 실패 시 로컬 유지
-  }, [id, user])
+  }, [id, userId, userToken])
 
   // ── 로그인 시 잔디 활동 로드 ─────────────────────────────────────
   useEffect(() => {
