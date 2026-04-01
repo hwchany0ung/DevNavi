@@ -83,7 +83,7 @@ describe('AuthModal password policy', () => {
     const submitBtn = screen.getByRole('button', { name: '가입하기' })
     fireEvent.click(submitBtn)
     await waitFor(() => {
-      expect(screen.getByText('비밀번호는 8자 이상, 특수문자를 1개 이상 포함해야 합니다')).toBeInTheDocument()
+      expect(screen.getByText('비밀번호는 8자 이상, 영문자·숫자·특수문자를 각 1개 이상 포함해야 합니다')).toBeInTheDocument()
     })
     expect(mockSignUpWithEmail).not.toHaveBeenCalled()
   })
