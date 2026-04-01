@@ -109,10 +109,17 @@ export function AuthProvider({ children }) {
   }, [])
 
   const signOut = useCallback(async () => {
-    if (supabase) await supabase.auth.signOut()
-    Object.keys(localStorage)
-      .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme' && !k.startsWith('devnavi_consent_sent_'))
-      .forEach((k) => localStorage.removeItem(k))
+    // FI-4: 서버 signOut 실패해도 로컬 세션은 반드시 정리 (불일치 방지)
+    try {
+      if (supabase) await supabase.auth.signOut()
+    } catch (err) {
+      console.warn('[AuthProvider] signOut 서버 실패 (로컬 정리 진행):', err.message)
+    }
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme' && !k.startsWith('devnavi_consent_sent_'))
+        .forEach((k) => localStorage.removeItem(k))
+    } catch { /* localStorage 접근 실패 무시 */ }
     setUser(null)
   }, [])
 

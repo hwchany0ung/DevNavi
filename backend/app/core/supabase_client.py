@@ -35,10 +35,19 @@ async def close_supabase_client() -> None:
 
 
 def sb_headers(*, prefer: str = "return=representation") -> dict:
-    """Supabase REST API 공통 헤더 (Service-role key, RLS 우회)."""
+    """Supabase REST API 공통 헤더 (Service-role key, RLS 우회).
+
+    supabase_ready 가드를 통과한 후에만 호출돼야 함.
+    """
+    key = settings.SUPABASE_SERVICE_KEY
+    if not key:
+        raise RuntimeError(
+            "SUPABASE_SERVICE_KEY가 설정되지 않았습니다. "
+            "sb_headers() 호출 전 settings.supabase_ready를 확인하세요."
+        )
     return {
-        "apikey":        settings.SUPABASE_SERVICE_KEY or "",
-        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_KEY or ''}",
+        "apikey":        key,
+        "Authorization": f"Bearer {key}",
         "Content-Type":  "application/json",
         "Prefer":        prefer,
     }

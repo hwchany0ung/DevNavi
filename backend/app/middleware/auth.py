@@ -181,6 +181,13 @@ async def require_admin(authorization: Optional[str] = Header(None)) -> dict:
         headers=sb_headers(),
     )
 
+    # BI-4: DB 장애 시 silent fail → 관리자 접근 불가 방지
+    if resp.status_code >= 500:
+        logger.error("require_admin: Supabase 서버 오류 (status=%d)", resp.status_code)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="인증 서비스에 일시적 문제가 있습니다.",
+        )
     try:
         rows = resp.json() if resp.status_code == 200 else []
     except Exception:

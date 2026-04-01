@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid'
 import { streamSSE } from '../lib/api'
 
@@ -35,6 +35,11 @@ export function useRoadmapStream({ onSaved, onError } = {}) {
   const bufferRef    = useRef('')
   const chunkCount   = useRef(0)
   const controllerRef = useRef(null)
+  // FI-1: 콜백을 ref로 관리하여 start의 deps에서 제거 (무한 재생성 방지)
+  const onSavedRef = useRef(onSaved)
+  const onErrorRef = useRef(onError)
+  useEffect(() => { onSavedRef.current = onSaved }, [onSaved])
+  useEffect(() => { onErrorRef.current = onError }, [onError])
 
   /**
    * @param {object} body        - 요청 바디
@@ -76,22 +81,22 @@ export function useRoadmapStream({ onSaved, onError } = {}) {
           if (!cleaned.endsWith('}')) {
             const truncErr = new Error('로드맵이 너무 길어 생성이 중단됐습니다. 목표 기간을 줄이거나 다시 시도해 주세요.')
             setError(truncErr)
-            onError?.(truncErr)
+            onErrorRef.current?.(truncErr)
             return
           }
           const roadmap = JSON.parse(cleaned)
           const id = saveRoadmapLocal(roadmap)
-          onSaved?.(id, roadmap)
+          onSavedRef.current?.(id, roadmap)
         } catch (e) {
           const parseErr = new Error('로드맵 파싱 실패: ' + e.message)
           setError(parseErr)
-          onError?.(parseErr)
+          onErrorRef.current?.(parseErr)
         }
       },
       (err) => {
         setError(err)
         setIsStreaming(false)
-        onError?.(err)
+        onErrorRef.current?.(err)
       },
       headers,
       (progressEvt) => {
@@ -102,7 +107,8 @@ export function useRoadmapStream({ onSaved, onError } = {}) {
         }
       },
     )
-  }, [onSaved, onError])
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- callbacks tracked via refs
+  }, [])
 
   const stop = useCallback(() => {
     controllerRef.current?.abort()

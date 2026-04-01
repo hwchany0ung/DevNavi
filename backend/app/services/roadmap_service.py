@@ -108,6 +108,10 @@ async def get_roadmap(roadmap_id: str, user_id: Optional[str] = None) -> dict | 
 
     user_id가 주어지면 소유자 검증 (타인 로드맵 접근 차단).
     user_id=None이면 공개 조회 (미래 공유 기능용).
+
+    ⚠️  현재 모든 API 라우트에서 require_user를 통해 user_id를 전달하므로
+    user_id=None으로 호출되는 경로는 없음. 공유 기능 구현 전까지는
+    user_id=None 허용을 유지하되, 공유 라우트 추가 시 별도 share_token 검증 필수.
     """
     if not settings.supabase_ready:
         return None

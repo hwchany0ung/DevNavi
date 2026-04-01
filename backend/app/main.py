@@ -163,7 +163,7 @@ class ErrorLoggingMiddleware:
 
 
 # ── 미들웨어 등록 순서 (add_middleware: 나중에 추가할수록 outermost) ──
-# 실행 순서 (안→밖): FastAPI → ErrorLogging → SecurityHeaders → CloudFrontSecret → CORS
+# 실행 순서 (안→밖): FastAPI → SecurityHeaders → ErrorLogging → CloudFrontSecret → CORS
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(ErrorLoggingMiddleware)
 app.add_middleware(CloudFrontSecretMiddleware)

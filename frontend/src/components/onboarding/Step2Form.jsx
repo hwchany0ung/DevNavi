@@ -60,6 +60,8 @@ const STUDY_HOURS = [
   { value: 'over5h',  label: '5시간 이상' },
 ]
 
+const MAX_TAGS = 15  // FI-11: 스킬/자격증 최대 개수 제한
+
 /** 버튼 토글 + 직접 입력 공통 컴포넌트 */
 function TagSelector({ suggestions, selected, onToggle, onAdd, placeholder }) {
   const [input, setInput] = useState('')
@@ -67,6 +69,7 @@ function TagSelector({ suggestions, selected, onToggle, onAdd, placeholder }) {
   const handleKey = (e) => {
     if ((e.key === 'Enter' || e.key === ',') && input.trim()) {
       e.preventDefault()
+      if (selected.length >= MAX_TAGS) return
       const val = input.trim().replace(/,$/, '')
       if (val) onAdd(val)
       setInput('')

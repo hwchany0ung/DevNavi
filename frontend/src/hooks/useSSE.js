@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { streamSSE } from '../lib/api'
 
 /**
@@ -10,6 +10,11 @@ export function useSSE() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState(null)
   const controllerRef = useRef(null)
+
+  // FI-2: 언마운트 시 진행 중인 스트림 자동 중단
+  useEffect(() => {
+    return () => { controllerRef.current?.abort() }
+  }, [])
 
   const start = useCallback((path, body) => {
     setText('')

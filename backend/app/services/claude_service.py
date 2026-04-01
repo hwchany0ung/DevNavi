@@ -120,7 +120,7 @@ async def _fetch_chunk(client, system: str, user_msg: str) -> tuple[str, str | N
     try/except 없음: 예외는 asyncio.Task로 래핑되어 호출부(stream_full_multicall)의
     task.result()에서 포착 → 거기서 SSE error 이벤트로 변환.
     """
-    raw = ""
+    parts: list[str] = []
     stop_reason = None
     async with client.messages.stream(
         model=SONNET,
@@ -132,10 +132,10 @@ async def _fetch_chunk(client, system: str, user_msg: str) -> tuple[str, str | N
             if event.type == "content_block_delta":
                 text = getattr(event.delta, "text", None)
                 if text:
-                    raw += text
+                    parts.append(text)
             elif event.type == "message_delta":
                 stop_reason = getattr(event.delta, "stop_reason", None)
-    return raw, stop_reason
+    return "".join(parts), stop_reason
 
 
 async def stream_full_multicall(
@@ -220,16 +220,18 @@ async def stream_full_multicall(
                 "stream_full_multicall 청크 %d/%d 오류: %s", idx + 1, total_chunks, e, exc_info=True
             )
             yield f"data: {json.dumps({'type': 'error', 'message': '로드맵 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'})}\n\n"
-            # 나머지 태스크 취소
+            # 미완료 태스크만 취소 (완료된 task.cancel()은 무효)
             for t in tasks:
-                t.cancel()
+                if not t.done():
+                    t.cancel()
             return
 
         if stop_reason == "max_tokens":
             _logger.warning("stream_full_multicall 청크 %d/%d max_tokens 도달", idx + 1, total_chunks)
             yield f"data: {json.dumps({'type': 'error', 'message': '로드맵이 너무 길어 생성이 중단됐습니다. 목표 기간을 줄이거나 다시 시도해 주세요.'})}\n\n"
             for t in tasks:
-                t.cancel()
+                if not t.done():
+                    t.cancel()
             return
 
         cleaned = re.sub(r"```(?:json)?\s*", "", raw).replace("```", "").strip()
