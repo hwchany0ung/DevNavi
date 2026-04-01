@@ -1,7 +1,12 @@
+import { lazy, Suspense } from 'react'
 import { Navigate, Routes, Route } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
-import LandingPageMockup from './pages/LandingPageMockup'
 import OnboardingPage from './pages/OnboardingPage'
+
+// 개발 전용 — 프로덕션 번들에서 제외
+const LandingPageMockup = import.meta.env.DEV
+  ? lazy(() => import('./pages/LandingPageMockup'))
+  : null
 import RoadmapPage from './pages/RoadmapPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
@@ -45,8 +50,10 @@ export default function App() {
       <Route path="/auth/callback" element={<AuthCallbackPage />} />
       {/* 비밀번호 재설정: PKCE code → new password form */}
       <Route path="/reset-password" element={<ResetPasswordPage />} />
-      {/* 랜딩 목업 미리보기 — 실제 적용 전 확인용 */}
-      <Route path="/mockup" element={<LandingPageMockup />} />
+      {/* 랜딩 목업 미리보기 — 개발 환경 전용 */}
+      {import.meta.env.DEV && LandingPageMockup && (
+        <Route path="/mockup" element={<Suspense fallback={null}><LandingPageMockup /></Suspense>} />
+      )}
       {/* BUG-002: catch-all 404 */}
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

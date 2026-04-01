@@ -34,11 +34,15 @@ export default function LandingPage() {
   const goToMyRoadmap = useCallback(() => {
     if (!user?.accessToken) { navigate('/onboarding'); return }
     const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    const localKeys = Object.keys(localStorage)
-      .filter(k => k.startsWith('devnavi_roadmap_')).sort()
-    if (localKeys.length > 0) {
-      const id = localKeys[localKeys.length - 1].replace('devnavi_roadmap_', '')
-      if (UUID_RE.test(id)) { navigate(`/roadmap/${id}`); return }
+    try {
+      const localKeys = Object.keys(localStorage)
+        .filter(k => k.startsWith('devnavi_roadmap_')).sort()
+      if (localKeys.length > 0) {
+        const id = localKeys[localKeys.length - 1].replace('devnavi_roadmap_', '')
+        if (UUID_RE.test(id)) { navigate(`/roadmap/${id}`); return }
+      }
+    } catch {
+      // 프라이빗 브라우징 등 localStorage 접근 불가 → API 폴백
     }
     request('/roadmap/my', { headers: { Authorization: `Bearer ${user.accessToken}` } })
       .then(({ roadmap_id }) => navigate(roadmap_id ? `/roadmap/${roadmap_id}` : '/onboarding'))
@@ -332,6 +336,9 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
+        <p className={`mt-6 text-center text-[11px] ${t('text-white/20', 'text-slate-300')}`}>
+          * 실제 사용자 경험을 바탕으로 재구성한 내용입니다.
+        </p>
       </section>
 
       {/* ────────── CTA ────────── */}
