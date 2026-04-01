@@ -130,7 +130,7 @@ describe('ResetPasswordPage', () => {
       target: { value: 'nospecia' },
     })
     fireEvent.click(screen.getByRole('button', { name: '비밀번호 변경' }))
-    expect(await screen.findByText('비밀번호는 8자 이상, 특수문자를 1개 이상 포함해야 합니다')).toBeInTheDocument()
+    expect(await screen.findByText('비밀번호는 8자 이상, 영문자·숫자·특수문자를 각 1개 이상 포함해야 합니다')).toBeInTheDocument()
     expect(mockUpdatePassword).not.toHaveBeenCalled()
   })
 
