@@ -34,7 +34,13 @@ terraform/terraform.tfvars
 terraform/*.tfstate
 terraform/*.tfstate.backup
 terraform/*.tfplan
+terraform/tfplan
 terraform/.tmp/
+
+# 런타임 로그
+*.log
+debug.log
+server.log
 
 # Claude Code
 .claude/
