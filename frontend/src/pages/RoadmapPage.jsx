@@ -57,6 +57,10 @@ export default function RoadmapPage() {
   const { id }    = useParams()
   const navigate  = useNavigate()
   const { user, signOut, loading: authLoading } = useAuth()
+  // FC-4: user 객체는 TOKEN_REFRESHED(~60s)마다 새로 생성되므로
+  // 안정적인 원시값(id, token)을 추출하여 useEffect/useCallback 의존성에 사용
+  const userId = user?.id
+  const userToken = user?.accessToken
 
   const [roadmap,      setRoadmap]      = useState(null)
   const [loading,      setLoading]      = useState(true)
@@ -174,11 +178,6 @@ export default function RoadmapPage() {
   }, [id, userId, userToken, authLoading, autoSaveRetry])
 
   // ── 로그인 시 Supabase completions 동기화 ───────────────────────
-  // user 객체 참조 대신 user.id를 의존성으로 사용.
-  // _toUser()가 TOKEN_REFRESHED 마다 새 객체를 생성하므로 user 자체를 쓰면
-  // 토큰 갱신(~60초)마다 불필요한 API 재호출이 발생함.
-  const userId = user?.id
-  const userToken = user?.accessToken
   useEffect(() => {
     if (!userId || !userToken) return
     fetchRemoteCompletions(id, { id: userId, accessToken: userToken })
