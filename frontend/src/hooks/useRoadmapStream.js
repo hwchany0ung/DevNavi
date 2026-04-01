@@ -47,14 +47,18 @@ export function useRoadmapStream({ onSaved, onError } = {}) {
     setError(null)
     setIsStreaming(true)
 
+    let multicallTotal = 0 // 백엔드 progress 이벤트로 확인된 총 콜 수
+
     controllerRef.current = streamSSE(
       '/roadmap/full',
       body,
       (chunk) => {
         bufferRef.current += chunk
         chunkCount.current += 1
-        // 대략 300청크를 100%로 간주 (Sonnet ~8000토큰 기준)
-        setProgress(Math.min(Math.round((chunkCount.current / 300) * 100), 95))
+        // multicall progress 이벤트가 없을 때 청크 카운트 기반 추정으로 폴백
+        if (multicallTotal === 0) {
+          setProgress(Math.min(Math.round((chunkCount.current / 300) * 100), 95))
+        }
       },
       () => {
         setProgress(100)
@@ -90,6 +94,13 @@ export function useRoadmapStream({ onSaved, onError } = {}) {
         onError?.(err)
       },
       headers,
+      (progressEvt) => {
+        // 백엔드: { type:'progress', current: N, total: M }
+        if (progressEvt.total > 0) {
+          multicallTotal = progressEvt.total
+          setProgress(Math.min(Math.round((progressEvt.current / progressEvt.total) * 95), 95))
+        }
+      },
     )
   }, [onSaved, onError])
 

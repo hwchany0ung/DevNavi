@@ -183,7 +183,7 @@ export default function AuthModal({ open, onClose }) {
             {/* Google OAuth — login/signup 전용 */}
             {mode !== 'forgot' && (
               <button
-                disabled={!isSupabaseReady || loading}
+                disabled={!isSupabaseReady || loading || (mode === 'signup' && (!agreeTerms || !agreePrivacy))}
                 onClick={signInWithGoogle}
                 className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-200 dark:border-white/10
                   rounded-2xl bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10
