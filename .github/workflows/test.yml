@@ -35,7 +35,7 @@ jobs:
       - name: Run unit tests with coverage
         # unit 테스트가 커버하는 모듈만 측정 (app/ml, app/core, app/models)
         # app/services, app/prompts는 integration 테스트에서 커버
-        run: pytest tests/unit/ -v -m unit --cov=app/ml --cov=app/core --cov=app/models --cov-report=term-missing --cov-fail-under=80
+        run: pytest tests/unit/ -v -m unit --cov=app/ml --cov=app/core --cov=app/models --cov-report=term-missing --cov-report=term-missing:coverage.txt --cov-fail-under=80
         env:
           ENV: test
           ANTHROPIC_API_KEY: test-key
@@ -43,6 +43,12 @@ jobs:
           SUPABASE_SERVICE_KEY: test-key
           SUPABASE_JWT_SECRET: test-jwt-secret-32-chars-minimum!!
           CLOUDFRONT_SECRET: test-cf-secret
+
+      - name: Backend coverage summary
+        if: always()
+        run: |
+          echo "## Backend Coverage" >> $GITHUB_STEP_SUMMARY
+          cat coverage.txt >> $GITHUB_STEP_SUMMARY
 
   # ──────────────────────────────────────────────────────────────
   # Job 2: Backend Integration Tests (SUPABASE_TEST_URL secret 있을 때만)
@@ -108,7 +114,13 @@ jobs:
         run: npm ci
 
       - name: Run tests with coverage
-        run: npm test -- --coverage
+        run: npm test -- --coverage --reporter=verbose 2>&1 | tee coverage-output.txt; exit ${PIPESTATUS[0]}
+
+      - name: Frontend coverage summary
+        if: always()
+        run: |
+          echo "## Frontend Coverage" >> $GITHUB_STEP_SUMMARY
+          tail -40 coverage-output.txt >> $GITHUB_STEP_SUMMARY
 
   # ──────────────────────────────────────────────────────────────
   # Job 4: E2E Tests (main 브랜치 push 시에만)
