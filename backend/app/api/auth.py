@@ -80,22 +80,20 @@ async def record_consent(
             json=payload,
         )
         if resp.status_code not in (200, 201):
-            logger.error(
-                "consent_records 저장 실패 (user=%s, status=%d): %s",
+            # consent 저장 실패는 사용자 로그인을 차단하면 안 됨
+            # 경고 로그 후 성공 응답 반환 (비차단 처리)
+            logger.warning(
+                "consent_records 저장 실패 — 로그인은 허용 (user=%s, status=%d): %s",
                 user["id"], resp.status_code, resp.text[:200],
             )
-            raise HTTPException(
-                status_code=502,
-                detail={"message": "동의 이력 저장에 실패했습니다. 잠시 후 다시 시도해주세요."},
-            )
-    except HTTPException:
-        raise
+            return {"ok": True, "consent_saved": False}
     except Exception as e:
-        logger.exception("consent_records 저장 중 예외 (user=%s): %s", user["id"], e)
-        raise HTTPException(
-            status_code=500,
-            detail={"message": "동의 이력 저장 중 오류가 발생했습니다."},
+        # 네트워크 오류 등 예외도 로그 후 성공 응답 — 로그인 차단 방지
+        logger.warning(
+            "consent_records 저장 중 예외 — 로그인은 허용 (user=%s): %s",
+            user["id"], e,
         )
+        return {"ok": True, "consent_saved": False}
 
     logger.info("consent 기록 완료 (user=%s, version=%s)", user["id"], body.consent_version)
-    return {"ok": True}
+    return {"ok": True, "consent_saved": True}
