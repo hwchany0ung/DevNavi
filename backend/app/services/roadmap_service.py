@@ -97,6 +97,7 @@ async def persist_roadmap(
                 "persona_subtitle": data.get("persona_subtitle", ""),
                 "data":             data,
                 "parent_id":        parent_id,
+                "status":           "active",
             },
         )
         resp.raise_for_status()
