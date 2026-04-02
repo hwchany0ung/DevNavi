@@ -71,7 +71,9 @@ jobs:
         run: pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run integration tests
-        run: pytest tests/integration/ -v -m integration
+        # SUPABASE_TEST_URL 미설정 시 conftest.py가 pytest.skip() → exit 5 (no tests collected)
+        # exit 5는 "테스트 없음"이므로 성공으로 처리
+        run: pytest tests/integration/ -v -m integration || [ $? -eq 5 ]
         env:
           ENV: test
           ANTHROPIC_API_KEY: test-key
