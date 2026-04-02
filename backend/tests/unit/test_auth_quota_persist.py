@@ -153,18 +153,18 @@ class TestCheckAndIncrement:
 
 # ── persist (user_id=None) 방어 테스트 ──────────────────────────────
 
-class TestGetRoadmapUserIdNone:
-    """get_roadmap: user_id=None은 현재 의도된 동작이나 호출 시 주의 필요."""
+class TestGetRoadmap:
+    """get_roadmap: user_id 필수(str), 소유자 필터 항상 적용."""
 
     @pytest.mark.asyncio
-    async def test_user_id_none_returns_result_without_filter(self):
-        """user_id=None이면 owner 필터 없이 조회 (공개 조회 예약된 동작)."""
+    async def test_owner_filter_always_applied(self):
+        """user_id가 주어지면 쿼리 params에 user_id 필터가 항상 포함된다."""
         from app.services.roadmap_service import get_roadmap
 
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.raise_for_status = MagicMock()
-        mock_response.json.return_value = [{"id": "road-uuid", "user_id": "some-user"}]
+        mock_response.json.return_value = [{"id": "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "user_id": "user-123"}]
 
         mock_client = AsyncMock()
         mock_client.get = AsyncMock(return_value=mock_response)
@@ -172,13 +172,34 @@ class TestGetRoadmapUserIdNone:
         with patch("app.services.roadmap_service.settings") as mock_settings, \
              patch("app.services.roadmap_service.get_supabase_client", return_value=mock_client):
             mock_settings.supabase_ready = True
-            result = await get_roadmap("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", user_id=None)
+            result = await get_roadmap("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", user_id="user-123")
 
-        # user_id 필터 없이 조회 → 결과 반환
         assert result is not None
-        # 실제 쿼리 params에 user_id 필터가 없었음을 확인
+        # 소유자 필터가 항상 params에 포함되어야 함
         call_kwargs = mock_client.get.call_args
-        assert "user_id" not in call_kwargs.kwargs.get("params", {})
+        params = call_kwargs.kwargs.get("params", {})
+        assert "user_id" in params
+        assert params["user_id"] == "eq.user-123"
+
+    @pytest.mark.asyncio
+    async def test_different_owner_returns_none(self):
+        """다른 user_id의 로드맵 조회 시 Supabase가 빈 배열 반환 → None."""
+        from app.services.roadmap_service import get_roadmap
+
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.raise_for_status = MagicMock()
+        mock_response.json.return_value = []  # 소유자 불일치 → 빈 결과
+
+        mock_client = AsyncMock()
+        mock_client.get = AsyncMock(return_value=mock_response)
+
+        with patch("app.services.roadmap_service.settings") as mock_settings, \
+             patch("app.services.roadmap_service.get_supabase_client", return_value=mock_client):
+            mock_settings.supabase_ready = True
+            result = await get_roadmap("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", user_id="other-user")
+
+        assert result is None
 
     @pytest.mark.asyncio
     async def test_invalid_uuid_returns_none(self):

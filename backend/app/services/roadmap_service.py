@@ -105,20 +105,14 @@ async def persist_roadmap(
     return roadmap_id
 
 
-async def get_roadmap(roadmap_id: str, user_id: Optional[str] = None) -> dict | None:
-    """roadmap_id로 로드맵 조회.
+async def get_roadmap(roadmap_id: str, user_id: str) -> dict | None:
+    """roadmap_id로 로드맵 조회 (인증된 사용자 전용).
 
-    user_id가 주어지면 소유자 검증 (타인 로드맵 접근 차단).
-    user_id=None이면 공개 조회 (미래 공유 기능용).
+    호출부(GET /roadmap/{id})는 require_user로 인증을 강제하므로
+    user_id는 항상 유효한 값이 전달된다. 소유자 불일치 시 None 반환.
 
-    ⚠️  현재 모든 API 라우트에서 require_user를 통해 user_id를 전달하므로
-    user_id=None으로 호출되는 경로는 없음. 공유 기능 구현 전까지는
-    user_id=None 허용을 유지하되, 공유 라우트 추가 시 별도 share_token 검증 필수.
-
-    ⚠️  M2: user_id=None은 현재 의도적으로 허용된 상태(공개 조회 예약)이나
-    실제 공유 기능 없이 None이 전달되면 다른 사용자의 로드맵이 노출될 수 있다.
-    공유 기능 구현 전까지 이 함수를 호출하는 모든 경로에서 user_id가 None이
-    아님을 호출부에서 보장해야 한다.
+    # 공유 기능 추가 시: 별도 share_token 검증 라우트를 신설하고
+    # 이 함수는 None 허용 없이 유지할 것.
     """
     if not settings.supabase_ready:
         return None
@@ -126,9 +120,8 @@ async def get_roadmap(roadmap_id: str, user_id: Optional[str] = None) -> dict | 
     if not _UUID_RE.match(roadmap_id):
         return None
     client = get_supabase_client()
-    params: dict = {"id": f"eq.{roadmap_id}", "select": "*"}
-    if user_id:
-        params["user_id"] = f"eq.{user_id}"
+    # 소유자 필터를 항상 적용해 타인 로드맵 접근을 원천 차단
+    params: dict = {"id": f"eq.{roadmap_id}", "select": "*", "user_id": f"eq.{user_id}"}
     try:
         resp = await client.get(
             sb_url("roadmaps"),

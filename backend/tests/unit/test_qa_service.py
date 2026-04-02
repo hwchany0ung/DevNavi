@@ -182,7 +182,7 @@ class TestVerifyTaskOwnership:
 
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        mock_resp.json.return_value = [{"roadmap_data": self._make_roadmap_data()}]
+        mock_resp.json.return_value = [{"data": self._make_roadmap_data()}]
 
         with patch("app.services.qa_service.get_supabase_client") as mock_get_client, \
              patch("app.services.qa_service.sb_url", return_value="https://test.supabase.co/rest/v1/roadmaps"), \
@@ -202,7 +202,7 @@ class TestVerifyTaskOwnership:
 
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        mock_resp.json.return_value = [{"roadmap_data": self._make_roadmap_data()}]
+        mock_resp.json.return_value = [{"data": self._make_roadmap_data()}]
 
         with patch("app.services.qa_service.get_supabase_client") as mock_get_client, \
              patch("app.services.qa_service.sb_url", return_value="https://test.supabase.co/rest/v1/roadmaps"), \
@@ -244,15 +244,15 @@ class TestVerifyTaskOwnership:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_returns_false_when_supabase_not_ready(self):
-        """Supabase 미설정 시 False를 반환한다."""
+    async def test_returns_true_when_supabase_not_ready(self):
+        """Supabase 미설정(dev 환경) 시 True를 반환한다 (접근 허용)."""
         from app.services.qa_service import verify_task_ownership
 
         with patch("app.services.qa_service.settings") as mock_settings:
             mock_settings.supabase_ready = False
             result = await verify_task_ownership("user-abc", "1-1-0")
 
-        assert result is False
+        assert result is True
 
 
 # ── QARequest 모델 검증 ───────────────────────────────────────────────────
