@@ -1,7 +1,6 @@
 # Archive Index — 2026-04
 
-| Feature | Match Rate | Duration | Archived |
-|---------|:----------:|----------|----------|
-| code-review-fixes | 94% | 1 session (2026-04-01) | 2026-04-01 |
-| code-review-4th | 96% | 1 session (2026-04-02) | 2026-04-02 |
-| test-environment | 95.2% | 3 sessions (2026-04-02) | 2026-04-02 |
+| Feature | Phase | Match Rate | Archived |
+|---------|-------|-----------|----------|
+| [태스크별-AI-QA](./태스크별-AI-QA/) | completed | 94% | 2026-04-02 |
+| [AI-QA-phase2](./AI-QA-phase2/) | completed | 93% | 2026-04-02 |

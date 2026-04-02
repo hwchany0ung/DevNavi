@@ -11,8 +11,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
 from app.core.limiter import limiter
-from app.middleware.auth import require_user
-from app.models.qa_models import QARequest
+from app.middleware.auth import optional_user, require_user
+from app.models.qa_models import EventRequest, FeedbackRequest, QARequest
+from app.services.analytics_service import log_event
+from app.services.feedback_service import save_feedback
 from app.services.qa_service import (
     increment_and_check_qa_usage,
     stream_qa_response,
@@ -80,3 +82,49 @@ async def ask_qa(
     - 200 + SSE: 정상 스트리밍 (소유권/사용량 초과는 SSE error event로 전달)
     """
     return StreamingResponse(_qa_stream(body, user["id"]), headers=SSE_HEADERS)
+
+
+@router.post("/qa/feedback")
+@limiter.limit("30/hour")
+async def submit_feedback(
+    request: Request,
+    body: FeedbackRequest,
+    user: dict = Depends(require_user),
+):
+    """Q&A 답변 피드백 저장 (로그인 필수).
+
+    - 401: 미인증
+    - 422: 입력 검증 실패
+    - 429: rate limit 초과
+    """
+    saved = await save_feedback(
+        user_id=user["id"],
+        task_id=body.task_id,
+        question=body.question,
+        answer=body.answer,
+        rating=body.rating,
+    )
+    return {"saved": saved}
+
+
+@router.post("/qa/event")
+@limiter.limit("60/hour")
+async def log_qa_event(
+    request: Request,
+    body: EventRequest,
+    user: dict | None = Depends(optional_user),
+):
+    """Q&A 이벤트 로깅 (비로그인 허용 — fire-and-forget).
+
+    - 422: event_type 유효하지 않음
+    - 429: rate limit 초과
+    - 200: 항상 반환 (DB 실패 시에도)
+    """
+    user_id = user["id"] if user else None
+    logged = await log_event(
+        event_type=body.event_type,
+        task_id=body.task_id,
+        user_id=user_id,
+        metadata=body.metadata,
+    )
+    return {"logged": logged}

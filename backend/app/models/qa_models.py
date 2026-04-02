@@ -24,3 +24,16 @@ class QARequest(BaseModel):
     question: str = Field(min_length=1, max_length=200)
     task_context: QATaskContext
     messages: list[QAMessage] = Field(default=[], max_length=10)
+
+
+class FeedbackRequest(BaseModel):
+    task_id: str = Field(pattern=r"^\d+-\d+-\d+$")
+    question: str = Field(min_length=1, max_length=200)
+    answer: str = Field(min_length=1, max_length=2000)
+    rating: Literal["up", "down"]
+
+
+class EventRequest(BaseModel):
+    task_id: str | None = Field(default=None, pattern=r"^\d+-\d+-\d+$")
+    event_type: Literal["qa_opened", "qa_submitted", "task_checked"]
+    metadata: dict = Field(default_factory=dict)

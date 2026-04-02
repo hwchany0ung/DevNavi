@@ -20,6 +20,14 @@ vi.mock('../contexts/ThemeContext', () => ({
   useTheme: () => ({ theme: 'light', toggle: vi.fn() }),
 }))
 
+vi.mock('../hooks/useAuth', () => ({
+  useAuth: () => ({ user: null }),
+}))
+
+vi.mock('../hooks/useAnalytics', () => ({
+  useAnalytics: () => ({ logEvent: vi.fn() }),
+}))
+
 import { streamSSE } from '../lib/api'
 import QAPanel from '../components/qa/QAPanel'
 import QAButton from '../components/qa/QAButton'

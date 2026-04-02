@@ -13,6 +13,7 @@ import AuthModal           from '../components/auth/AuthModal'
 import QAPanel            from '../components/qa/QAPanel'
 import { loadRoadmapLocal, saveRoadmapLocal } from '../hooks/useRoadmapStream'
 import { useAuth } from '../hooks/useAuth'
+import { useAnalytics } from '../hooks/useAnalytics'
 import { request } from '../lib/api'
 
 const DONE_PREFIX = 'devnavi_done_'
@@ -55,6 +56,7 @@ export default function RoadmapPage() {
   const { id }    = useParams()
   const navigate  = useNavigate()
   const { user, signOut, loading: authLoading, getAuthHeaders } = useAuth()
+  const { logEvent } = useAnalytics()
   // FC-4: user 객체는 TOKEN_REFRESHED(~60s)마다 새로 생성되므로
   // 안정적인 원시값(id)을 추출하여 useEffect/useCallback 의존성에 사용
   const userId = user?.id
@@ -78,6 +80,7 @@ export default function RoadmapPage() {
   const [rerouteError, setRerouteError] = useState(null)
   const [qaOpen,        setQaOpen]       = useState(false)
   const [qaTaskContext, setQaTaskContext] = useState(null)
+  const [qaSessionSet,  setQaSessionSet] = useState(() => new Set())
 
   useEffect(() => {
     document.title = '나의 로드맵 — DevNavi'
@@ -210,11 +213,16 @@ export default function RoadmapPage() {
       }
       return next
     })
-  }, [id, userId, getAuthHeaders])
+    // Plan SC: SC-02 — Q&A 사용 이력이 있는 태스크만 task_checked 이벤트 발송
+    if (qaSessionSet.has(taskId)) {
+      logEvent('task_checked', taskId)
+    }
+  }, [id, userId, getAuthHeaders, logEvent, qaSessionSet])
 
   const handleQAOpen = useCallback((taskId, context) => {
     setQaTaskContext({ taskId, ...context })
     setQaOpen(true)
+    setQaSessionSet((prev) => { const next = new Set(prev); next.add(taskId); return next })
   }, [])
 
   // ── 통계 ────────────────────────────────────────────────────────

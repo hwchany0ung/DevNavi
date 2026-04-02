@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import { streamSSE } from '../lib/api'
+import { useAnalytics } from './useAnalytics'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
@@ -32,6 +33,8 @@ export function useQA() {
   // AbortController ref — 패널 닫기 시 스트리밍 취소
   const abortRef = useRef(null)
 
+  const { logEvent } = useAnalytics()
+
   /** 현재 taskId의 메시지 배열 */
   const messages = currentTaskId ? (messagesMap.get(currentTaskId) ?? []) : []
 
@@ -46,7 +49,8 @@ export function useQA() {
       next.set(taskId, [])
       return next
     })
-  }, [])
+    logEvent('qa_opened', taskId)
+  }, [logEvent])
 
   /** 패널 닫기 — 스트리밍 중이면 취소 */
   const closePanel = useCallback(() => {
@@ -65,6 +69,8 @@ export function useQA() {
    */
   const sendMessage = useCallback(async (question) => {
     if (!currentTaskId || !taskContext || isStreaming) return
+
+    logEvent('qa_submitted', currentTaskId)
 
     // 사용자 메시지 추가
     const userMsg = { role: 'user', content: question }
@@ -147,7 +153,7 @@ export function useQA() {
     )
 
     abortRef.current = controller
-  }, [currentTaskId, taskContext, isStreaming, messagesMap])
+  }, [currentTaskId, taskContext, isStreaming, messagesMap, logEvent])
 
   return {
     messages,

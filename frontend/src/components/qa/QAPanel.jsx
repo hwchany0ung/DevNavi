@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { useQA } from '../../hooks/useQA'
+import { useAuth } from '../../hooks/useAuth'
 import QAInput from './QAInput'
+import QAFeedback from './QAFeedback'
 
 /**
  * QAPanel — 우측 고정 AI Q&A 사이드 패널
@@ -13,6 +15,7 @@ import QAInput from './QAInput'
  */
 export default function QAPanel({ isOpen, taskContext = null, onClose }) {
   const { messages, isStreaming, openPanel, closePanel, sendMessage } = useQA()
+  const { user } = useAuth()
   const messagesEndRef = useRef(null)
 
   // taskContext 변경 시 패널 상태 동기화
@@ -114,21 +117,31 @@ export default function QAPanel({ isOpen, taskContext = null, onClose }) {
                 key={idx}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                <div
-                  className={`
-                    max-w-[85%] rounded-2xl px-3 py-2 text-sm leading-relaxed
-                    ${msg.role === 'user'
-                      ? 'bg-indigo-600 text-white rounded-br-sm'
-                      : msg.isError
-                        ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20 rounded-bl-sm'
-                        : 'bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-white/90 rounded-bl-sm'
-                    }
-                  `}
-                >
-                  {msg.content || (
-                    msg.role === 'assistant' && isStreaming && idx === messages.length - 1
-                      ? <StreamingDots />
-                      : null
+                <div className="flex flex-col max-w-[85%]">
+                  <div
+                    className={`
+                      rounded-2xl px-3 py-2 text-sm leading-relaxed
+                      ${msg.role === 'user'
+                        ? 'bg-indigo-600 text-white rounded-br-sm'
+                        : msg.isError
+                          ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-500/20 rounded-bl-sm'
+                          : 'bg-gray-100 dark:bg-white/10 text-gray-800 dark:text-white/90 rounded-bl-sm'
+                      }
+                    `}
+                  >
+                    {msg.content || (
+                      msg.role === 'assistant' && isStreaming && idx === messages.length - 1
+                        ? <StreamingDots />
+                        : null
+                    )}
+                  </div>
+                  {msg.role === 'assistant' && !isStreaming && msg.content && taskContext?.taskId && (
+                    <QAFeedback
+                      taskId={taskContext.taskId}
+                      question={messages[idx - 1]?.content ?? ''}
+                      answer={msg.content}
+                      isLoggedIn={!!user}
+                    />
                   )}
                 </div>
               </div>

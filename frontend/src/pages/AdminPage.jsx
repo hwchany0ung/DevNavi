@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { request } from '../lib/api'
+import QAStats from '../components/admin/QAStats'
 
 // ── 상수 ────────────────────────────────────────────────────────
 const REFRESH_INTERVAL_MS = 30_000 // 30초 자동 갱신
@@ -359,6 +360,9 @@ export default function AdminPage() {
             />
           </div>
         </section>
+
+        {/* Q&A Analytics */}
+        <QAStats />
 
         {/* 엔드포인트 분석 + 에러 로그 */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
