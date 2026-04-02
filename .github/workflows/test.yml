@@ -48,7 +48,8 @@ jobs:
   test-backend-integration:
     name: Backend Integration Tests (real Supabase)
     runs-on: ubuntu-latest
-    if: ${{ secrets.SUPABASE_TEST_URL != '' }}
+    # if 조건 제거: secrets 비교는 workflow 레벨 오류 유발
+    # SUPABASE_TEST_URL 미설정 시 pytest.skip()이 자동으로 처리
     defaults:
       run:
         working-directory: backend
