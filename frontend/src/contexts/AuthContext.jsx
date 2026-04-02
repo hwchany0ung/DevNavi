@@ -54,6 +54,7 @@ export function AuthProvider({ children }) {
         // - Google OAuth: user_metadata에 agreed_terms_at 없음 → 최초 SIGNED_IN 시각을 동의 시각으로 기록
         const consentKey = `devnavi_consent_sent_${session.user.id}`
         if (!localStorage.getItem(consentKey)) {
+          localStorage.setItem(consentKey, '1')  // optimistic locking — 요청 전에 먼저 마킹
           const meta = session.user.user_metadata || {}
           const now  = new Date().toISOString()
           request('/auth/consent', {
@@ -65,8 +66,11 @@ export function AuthProvider({ children }) {
               consent_version:   meta.consent_version   || '2026-01-01',
             }),
           })
-            .then(() => localStorage.setItem(consentKey, '1'))
-            .catch((err) => console.warn('[AuthProvider] consent 기록 실패 (재시도 예정):', err.message))
+            .catch((err) => {
+              // 실패 시 마킹 제거 (재시도 허용)
+              localStorage.removeItem(consentKey)
+              console.warn('[AuthProvider] consent 기록 실패 (재시도 예정):', err.message)
+            })
         }
       }
       if (event === 'TOKEN_REFRESHED') {
