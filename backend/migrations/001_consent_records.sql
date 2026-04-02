@@ -1,3 +1,6 @@
+-- DEPRECATED: 이 파일은 supabase/migrations/004_consent_records.sql로 대체됨.
+-- 직접 실행 금지. Supabase CLI로 004 마이그레이션을 사용할 것.
+--
 -- PIPA 준수를 위한 약관 동의 이력 테이블
 -- 실행 위치: Supabase Dashboard > SQL Editor
 -- 서비스 롤(service_key)로 INSERT, 사용자 본인만 SELECT 가능

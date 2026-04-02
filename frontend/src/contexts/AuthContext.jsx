@@ -66,8 +66,15 @@ export function AuthProvider({ children }) {
               consent_version:   meta.consent_version   || '2026-01-01',
             }),
           })
+            .then((data) => {
+              if (!data.consent_saved) {
+                // 서버 저장 실패 — 다음 세션에서 재시도 허용
+                localStorage.removeItem(consentKey)
+                console.warn('[AuthProvider] consent 서버 저장 실패 — 다음 세션 재시도')
+              }
+            })
             .catch((err) => {
-              // 실패 시 마킹 제거 (재시도 허용)
+              // 네트워크/HTTP 오류 시 마킹 제거 (재시도 허용)
               localStorage.removeItem(consentKey)
               console.warn('[AuthProvider] consent 기록 실패 (재시도 예정):', err.message)
             })

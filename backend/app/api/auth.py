@@ -5,12 +5,13 @@
   POST /auth/consent — PIPA 약관 동의 이력 서버 기록
 """
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
+from app.core.limiter import limiter
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
 from app.core.config import settings
 from app.middleware.auth import require_user
@@ -23,7 +24,21 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 class ConsentRequest(BaseModel):
     agreed_terms_at:   datetime         # ISO 8601 타임스탬프 — Pydantic이 형식 검증 (잘못된 값 → 422)
     agreed_privacy_at: datetime         # ISO 8601 타임스탬프 — Pydantic이 형식 검증 (잘못된 값 → 422)
-    consent_version:   str = "2026-01-01"
+    consent_version:   str = Field(
+        default="2026-01-01",
+        pattern=r"^\d{4}-\d{2}-\d{2}$",
+        max_length=10,
+    )
+
+    @field_validator("agreed_terms_at", "agreed_privacy_at")
+    @classmethod
+    def _validate_consent_time(cls, v: datetime) -> datetime:
+        now = datetime.now(timezone.utc)
+        if v > now + timedelta(minutes=5):
+            raise ValueError("동의 시각이 미래입니다.")
+        if v < now - timedelta(days=30):
+            raise ValueError("동의 시각이 30일 이전입니다.")
+        return v
 
 
 def _get_client_ip(request: Request) -> Optional[str]:
@@ -39,6 +54,7 @@ def _get_client_ip(request: Request) -> Optional[str]:
 
 
 @router.post("/consent", status_code=201)
+@limiter.limit("5/minute")
 async def record_consent(
     body: ConsentRequest,
     request: Request,
