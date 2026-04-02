@@ -164,7 +164,7 @@ async def stream_qa_response(request: QARequest, user_id: str) -> AsyncGenerator
             messages=conversation,
         ) as stream:
             async for text in stream.text_stream:
-                yield f"data: {json.dumps({'type': 'delta', 'content': text}, ensure_ascii=False)}\n\n"
+                yield f"data: {json.dumps({'chunk': text}, ensure_ascii=False)}\n\n"
     except anthropic.RateLimitError:
         logger.warning("Anthropic rate limit (user=%s)", user_id)
         yield f"data: {json.dumps({'type': 'error', 'code': 'api_limit', 'message': 'AI 서비스가 일시적으로 혼잡합니다. 잠시 후 다시 시도해주세요.'})}\n\n"
@@ -174,4 +174,4 @@ async def stream_qa_response(request: QARequest, user_id: str) -> AsyncGenerator
         yield f"data: {json.dumps({'type': 'error', 'code': 'server_error', 'message': 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'})}\n\n"
         return
 
-    yield f"data: {json.dumps({'type': 'done'})}\n\n"
+    yield "data: [DONE]\n\n"
