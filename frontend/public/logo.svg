@@ -1,19 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="200" height="48" viewBox="0 0 200 48">
-  <rect width="200" height="48" fill="#ffffff"/>
-  <!-- "Dev" in dark gray -->
-  <text
-    x="8" y="34"
-    font-family="'Segoe UI', Arial, sans-serif"
-    font-weight="800"
-    font-size="28"
-    fill="#111827"
-  >Dev</text>
-  <!-- "Navi" in indigo -->
-  <text
-    x="72" y="34"
-    font-family="'Segoe UI', Arial, sans-serif"
-    font-weight="800"
-    font-size="28"
-    fill="#4F46E5"
-  >Navi</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <!-- 배경 원 -->
+  <circle cx="24" cy="24" r="24" fill="#4F46E5"/>
+  <!-- 외곽 링 -->
+  <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+  <!-- 북쪽 눈금 -->
+  <line x1="24" y1="5" x2="24" y2="8" stroke="rgba(255,255,255,0.6)" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- 동쪽 눈금 -->
+  <line x1="43" y1="24" x2="40" y2="24" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- 남쪽 눈금 -->
+  <line x1="24" y1="43" x2="24" y2="40" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- 서쪽 눈금 -->
+  <line x1="5" y1="24" x2="8" y2="24" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-linecap="round"/>
+  <!-- 나침반 바늘 북쪽 (흰색) -->
+  <polygon points="24,9 27.5,23.5 24,21 20.5,23.5" fill="white"/>
+  <!-- 나침반 바늘 남쪽 (반투명) -->
+  <polygon points="24,39 20.5,24.5 24,27 27.5,24.5" fill="rgba(255,255,255,0.35)"/>
+  <!-- 중심 흰 원 -->
+  <circle cx="24" cy="24" r="3.5" fill="white"/>
+  <!-- 중심 내부 원 -->
+  <circle cx="24" cy="24" r="2" fill="#4F46E5"/>
 </svg>
