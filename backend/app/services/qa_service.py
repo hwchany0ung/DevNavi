@@ -94,7 +94,7 @@ async def verify_task_ownership(user_id: str, task_id: str) -> bool:
     user의 active roadmap JSON에서 해당 월/주 태스크 존재 여부 확인.
     """
     if not settings.supabase_ready:
-        return False
+        return True  # dev 환경: Supabase 미설정 시 접근 허용
 
     try:
         month_str, week_str, idx_str = task_id.split("-")
@@ -109,10 +109,10 @@ async def verify_task_ownership(user_id: str, task_id: str) -> bool:
         sb_url("roadmaps"),
         headers=sb_headers(),
         params={
-            "user_id":   f"eq.{user_id}",
-            "is_active": "eq.true",
-            "select":    "roadmap_data",
-            "limit":     "1",
+            "user_id": f"eq.{user_id}",
+            "status":  "eq.active",
+            "select":  "data",
+            "limit":   "1",
         },
     )
 
@@ -127,7 +127,7 @@ async def verify_task_ownership(user_id: str, task_id: str) -> bool:
     if not rows:
         return False
 
-    roadmap_data = rows[0].get("roadmap_data", {})
+    roadmap_data = rows[0].get("data", {})
 
     # roadmap_data 구조: {"months": [{"month": 1, "weeks": [{"week": 1, "tasks": [...]}]}]}
     months = roadmap_data.get("months", [])
