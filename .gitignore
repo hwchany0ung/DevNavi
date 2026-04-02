@@ -55,3 +55,10 @@ frontend/.vite/
 # Python 캐시
 backend/**/__pycache__/
 backend/**/*.pyc
+
+# 테스트 결과물 (커밋 불필요)
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+frontend/coverage/
