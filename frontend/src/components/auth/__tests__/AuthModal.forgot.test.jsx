@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import AuthModal from '../AuthModal'
+
+// AuthModal uses <Link> from react-router-dom (I16 fix) — MemoryRouter required
+const renderWithRouter = (ui) => render(<MemoryRouter>{ui}</MemoryRouter>)
 
 vi.mock('../../../lib/supabase', () => ({
   supabase: null,
@@ -33,12 +37,12 @@ beforeEach(() => {
 
 describe('AuthModal forgot mode', () => {
   it('shows "비밀번호를 잊으셨나요?" link in login mode', () => {
-    render(<AuthModal open={true} onClose={vi.fn()} />)
+    renderWithRouter(<AuthModal open={true} onClose={vi.fn()} />)
     expect(screen.getByText('비밀번호를 잊으셨나요?')).toBeInTheDocument()
   })
 
   it('switches to forgot mode when link clicked', () => {
-    render(<AuthModal open={true} onClose={vi.fn()} />)
+    renderWithRouter(<AuthModal open={true} onClose={vi.fn()} />)
     fireEvent.click(screen.getByText('비밀번호를 잊으셨나요?'))
     expect(screen.getByText('비밀번호 재설정')).toBeInTheDocument()
     expect(screen.getByPlaceholderText('이메일')).toBeInTheDocument()
@@ -47,7 +51,7 @@ describe('AuthModal forgot mode', () => {
 
   it('always shows the same success message regardless of email existence (prevent enumeration)', async () => {
     mockResetPasswordForEmail.mockResolvedValue(true)
-    render(<AuthModal open={true} onClose={vi.fn()} />)
+    renderWithRouter(<AuthModal open={true} onClose={vi.fn()} />)
     fireEvent.click(screen.getByText('비밀번호를 잊으셨나요?'))
     fireEvent.change(screen.getByPlaceholderText('이메일'), { target: { value: 'any@example.com' } })
     fireEvent.click(screen.getByRole('button', { name: '재설정 링크 보내기' }))
@@ -57,7 +61,7 @@ describe('AuthModal forgot mode', () => {
   })
 
   it('shows back to login link in forgot mode', () => {
-    render(<AuthModal open={true} onClose={vi.fn()} />)
+    renderWithRouter(<AuthModal open={true} onClose={vi.fn()} />)
     fireEvent.click(screen.getByText('비밀번호를 잊으셨나요?'))
     expect(screen.getByText('로그인으로 돌아가기')).toBeInTheDocument()
   })
@@ -65,14 +69,14 @@ describe('AuthModal forgot mode', () => {
 
 describe('AuthModal password policy', () => {
   it('shows updated password placeholder in signup mode', () => {
-    render(<AuthModal open={true} onClose={vi.fn()} />)
+    renderWithRouter(<AuthModal open={true} onClose={vi.fn()} />)
     // Switch to signup
     fireEvent.click(screen.getByText('회원가입'))
     expect(screen.getByPlaceholderText('비밀번호 (8자 이상, 특수문자 포함)')).toBeInTheDocument()
   })
 
   it('rejects signup with password missing special char', async () => {
-    render(<AuthModal open={true} onClose={vi.fn()} />)
+    renderWithRouter(<AuthModal open={true} onClose={vi.fn()} />)
     fireEvent.click(screen.getByText('회원가입'))
     fireEvent.change(screen.getByPlaceholderText('이메일'), { target: { value: 'test@test.com' } })
     fireEvent.change(screen.getByPlaceholderText('비밀번호 (8자 이상, 특수문자 포함)'), { target: { value: 'abcdefgh' } })
@@ -91,7 +95,7 @@ describe('AuthModal password policy', () => {
 
 describe('AuthModal privacy modal integration', () => {
   it('opens privacy consent modal when privacy link clicked', () => {
-    render(<AuthModal open={true} onClose={vi.fn()} />)
+    renderWithRouter(<AuthModal open={true} onClose={vi.fn()} />)
     fireEvent.click(screen.getByText('회원가입'))
     // Click the privacy label text to open modal
     fireEvent.click(screen.getByText('개인정보처리방침'))
@@ -99,7 +103,7 @@ describe('AuthModal privacy modal integration', () => {
   })
 
   it('sets agreePrivacy=true when 동의하기 clicked in modal', () => {
-    render(<AuthModal open={true} onClose={vi.fn()} />)
+    renderWithRouter(<AuthModal open={true} onClose={vi.fn()} />)
     fireEvent.click(screen.getByText('회원가입'))
     fireEvent.click(screen.getByText('개인정보처리방침'))
     fireEvent.click(screen.getByRole('button', { name: '동의하기' }))
