@@ -1,8 +1,10 @@
-# backend/tests/test_claude.py
+# backend/tests/unit/test_claude.py
 import ast
 import inspect
 import pytest
 from unittest.mock import MagicMock, AsyncMock
+
+pytestmark = pytest.mark.unit
 from fastapi import HTTPException
 
 

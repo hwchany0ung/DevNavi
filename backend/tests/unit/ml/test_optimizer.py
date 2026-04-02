@@ -4,6 +4,8 @@
 import pytest
 from app.ml.pipeline.prompt_optimizer import build_optimized_context
 
+pytestmark = pytest.mark.unit
+
 
 class TestBuildOptimizedContext:
     def test_level_normalization_beginner(self):

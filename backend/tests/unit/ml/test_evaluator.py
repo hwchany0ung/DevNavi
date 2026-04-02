@@ -4,6 +4,8 @@
 import pytest
 from app.ml.inference.roadmap_evaluator import _heuristic_quality_check, evaluate_roadmap_quality
 
+pytestmark = pytest.mark.unit
+
 
 class TestHeuristicQualityCheck:
     def test_perfect_roadmap(self):

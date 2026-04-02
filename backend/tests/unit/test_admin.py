@@ -1,6 +1,8 @@
 import pytest
 import inspect
 
+pytestmark = pytest.mark.unit
+
 
 def test_admin_stats_api_usage_query_has_limit():
     """admin.py의 api_usage 쿼리 소스에 limit 파라미터가 있는지 검증.

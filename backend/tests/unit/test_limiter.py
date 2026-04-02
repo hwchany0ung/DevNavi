@@ -1,6 +1,8 @@
-# backend/tests/test_limiter.py
+# backend/tests/unit/test_limiter.py
 import pytest
 from app.core.limiter import _parse_real_ip
+
+pytestmark = pytest.mark.unit
 
 
 def test_xff_uses_last_ip_not_first():

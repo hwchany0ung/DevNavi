@@ -8,6 +8,8 @@ from app.ml.evaluation.metrics import (
     evaluate_against_targets,
 )
 
+pytestmark = pytest.mark.unit
+
 
 class TestMLTargetMetrics:
     def test_default_values(self):

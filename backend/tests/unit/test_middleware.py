@@ -1,7 +1,9 @@
-# backend/tests/test_middleware.py
+# backend/tests/unit/test_middleware.py
 import os
 import pytest
 from httpx import AsyncClient, ASGITransport
+
+pytestmark = pytest.mark.unit
 
 # app.core.config 모듈을 테스트 실행 전에 임포트해 두기 위함.
 # conftest.py가 ENV/ANTHROPIC_API_KEY를 setdefault로 설정하지만,
