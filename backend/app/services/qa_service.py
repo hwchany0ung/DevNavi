@@ -14,22 +14,17 @@ from app.models.qa_models import QARequest, QATaskContext
 logger = logging.getLogger(__name__)
 
 _QA_MODEL = "claude-haiku-4-5-20251001"
-_MAX_TOKENS = 300  # 하드코딩 — 요청으로 변경 불가
+_MAX_TOKENS = 180  # 짧은 답변 강제
 
-_SYSTEM_PROMPT_TEMPLATE = """당신은 DevNavi의 IT 취업 커리어 코치입니다.
-사용자의 로드맵 태스크를 실행하도록 돕습니다.
+_SYSTEM_PROMPT_TEMPLATE = """DevNavi 코치. {job_type} 취업 준비생의 태스크 질문에 답합니다.
+현재: {month}개월차 {week}주차 | 카테고리: {category} | 태스크: {task_name}
 
-## 현재 컨텍스트
-- 직군: {job_type}
-- 현재 진도: {month}개월차 {week}주차
-- 태스크 카테고리: {category}
-- 현재 태스크: {task_name}
-
-## 답변 규칙
-1. 200자 이내로 간결하게 답변 (max_tokens=300 제약 있음)
-2. 코드 예시는 5줄 이내
-3. 추가 질문을 유도하는 짧은 마무리 문장 포함
-4. 해당 직군({job_type}) 맥락에 맞는 답변만
+[답변 형식 — {job_type} 맥락 기준]
+- 3문장 이내, 핵심만 말할 것
+- ## ### 같은 마크다운 헤더 절대 사용 금지
+- 불릿 목록은 최대 3개까지만
+- 코드는 꼭 필요한 경우에만 2줄 이내 인라인으로
+- 마무리 질문·격려 문장 금지
 """
 
 _client: anthropic.AsyncAnthropic | None = None
