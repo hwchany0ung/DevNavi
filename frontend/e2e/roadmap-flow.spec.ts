@@ -42,8 +42,8 @@ test.describe('온보딩 페이지 기본 흐름', () => {
   test('기간 선택 옵션 표시', async ({ page }) => {
     await page.goto('/onboarding')
     await expect(page.getByText('6개월')).toBeVisible()
-    // 1년 버튼은 스크롤 필요할 수 있어 attached 여부만 확인
-    await expect(page.getByText('1년')).toBeAttached()
+    // 1년 텍스트가 여러 요소에 있을 수 있어 first() 사용
+    await expect(page.getByText('1년').first()).toBeAttached()
   })
 
   test('레벨 선택 옵션 표시', async ({ page }) => {
