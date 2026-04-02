@@ -14,7 +14,7 @@ from app.models.qa_models import QARequest, QATaskContext
 logger = logging.getLogger(__name__)
 
 _QA_MODEL = "claude-haiku-4-5-20251001"
-_MAX_TOKENS = 180  # 짧은 답변 강제
+_MAX_TOKENS = 250  # 안전망 역할 — 팔로업 질문 여유 공간 확보
 
 _SYSTEM_PROMPT_TEMPLATE = """DevNavi 코치. {job_type} 취업 준비생의 태스크 질문에 답합니다.
 현재: {month}개월차 {week}주차 | 카테고리: {category} | 태스크: {task_name}
