@@ -10,6 +10,7 @@ import RoadmapHeader       from '../components/roadmap/RoadmapHeader'
 import RerouteModal        from '../components/roadmap/RerouteModal'
 import CareerSummaryModal  from '../components/roadmap/CareerSummaryModal'
 import AuthModal           from '../components/auth/AuthModal'
+import QAPanel            from '../components/qa/QAPanel'
 import { loadRoadmapLocal, saveRoadmapLocal } from '../hooks/useRoadmapStream'
 import { useAuth } from '../hooks/useAuth'
 import { request } from '../lib/api'
@@ -75,6 +76,8 @@ export default function RoadmapPage() {
   const [autoSaveError, setAutoSaveError] = useState(false)
   const [autoSaveRetry, setAutoSaveRetry] = useState(0)
   const [rerouteError, setRerouteError] = useState(null)
+  const [qaOpen,        setQaOpen]       = useState(false)
+  const [qaTaskContext, setQaTaskContext] = useState(null)
 
   useEffect(() => {
     document.title = '나의 로드맵 — DevNavi'
@@ -208,6 +211,11 @@ export default function RoadmapPage() {
       return next
     })
   }, [id, userId, getAuthHeaders])
+
+  const handleQAOpen = useCallback((taskId, context) => {
+    setQaTaskContext({ taskId, ...context })
+    setQaOpen(true)
+  }, [])
 
   // ── 통계 ────────────────────────────────────────────────────────
   const { totalCount, completedCount, completionRate } = useMemo(() => {
@@ -476,6 +484,8 @@ export default function RoadmapPage() {
                   monthIdx={currentMonth.month}
                   doneSet={doneSet}
                   onToggle={handleToggle}
+                  onQAOpen={handleQAOpen}
+                  jobType={roadmap._meta?.role ?? 'backend'}
                 />
               ))}
             </div>
@@ -499,6 +509,13 @@ export default function RoadmapPage() {
         onPeriodChange={setReroutePeriod}
         onConfirm={handleRerouteConfirm}
         onClose={() => { setRerouteModalOpen(false); setRerouteError(null) }}
+      />
+
+      {/* AI Q&A 사이드 패널 */}
+      <QAPanel
+        isOpen={qaOpen}
+        taskContext={qaTaskContext}
+        onClose={() => setQaOpen(false)}
       />
 
       {/* 인증 모달 */}

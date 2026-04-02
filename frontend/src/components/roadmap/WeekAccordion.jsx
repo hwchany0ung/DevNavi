@@ -9,14 +9,20 @@ import TaskItem from './TaskItem'
 // doneSet은 toggle마다 새 Set 참조가 생성되므로 기본 memo(===)로는 매 toggle마다
 // 모든 WeekAccordion이 리렌더됨 — custom comparator로 실제 변경 여부만 비교.
 function _arePropsEqual(prev, next) {
-  if (prev.week !== next.week || prev.monthIdx !== next.monthIdx || prev.onToggle !== next.onToggle) return false
+  if (
+    prev.week !== next.week ||
+    prev.monthIdx !== next.monthIdx ||
+    prev.onToggle !== next.onToggle ||
+    prev.onQAOpen !== next.onQAOpen ||
+    prev.jobType !== next.jobType
+  ) return false
   return prev.week.tasks.every((_, ti) => {
     const id = `${prev.monthIdx}-${prev.week.week}-${ti}`
     return prev.doneSet.has(id) === next.doneSet.has(id)
   })
 }
 
-const WeekAccordion = memo(function WeekAccordion({ week, monthIdx, doneSet, onToggle }) {
+const WeekAccordion = memo(function WeekAccordion({ week, monthIdx, doneSet, onToggle, onQAOpen, jobType }) {
   const total = week.tasks.length
   const doneCount = week.tasks.filter((_, ti) => doneSet.has(`${monthIdx}-${week.week}-${ti}`)).length
   const allDone = total > 0 && doneCount === total
@@ -79,6 +85,8 @@ const WeekAccordion = memo(function WeekAccordion({ week, monthIdx, doneSet, onT
                 taskId={taskId}
                 done={doneSet.has(taskId)}
                 onToggle={onToggle}
+                onQAOpen={onQAOpen}
+                taskContext={{ jobType, month: monthIdx, week: week.week, category: task.category }}
               />
             )
           })}
@@ -96,6 +104,8 @@ WeekAccordion.propTypes = {
   monthIdx: PropTypes.number.isRequired,
   doneSet:  PropTypes.instanceOf(Set).isRequired,
   onToggle: PropTypes.func.isRequired,
+  onQAOpen: PropTypes.func,
+  jobType:  PropTypes.string,
 }
 
 export default WeekAccordion

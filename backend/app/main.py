@@ -19,6 +19,7 @@ from app.core.supabase_client import close_supabase_client, get_supabase_client,
 from app.api.roadmap import router as roadmap_router
 from app.api.admin import router as admin_router, save_error_log
 from app.api.auth import router as auth_router
+from app.api.ai_qa import router as ai_qa_router
 from app.services.claude_service import close_anthropic_client
 
 logger = logging.getLogger(__name__)
@@ -195,6 +196,7 @@ if settings.ENV != "production":
 app.include_router(roadmap_router)
 app.include_router(admin_router)
 app.include_router(auth_router)
+app.include_router(ai_qa_router)
 
 
 @app.get("/health")
