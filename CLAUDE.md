@@ -68,6 +68,59 @@ QA 에이전트가 두 트랙을 모두 검증:
 
 ---
 
+## QA 검증 — 테스트 서버 활용 규칙
+
+### `/pdca analyze` 실행 시 필수 절차
+
+QA 에이전트(gap-detector / qa-monitor)는 정적 분석만으로 검증을 종결하지 않는다.
+**반드시 아래 순서로 테스트 서버를 기동하고 실제 테스트 스위트를 실행한다.**
+
+#### 1단계 — 백엔드 단위 테스트 (항상 실행)
+```bash
+cd backend
+pytest tests/unit/ -v -m unit --cov=app/ml --cov=app/core --cov=app/models --cov-report=term-missing
+```
+
+#### 2단계 — 프론트엔드 단위 테스트 (항상 실행)
+```bash
+cd frontend
+npm test -- --coverage --run
+```
+
+#### 3단계 — 통합 테스트 (SUPABASE_TEST_URL 설정 시)
+```bash
+cd backend
+pytest tests/integration/ -v -m integration
+# SUPABASE_TEST_URL 미설정 시 conftest.py의 pytest.skip()이 자동 스킵
+```
+
+#### 4단계 — E2E 테스트 (프론트+백엔드 서버 기동 후 실행)
+```bash
+# 터미널 1: 백엔드 기동
+cd backend && uvicorn app.main:app --port 8000 &
+
+# 터미널 2: 프론트엔드 빌드+프리뷰 (또는 dev)
+cd frontend && npm run build && npm run preview -- --port 4173 &
+
+# E2E 실행 (playwright.config.ts의 webServer가 자동 관리)
+cd frontend && npx playwright test
+```
+
+#### 서버 기동 없이 정적 분석만 허용되는 경우
+- E2E 테스트 파일이 존재하지 않는 경우
+- 사용자가 명시적으로 `--static-only` 옵션을 지정한 경우
+- 백엔드/프론트엔드가 아직 구현되지 않은 초기 단계(Do 미완료)
+
+### Match Rate 산정 기준 (테스트 서버 사용 시)
+```
+Overall = (Structural × 0.15) + (Functional × 0.25)
+        + (Contract × 0.25) + (Runtime × 0.35)
+```
+- Runtime 점수는 위 1~4단계 테스트 결과(통과율)를 반영
+- 단위 테스트만 실행 가능한 경우: Runtime × 0.20 (나머지 비율 재분배)
+
+---
+
 ## PDCA 단계별 게이트 (Phase Gates)
 
 | 단계 | 완료 조건 | 다음 단계 진입 조건 |
