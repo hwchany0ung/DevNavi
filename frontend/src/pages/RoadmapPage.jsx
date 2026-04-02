@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Footer from '../components/common/Footer'
-import ThemeToggle from '../components/common/ThemeToggle'
 import PersonaCard         from '../components/roadmap/PersonaCard'
 import MonthTimeline       from '../components/roadmap/MonthTimeline'
 import WeekAccordion       from '../components/roadmap/WeekAccordion'
 import RerouteButton       from '../components/roadmap/RerouteButton'
 import GrassCalendar       from '../components/roadmap/GrassCalendar'
-import CareerSummaryPanel  from '../components/roadmap/CareerSummaryPanel'
+import RoadmapHeader       from '../components/roadmap/RoadmapHeader'
+import RerouteModal        from '../components/roadmap/RerouteModal'
+import CareerSummaryModal  from '../components/roadmap/CareerSummaryModal'
 import AuthModal           from '../components/auth/AuthModal'
 import { loadRoadmapLocal, saveRoadmapLocal } from '../hooks/useRoadmapStream'
 import { useAuth } from '../hooks/useAuth'
@@ -27,27 +28,23 @@ function saveDoneLocal(roadmapId, doneSet) {
 }
 
 // ── Supabase API 헬퍼 ───────────────────────────────────────────────
-function authHeader(user) {
-  return user?.accessToken ? { Authorization: `Bearer ${user.accessToken}` } : {}
-}
+// C2: authHeader(user) 헬퍼 제거 — getAuthHeaders() 콜백을 직접 전달
 
-async function fetchRemoteCompletions(roadmapId, user) {
-  const data = await request(`/roadmap/${roadmapId}/completions`, {
-    headers: authHeader(user),
-  })
+async function fetchRemoteCompletions(roadmapId, headers) {
+  const data = await request(`/roadmap/${roadmapId}/completions`, { headers })
   return new Set(data.task_ids || [])
 }
 
-async function toggleRemote(roadmapId, taskId, completed, user) {
+async function toggleRemote(roadmapId, taskId, completed, headers) {
   await request(`/roadmap/${roadmapId}/completions`, {
     method: 'POST',
-    headers: authHeader(user),
+    headers,
     body: JSON.stringify({ task_id: taskId, completed }),
   })
 }
 
-async function fetchActivity(user) {
-  const data = await request('/roadmap/activity/me', { headers: authHeader(user) })
+async function fetchActivity(headers) {
+  const data = await request('/roadmap/activity/me', { headers })
   return data.activity || []
 }
 
@@ -56,11 +53,10 @@ async function fetchActivity(user) {
 export default function RoadmapPage() {
   const { id }    = useParams()
   const navigate  = useNavigate()
-  const { user, signOut, loading: authLoading } = useAuth()
+  const { user, signOut, loading: authLoading, getAuthHeaders } = useAuth()
   // FC-4: user 객체는 TOKEN_REFRESHED(~60s)마다 새로 생성되므로
-  // 안정적인 원시값(id, token)을 추출하여 useEffect/useCallback 의존성에 사용
+  // 안정적인 원시값(id)을 추출하여 useEffect/useCallback 의존성에 사용
   const userId = user?.id
-  const userToken = user?.accessToken
 
   const [roadmap,      setRoadmap]      = useState(null)
   const [loading,      setLoading]      = useState(true)
@@ -119,7 +115,7 @@ export default function RoadmapPage() {
 
     request('/roadmap/persist', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${user.accessToken}` },
+      headers: getAuthHeaders(),
       body: JSON.stringify({
         role: local._meta?.role ?? '',
         period: local._meta?.period ?? '',
@@ -145,7 +141,7 @@ export default function RoadmapPage() {
       autoSaveDoneRef.current = false  // 실패 시 재시도 허용
       setAutoSaveError(true)
     })
-  }, [user, id, navigate, autoSaveRetry])
+  }, [user, id, navigate, autoSaveRetry, getAuthHeaders])
 
   // ── 로드맵 로드 ─────────────────────────────────────────────────
   // loadedForIdRef: 현재 id로 이미 성공 로드 시 TOKEN_REFRESHED 등 user 변경으로 재요청 방지
@@ -164,9 +160,8 @@ export default function RoadmapPage() {
       loadedForIdRef.current = id
       return
     }
-    // FC-4 통일: userId/userToken으로 TOKEN_REFRESHED 불필요 재실행 방지
-    const headers = userToken ? { Authorization: `Bearer ${userToken}` } : {}
-    request(`/roadmap/${id}`, { headers })
+    // FC-4 통일: getAuthHeaders()로 항상 최신 토큰 사용
+    request(`/roadmap/${id}`, { headers: getAuthHeaders() })
       .then((data) => {
         const rm = data.data ?? data
         setRoadmap(rm)
@@ -175,12 +170,12 @@ export default function RoadmapPage() {
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
-  }, [id, userId, userToken, authLoading, autoSaveRetry])
+  }, [id, userId, authLoading, autoSaveRetry, getAuthHeaders])
 
   // ── 로그인 시 Supabase completions 동기화 ───────────────────────
   useEffect(() => {
-    if (!userId || !userToken) return
-    fetchRemoteCompletions(id, { id: userId, accessToken: userToken })
+    if (!userId) return
+    fetchRemoteCompletions(id, getAuthHeaders())
       .then((remote) => {
         // remote와 local 병합 (remote 우선)
         setDoneSet((local) => {
@@ -190,18 +185,15 @@ export default function RoadmapPage() {
         })
       })
       .catch(() => {}) // 실패 시 로컬 유지
-  }, [id, userId, userToken])
+  }, [id, userId, getAuthHeaders])
 
   // ── 로그인 시 잔디 활동 로드 ─────────────────────────────────────
-  // FC-4: user 객체는 TOKEN_REFRESHED(~60초)마다 새로 생성되어 무한 호출 유발
-  // userId/userToken을 의존성으로 사용하여 실제 사용자 변경 시에만 재호출
   useEffect(() => {
-    if (!userId || !userToken) return
-    fetchActivity({ id: userId, accessToken: userToken }).then(setActivity).catch(() => {})
-  }, [userId, userToken])
+    if (!userId) return
+    fetchActivity(getAuthHeaders()).then(setActivity).catch(() => {})
+  }, [userId, getAuthHeaders])
 
   // ── 태스크 토글 ─────────────────────────────────────────────────
-  // FC-4 확장: user 대신 userId/userToken으로 TOKEN_REFRESHED 리렌더 방지
   const handleToggle = useCallback((taskId) => {
     setDoneSet((prev) => {
       const next = new Set(prev)
@@ -210,12 +202,12 @@ export default function RoadmapPage() {
       else next.delete(taskId)
       saveDoneLocal(id, next)
       // 로그인 시 Supabase에도 동기화
-      if (userId && userToken) {
-        toggleRemote(id, taskId, nowDone, { id: userId, accessToken: userToken }).catch(() => {})
+      if (userId) {
+        toggleRemote(id, taskId, nowDone, getAuthHeaders()).catch(() => {})
       }
       return next
     })
-  }, [id, userId, userToken])
+  }, [id, userId, getAuthHeaders])
 
   // ── 통계 ────────────────────────────────────────────────────────
   const { totalCount, completedCount, completionRate } = useMemo(() => {
@@ -262,7 +254,7 @@ export default function RoadmapPage() {
     try {
       const res = await request('/roadmap/reroute', {
         method: 'POST',
-        headers: authHeader(user),
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           original_role:     roadmap._meta?.role ?? 'backend',
           original_period:   reroutePeriod,
@@ -273,7 +265,25 @@ export default function RoadmapPage() {
           daily_study_hours: roadmap._meta?.daily_study_hours ?? '1to2h',
         }),
       })
-      const newId = saveRoadmapLocal({ ...res, _meta: { ...roadmap._meta, period: reroutePeriod } })
+      const rerouteMeta = { ...roadmap._meta, period: reroutePeriod }
+      const newId = saveRoadmapLocal({ ...res, _meta: rerouteMeta })
+
+      // I9: Reroute 결과를 Supabase에도 저장 (로컬 전용 문제 해결)
+      if (user) {
+        request('/roadmap/persist', {
+          method: 'POST',
+          headers: getAuthHeaders(),
+          body: JSON.stringify({
+            role:      rerouteMeta?.role ?? roadmap._meta?.role ?? 'backend',
+            period:    reroutePeriod,
+            roadmap:   res,
+            parent_id: id ?? null,
+          }),
+        }).catch((persistErr) => {
+          console.warn('[reroute] Supabase persist 실패 (로컬 저장은 완료):', persistErr)
+        })
+      }
+
       navigate(`/roadmap/${newId}`)
     } catch (e) {
       const msg = e.message === 'Failed to fetch'
@@ -321,68 +331,15 @@ export default function RoadmapPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
       {/* ── 헤더 ── */}
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-white/10 px-4 sm:px-6 py-4
-        flex items-center justify-between sticky top-0 z-20">
-        <button
-          onClick={() => navigate('/')}
-          className="text-lg font-black text-indigo-600 tracking-tight hover:opacity-80 transition-opacity"
-        >
-          Dev<span className="text-gray-800 dark:text-white">Navi</span>
-        </button>
-
-        <div className="flex items-center gap-2 sm:gap-3">
-          {/* 진행률 칩 */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/20 rounded-xl">
-            <div className="w-16 h-1.5 rounded-full bg-indigo-100 dark:bg-indigo-900/60 overflow-hidden">
-              <div className="h-full bg-indigo-500 rounded-full transition-all"
-                style={{ width: `${completionRate}%` }} />
-            </div>
-            <span className="text-xs font-bold text-indigo-700 dark:text-indigo-300">{Math.round(completionRate)}%</span>
-          </div>
-
-          {/* 잔디 토글 */}
-          {user && (
-            <button
-              onClick={() => setShowGrass((v) => !v)}
-              className={`text-xs px-3 py-1.5 rounded-xl font-medium transition-colors hidden sm:block
-                ${showGrass
-                  ? 'bg-indigo-600 text-white'
-                  : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
-                }`}>
-              🌱 활동
-            </button>
-          )}
-
-          {/* 테마 토글 + 인증 버튼 */}
-          <ThemeToggle />
-          {user ? (
-            <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs text-gray-400 dark:text-white/40 truncate max-w-[120px]">{user.email}</span>
-              <button
-                onClick={signOut}
-                className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/20 text-gray-500 dark:text-white/60 transition-colors"
-              >
-                로그아웃
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setAuthOpen(true)}
-              className="text-xs px-3 py-1.5 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors">
-              저장하기
-            </button>
-          )}
-
-          {/* 모바일 사이드바 토글 */}
-          <button
-            onClick={() => setSidebarOpen((v) => !v)}
-            className="sm:hidden p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
-            <svg className="w-5 h-5 text-gray-600 dark:text-white/60" fill="none" viewBox="0 0 20 20">
-              <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
-          </button>
-        </div>
-      </header>
+      <RoadmapHeader
+        completionRate={completionRate}
+        user={user}
+        showGrass={showGrass}
+        onToggleGrass={() => setShowGrass((v) => !v)}
+        onAuthOpen={() => setAuthOpen(true)}
+        onSidebarToggle={() => setSidebarOpen((v) => !v)}
+        signOut={signOut}
+      />
 
       {/* 자동 저장 실패 알림 */}
       {autoSaveError && (
@@ -526,93 +483,28 @@ export default function RoadmapPage() {
       </div>
 
       {/* ── 재탐색 기간 선택 모달 ── */}
-      {rerouteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          role="dialog" aria-modal="true" aria-label="방향 재설정"
-          onKeyDown={(e) => { if (e.key === 'Escape') { setRerouteModalOpen(false); setRerouteError(null) } }}>
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setRerouteModalOpen(false)} />
-          <div className="relative w-full max-w-sm bg-white dark:bg-gray-900 rounded-3xl shadow-2xl p-6 space-y-5">
-            {/* 헤더 */}
-            <div>
-              <p className="text-lg font-black text-gray-900 dark:text-white">🧭 방향 재설정</p>
-              <p className="text-sm text-gray-400 dark:text-white/40 mt-1">
-                현재 <span className="font-bold text-indigo-600 dark:text-indigo-400">{Math.round(completionRate)}%</span> 완료 ({completedCount}/{totalCount} 태스크)
-              </p>
-            </div>
-
-            {/* 남은 기간 선택 */}
-            <div className="space-y-2">
-              <p className="text-xs font-bold text-gray-500 dark:text-white/50 uppercase tracking-widest">남은 목표 기간 선택</p>
-              {[
-                { value: '1month',  label: '1개월',  sub: '집중 단기 완성' },
-                { value: '3months', label: '3개월',  sub: '균형잡힌 속도' },
-                { value: '6months', label: '6개월',  sub: '안정적인 학습' },
-                { value: '1year',   label: '12개월', sub: '여유있는 장기 플랜' },
-              ].map(({ value, label, sub }) => (
-                <button
-                  key={value}
-                  onClick={() => setReroutePeriod(value)}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-colors text-left
-                    ${reroutePeriod === value
-                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/20'
-                      : 'border-gray-100 dark:border-white/10 hover:border-indigo-300 dark:hover:border-indigo-500/40'
-                    }`}
-                >
-                  <span className={`text-sm font-bold ${reroutePeriod === value ? 'text-indigo-700 dark:text-indigo-300' : 'text-gray-700 dark:text-white/80'}`}>
-                    {label}
-                  </span>
-                  <span className="text-xs text-gray-400 dark:text-white/40">{sub}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* 재탐색 오류 메시지 */}
-            {rerouteError && (
-              <p className="text-red-500 dark:text-red-400 text-xs px-1">{rerouteError}</p>
-            )}
-
-            {/* 버튼 */}
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={() => { setRerouteModalOpen(false); setRerouteError(null) }}
-                className="flex-1 py-3 rounded-xl border border-gray-200 dark:border-white/10
-                  text-gray-500 dark:text-white/50 text-sm font-medium hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
-                취소
-              </button>
-              <button
-                onClick={handleRerouteConfirm}
-                disabled={rerouteLoading}
-                className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700
-                  text-white text-sm font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                재생성 시작
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <RerouteModal
+        open={rerouteModalOpen}
+        completionRate={completionRate}
+        completedCount={completedCount}
+        totalCount={totalCount}
+        reroutePeriod={reroutePeriod}
+        rerouteLoading={rerouteLoading}
+        rerouteError={rerouteError}
+        onPeriodChange={setReroutePeriod}
+        onConfirm={handleRerouteConfirm}
+        onClose={() => { setRerouteModalOpen(false); setRerouteError(null) }}
+      />
 
       {/* 인증 모달 */}
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
 
       {/* 커리어 분석 모달 */}
-      {showSummary && careerSummary && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-6"
-          role="dialog" aria-modal="true" aria-label="커리어 분석"
-          onKeyDown={(e) => { if (e.key === 'Escape') setShowSummary(false) }}>
-          {/* 배경 오버레이 */}
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowSummary(false)} />
-          {/* 패널 */}
-          <div className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-3xl shadow-2xl
-            max-h-[85vh] overflow-y-auto p-6 space-y-2">
-            <CareerSummaryPanel
-              summary={careerSummary}
-              onClose={() => setShowSummary(false)}
-            />
-          </div>
-        </div>
-      )}
+      <CareerSummaryModal
+        open={showSummary}
+        summary={careerSummary}
+        onClose={() => setShowSummary(false)}
+      />
 
       {/* AI 면책 고지 + 푸터 */}
       <div className="mt-auto">

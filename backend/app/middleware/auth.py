@@ -31,7 +31,8 @@ def _get_jwks_client() -> Optional[PyJWKClient]:
     global _jwks_client
     if _jwks_client is None and settings.SUPABASE_URL:
         jwks_url = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
-        _jwks_client = PyJWKClient(jwks_url, cache_keys=True)
+        # cache_keys=True + lifespan: 캐시 TTL 1시간 (3600초) — 무제한 캐시 방지
+        _jwks_client = PyJWKClient(jwks_url, cache_keys=True, lifespan=3600)
     return _jwks_client
 
 
@@ -82,7 +83,7 @@ def _verify_token_sync(token: str) -> dict:
             payload = jwt.decode(
                 token,
                 signing_key.key,
-                algorithms=["ES256", "RS256", "HS256"],
+                algorithms=["ES256", "RS256"],
                 audience="authenticated",
             )
             sub = payload.get("sub", "")

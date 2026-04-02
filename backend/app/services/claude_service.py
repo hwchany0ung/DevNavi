@@ -24,6 +24,14 @@ HAIKU  = "claude-haiku-4-5"    # 티저용 (빠르고 저렴)
 SONNET = "claude-sonnet-4-6"   # 전체 로드맵 + 재탐색
 
 # CloudFront idle-connection timeout = 60s → 55초마다 keepalive 전송
+# ⚠️  CloudFront + Lambda BUFFERED 모드 제약:
+#   BUFFERED 모드에서는 CloudFront가 응답 전체를 버퍼링하므로 SSE keepalive(:keepalive)가
+#   실제로 클라이언트에 전달되지 않습니다. keepalive는 RESPONSE_STREAM 모드에서만 유효합니다.
+#   현재 배포는 BUFFERED 모드(Mangum 기본값)이므로 SSE 스트리밍이 실제로는 지연 후 일괄 전달됩니다.
+#   대안:
+#     1. Lambda Response Streaming(RESPONSE_STREAM) 모드로 전환 — 이벤트 루프 생명주기 재검증 필요
+#     2. 클라이언트가 SSE 대신 폴링(polling) 방식으로 진행률을 확인
+#   단, 로드맵 JSON 자체는 [DONE] 수신 후 일괄 파싱하므로 BUFFERED에서도 기능상 동작 가능.
 _KEEPALIVE_INTERVAL = 55
 
 _logger = logging.getLogger(__name__)
@@ -40,6 +48,14 @@ def _get_client() -> anthropic.AsyncAnthropic:
             timeout=120.0,
         )
     return _client
+
+
+async def close_anthropic_client() -> None:
+    """앱 종료 시 Anthropic 클라이언트 리소스 정리 (httpx 커넥션 풀 해제)."""
+    global _client
+    if _client is not None:
+        await _client.close()
+        _client = None
 
 
 async def stream_teaser(system: str, user: str) -> AsyncGenerator[str, None]:

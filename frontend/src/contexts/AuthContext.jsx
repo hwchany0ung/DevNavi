@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { supabase, isSupabaseReady, cleanAuthParams } from '../lib/supabase'
 import { request } from '../lib/api'
 
@@ -15,6 +15,8 @@ export function AuthProvider({ children }) {
   const [user, setUser]     = useState(null)
   const [loading, setLoading] = useState(isSupabaseReady)
   const [error, setError]   = useState(null)
+  // accessToken은 Context value에 직접 노출하지 않고 ref에 보관
+  const accessTokenRef = useRef(null)
 
   useEffect(() => {
     if (!isSupabaseReady) return
@@ -22,6 +24,7 @@ export function AuthProvider({ children }) {
     supabase.auth.getSession()
       .then(({ data: { session }, error }) => {
         if (error) console.warn('[AuthProvider] getSession 오류:', error.message)
+        accessTokenRef.current = session?.access_token ?? null
         setUser(session ? _toUser(session) : null)
         setLoading(false)
       })
@@ -69,6 +72,7 @@ export function AuthProvider({ children }) {
       if (event === 'TOKEN_REFRESHED') {
         cleanAuthParams()
       }
+      accessTokenRef.current = session?.access_token ?? null
       setUser(session ? _toUser(session) : null)
     })
 
@@ -120,6 +124,7 @@ export function AuthProvider({ children }) {
         .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme' && !k.startsWith('devnavi_consent_sent_'))
         .forEach((k) => localStorage.removeItem(k))
     } catch { /* localStorage 접근 실패 무시 */ }
+    accessTokenRef.current = null
     setUser(null)
   }, [])
 
@@ -139,11 +144,22 @@ export function AuthProvider({ children }) {
     return !err
   }, [])
 
+  /**
+   * C2 보안 수정: accessToken을 Context value에 직접 노출하지 않고,
+   * Authorization 헤더 객체를 반환하는 함수만 공개한다.
+   * 외부 컴포넌트는 user.accessToken 대신 getAuthHeaders()를 사용할 것.
+   */
+  const getAuthHeaders = useCallback(() => {
+    const token = accessTokenRef.current
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  }, [])
+
   return (
     <AuthContext.Provider value={{
       user, loading, error,
       signInWithEmail, signUpWithEmail, signInWithGoogle,
       signOut, resetPasswordForEmail, updatePassword,
+      getAuthHeaders,
     }}>
       {children}
     </AuthContext.Provider>
@@ -157,9 +173,9 @@ export function useAuth() {
 }
 
 function _toUser(session) {
+  // C2: accessToken은 user 객체에 포함하지 않음 — accessTokenRef에 별도 보관
   return {
-    id:          session.user.id,
-    email:       session.user.email,
-    accessToken: session.access_token,
+    id:    session.user.id,
+    email: session.user.email,
   }
 }

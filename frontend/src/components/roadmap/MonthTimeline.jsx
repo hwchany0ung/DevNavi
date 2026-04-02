@@ -1,7 +1,10 @@
+import { memo } from 'react'
+
 /**
  * 월 네비게이션 — 좌측 사이드바 하단 스크롤 리스트
+ * React.memo로 감싸 불필요한 재렌더링 방지 (I22)
  */
-export default function MonthTimeline({ months, activeMonth, doneSet, onSelect }) {
+const MonthTimeline = memo(function MonthTimeline({ months, activeMonth, doneSet, onSelect }) {
   return (
     <nav className="space-y-1">
       <p className="text-xs font-semibold text-gray-400 dark:text-white/60 uppercase tracking-widest px-1 mb-2">
@@ -56,4 +59,6 @@ export default function MonthTimeline({ months, activeMonth, doneSet, onSelect }
       })}
     </nav>
   )
-}
+})
+
+export default MonthTimeline

@@ -20,14 +20,34 @@ function _parseError(err, status) {
 }
 
 /**
+ * 현재 Supabase 세션 토큰을 자동으로 주입한 Authorization 헤더 반환.
+ * 세션이 없거나 Supabase 미연동 시 빈 객체 반환.
+ */
+async function _getAutoAuthHeader() {
+  if (!supabase) return {}
+  try {
+    const { data } = await supabase.auth.getSession()
+    const token = data?.session?.access_token
+    return token ? { Authorization: `Bearer ${token}` } : {}
+  } catch {
+    return {}
+  }
+}
+
+/**
  * 일반 REST 요청.
- * 401 응답 시 Supabase 세션 갱신 후 1회 자동 재시도 (I12).
+ * - Authorization 헤더가 없으면 Supabase 세션 토큰을 자동 주입 (I20).
+ * - 401 응답 시 Supabase 세션 갱신 후 1회 자동 재시도 (I12).
  */
 export async function request(path, options = {}) {
   const { headers: extraHeaders = {}, ...rest } = options
 
+  // I20: Authorization이 명시되지 않은 경우 세션 토큰 자동 주입
+  const autoAuth = extraHeaders.Authorization ? {} : await _getAutoAuthHeader()
+  const mergedHeaders = { ...autoAuth, ...extraHeaders }
+
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...extraHeaders },
+    headers: { 'Content-Type': 'application/json', ...mergedHeaders },
     ...rest,
   })
 

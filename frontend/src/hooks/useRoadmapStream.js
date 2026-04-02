@@ -3,11 +3,39 @@ import { v4 as uuidv4 } from 'uuid'
 import { streamSSE } from '../lib/api'
 
 const LS_PREFIX = 'devnavi_roadmap_'
+const LS_MAX_COUNT = 5          // 최대 보관 개수
+const LS_MAX_BYTES = 50 * 1024  // 50KB
 
-/** localStorage에 로드맵 저장 */
+/**
+ * localStorage 로드맵 저장 — 최대 5개, 50KB 제한.
+ * 초과 시 가장 오래된 항목부터 제거 (LRU 방식).
+ */
 export function saveRoadmapLocal(roadmap) {
   const id = uuidv4()
-  localStorage.setItem(LS_PREFIX + id, JSON.stringify(roadmap))
+  const serialized = JSON.stringify(roadmap)
+
+  // 50KB 초과 시 저장 스킵 (기존 항목 보호)
+  if (serialized.length > LS_MAX_BYTES) {
+    console.warn('[saveRoadmapLocal] 로드맵이 50KB를 초과하여 저장을 건너뜁니다.')
+    return id
+  }
+
+  try {
+    // 기존 로드맵 키 목록 (삽입 순서 기준)
+    const existingKeys = Object.keys(localStorage)
+      .filter((k) => k.startsWith(LS_PREFIX))
+
+    // 최대 개수 초과 시 가장 오래된 항목 제거
+    if (existingKeys.length >= LS_MAX_COUNT) {
+      const toRemove = existingKeys.slice(0, existingKeys.length - LS_MAX_COUNT + 1)
+      toRemove.forEach((k) => localStorage.removeItem(k))
+    }
+
+    localStorage.setItem(LS_PREFIX + id, serialized)
+  } catch (e) {
+    // QuotaExceededError 등 스토리지 꽉 찬 경우
+    console.warn('[saveRoadmapLocal] localStorage 저장 실패:', e)
+  }
   return id
 }
 
@@ -100,10 +128,13 @@ export function useRoadmapStream({ onSaved, onError } = {}) {
       },
       headers,
       (progressEvt) => {
-        // 백엔드: { type:'progress', current: N, total: M }
-        if (progressEvt.total > 0) {
-          multicallTotal = progressEvt.total
-          setProgress(Math.min(Math.round((progressEvt.current / progressEvt.total) * 95), 95))
+        // 백엔드: { type:'progress', step: N, total: M }
+        // I10: 백엔드 필드명(step)과 일치하도록 수정 (current → step)
+        const step  = progressEvt.step  ?? progressEvt.current ?? 0
+        const total = progressEvt.total ?? 0
+        if (total > 0) {
+          multicallTotal = total
+          setProgress(Math.min(Math.round((step / total) * 95), 95))
         }
       },
     )

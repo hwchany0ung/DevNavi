@@ -40,8 +40,8 @@ export default function App() {
       <Route path="/roadmap/:id" element={<RoadmapPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
-      {/* 관리자 대시보드: 서버에서 role='admin' 검증, 비인가 접근 시 홈 리다이렉트 */}
-      <Route path="/admin" element={<AdminPage />} />
+      {/* 관리자 대시보드: PrivateRoute로 인증 필수 + 서버에서 role='admin' 추가 검증 */}
+      <Route path="/admin" element={<PrivateRoute><AdminPage /></PrivateRoute>} />
       {/* BUG-003: /dashboard 미인증 접근 시 홈으로, 인증 시 최근 로드맵으로 */}
       <Route path="/dashboard" element={<PrivateRoute><DashboardRedirect /></PrivateRoute>} />
       {/* BUG-004: /roadmap (ID 없음) 접근 시 홈으로 */}

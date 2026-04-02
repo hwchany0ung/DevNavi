@@ -61,6 +61,26 @@ const STUDY_HOURS = [
 ]
 
 const MAX_TAGS = 15  // FI-11: 스킬/자격증 최대 개수 제한
+const MAX_TAG_LENGTH = 50  // C3: 태그당 최대 길이 제한
+
+/**
+ * C3: 프롬프트 인젝션 방어용 태그 sanitize 함수.
+ * - 특수문자(<, >, ", \) 제거
+ * - 과도한 개행/공백 정리
+ * - 프롬프트 구분자 패턴 제거 (예: ---, ===, [INST], <s>, ###)
+ * - 길이 제한 적용 (MAX_TAG_LENGTH)
+ */
+function sanitizeTag(raw) {
+  return raw
+    .replace(/[<>"\\]/g, '')            // HTML·이스케이프 특수문자 제거
+    .replace(/\n+/g, ' ')               // 개행을 공백으로 치환
+    .replace(/\s{2,}/g, ' ')            // 연속 공백 정규화
+    .replace(/[-=]{3,}/g, '')           // 구분자 패턴(---, ===) 제거
+    .replace(/#{2,}/g, '')              // 마크다운 헤더 패턴(##) 제거
+    .replace(/\[INST\]|\[\/INST\]|<s>|<\/s>/gi, '')  // LLM 프롬프트 태그 제거
+    .trim()
+    .slice(0, MAX_TAG_LENGTH)
+}
 
 /** 버튼 토글 + 직접 입력 공통 컴포넌트 */
 function TagSelector({ suggestions, selected, onToggle, onAdd, placeholder }) {
@@ -70,7 +90,7 @@ function TagSelector({ suggestions, selected, onToggle, onAdd, placeholder }) {
     if ((e.key === 'Enter' || e.key === ',') && input.trim()) {
       e.preventDefault()
       if (selected.length >= MAX_TAGS) return
-      const val = input.trim().replace(/,$/, '')
+      const val = sanitizeTag(input.trim().replace(/,$/, ''))
       if (val) onAdd(val)
       setInput('')
     }
@@ -120,7 +140,7 @@ function TagSelector({ suggestions, selected, onToggle, onAdd, placeholder }) {
         />
         {input.trim() && (
           <button type="button"
-            onClick={() => { onAdd(input.trim()); setInput('') }}
+            onClick={() => { const val = sanitizeTag(input.trim()); if (val) onAdd(val); setInput('') }}
             className="text-xs text-indigo-500 dark:text-indigo-400 font-bold hover:text-indigo-700 dark:hover:text-indigo-300">
             추가
           </button>

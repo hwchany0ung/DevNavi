@@ -194,7 +194,7 @@ function EndpointTable({ breakdown }) {
 // ── 메인 페이지 ──────────────────────────────────────────────────
 
 export default function AdminPage() {
-  const { user, loading: authLoading } = useAuth()
+  const { user, loading: authLoading, getAuthHeaders } = useAuth()
   const navigate   = useNavigate()
   const [stats,    setStats]    = useState(null)
   const [errors,   setErrors]   = useState(null)
@@ -203,16 +203,12 @@ export default function AdminPage() {
   const [authErr,  setAuthErr]  = useState(false)
   const timerRef = useRef(null)
 
-  const authHeader = useCallback(() =>
-    user?.accessToken ? { Authorization: `Bearer ${user.accessToken}` } : {}
-  , [user])
-
   const fetchAll = useCallback(async () => {
     if (!user) return
     try {
       const [s, e] = await Promise.all([
-        request('/admin/stats',  { headers: authHeader() }),
-        request('/admin/errors', { headers: authHeader() }),
+        request('/admin/stats',  { headers: getAuthHeaders() }),
+        request('/admin/errors', { headers: getAuthHeaders() }),
       ])
       setStats(s)
       setErrors(e)
@@ -226,7 +222,7 @@ export default function AdminPage() {
     } finally {
       setLoading(false)
     }
-  }, [user, authHeader])
+  }, [user, getAuthHeaders])
 
   // 인증 완료 후 데이터 로드
   useEffect(() => {

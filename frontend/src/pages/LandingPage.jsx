@@ -1,40 +1,41 @@
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { useTheme } from '../contexts/ThemeContext'
 import { request } from '../lib/api'
 import AuthModal from '../components/auth/AuthModal'
 import ThemeToggle from '../components/common/ThemeToggle'
+import { makeThemeHelper } from '../utils/i18n'
 
 import HeroPreview from '../components/landing/HeroPreview'
 
 /* ── 메인 랜딩 페이지 ── */
 export default function LandingPage() {
-  const { user, loading, signOut } = useAuth()
+  const { user, loading, signOut, getAuthHeaders } = useAuth()
   const { theme } = useTheme()
   const isDark = theme === 'dark'
   const navigate = useNavigate()
   const [authOpen, setAuthOpen] = useState(false)
   const [isAdmin, setIsAdmin]   = useState(false)
 
-  /* 테마 헬퍼 */
-  const t = (d, l) => isDark ? d : l
+  /* 테마 헬퍼 — 공통 유틸 사용 (I23) */
+  const t = makeThemeHelper(isDark)
 
   useEffect(() => {
     document.title = 'DevNavi — AI 맞춤 커리어 로드맵'
   }, [])
 
   useEffect(() => {
-    if (!user?.accessToken) { setIsAdmin(false); return }
-    request('/admin/me', { headers: { Authorization: `Bearer ${user.accessToken}` } })
+    if (!user) { setIsAdmin(false); return }
+    request('/admin/me', { headers: getAuthHeaders() })
       .then(() => setIsAdmin(true))
       .catch(() => setIsAdmin(false))
-  }, [user])
+  }, [user, getAuthHeaders])
 
   const goToMyRoadmap = useCallback(() => {
-    if (!user?.accessToken) { navigate('/onboarding'); return }
+    if (!user) { navigate('/onboarding'); return }
     // FI-8: 서버 API 우선 조회 (UUID 정렬은 시간순과 무관하므로 DB가 정확)
-    request('/roadmap/my', { headers: { Authorization: `Bearer ${user.accessToken}` } })
+    request('/roadmap/my', { headers: getAuthHeaders() })
       .then(({ roadmap_id }) => {
         if (roadmap_id) { navigate(`/roadmap/${roadmap_id}`); return }
         // 서버에 없으면 localStorage 폴백 (미저장 로컬 로드맵)
@@ -49,7 +50,7 @@ export default function LandingPage() {
         navigate('/onboarding')
       })
       .catch(() => navigate('/onboarding'))
-  }, [user, navigate])
+  }, [user, navigate, getAuthHeaders])
 
   if (loading) {
     return (
@@ -388,8 +389,8 @@ export default function LandingPage() {
         ${t('border-white/[0.06] text-white/20', 'border-slate-200 text-slate-400')}`}>
         <div className="flex flex-wrap items-center justify-center gap-4">
           <span>© {new Date().getFullYear()} DevNavi. All rights reserved.</span>
-          <a href="/terms"   className={`transition-colors ${t('hover:text-white/40', 'hover:text-slate-600')}`}>이용약관</a>
-          <a href="/privacy" className={`transition-colors ${t('hover:text-white/40', 'hover:text-slate-600')}`}>개인정보처리방침</a>
+          <Link to="/terms"   className={`transition-colors ${t('hover:text-white/40', 'hover:text-slate-600')}`}>이용약관</Link>
+          <Link to="/privacy" className={`transition-colors ${t('hover:text-white/40', 'hover:text-slate-600')}`}>개인정보처리방침</Link>
           <a href="mailto:support@devnavi.kr" className={`transition-colors ${t('hover:text-white/40', 'hover:text-slate-600')}`}>문의</a>
         </div>
       </footer>

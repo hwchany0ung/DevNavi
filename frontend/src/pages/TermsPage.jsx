@@ -61,29 +61,29 @@ export default function TermsPage() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-950">
       <div className="max-w-2xl mx-auto px-6 py-12">
         <button
           onClick={() => navigate(-1)}
-          className="text-sm text-gray-400 hover:text-gray-600 mb-8 flex items-center gap-1"
+          className="text-sm text-gray-400 dark:text-white/50 hover:text-gray-600 dark:hover:text-white/70 mb-8 flex items-center gap-1"
         >
           ← 뒤로가기
         </button>
 
-        <h1 className="text-2xl font-black text-gray-900 mb-2">이용약관</h1>
-        <p className="text-sm text-gray-400 mb-10">최종 업데이트: 2025년 1월 1일</p>
+        <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">이용약관</h1>
+        <p className="text-sm text-gray-400 dark:text-white/40 mb-10">최종 업데이트: 2025년 1월 1일</p>
 
         <div className="space-y-8">
           {sections.map(({ title, content }) => (
             <section key={title}>
-              <h2 className="text-sm font-bold text-gray-800 mb-2">{title}</h2>
-              <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{content}</p>
+              <h2 className="text-sm font-bold text-gray-800 dark:text-white/90 mb-2">{title}</h2>
+              <p className="text-sm text-gray-600 dark:text-white/60 leading-relaxed whitespace-pre-line">{content}</p>
             </section>
           ))}
         </div>
 
-        <div className="mt-12 pt-6 border-t border-gray-100 text-xs text-gray-400">
-          문의: <a href="mailto:support@devnavi.kr" className="text-indigo-500">support@devnavi.kr</a>
+        <div className="mt-12 pt-6 border-t border-gray-100 dark:border-white/10 text-xs text-gray-400 dark:text-white/40">
+          문의: <a href="mailto:support@devnavi.kr" className="text-indigo-500 dark:text-indigo-400">support@devnavi.kr</a>
         </div>
       </div>
     </div>

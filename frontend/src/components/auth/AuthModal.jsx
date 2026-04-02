@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { isSupabaseReady } from '../../lib/supabase'
 import { validatePassword, PASSWORD_ERROR_MSG } from '../../lib/validation'
@@ -31,6 +32,9 @@ export default function AuthModal({ open, onClose }) {
 
   const { signInWithEmail, signUpWithEmail, signInWithGoogle, resetPasswordForEmail, error, user } = useAuth()
 
+  // 포커스 트래핑용 ref
+  const modalRef = useRef(null)
+
   // 다른 탭(이메일 인증 탭)에서 로그인 완료되면 모달 자동 닫힘
   // Supabase onAuthStateChange는 localStorage 기반으로 모든 탭에 동기화됨
   useEffect(() => {
@@ -44,6 +48,23 @@ export default function AuthModal({ open, onClose }) {
       setSuccess('')
     }
   }, [open])
+
+  // 포커스 트래핑 + ESC 닫기
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Escape') { onClose(); return }
+    if (e.key !== 'Tab') return
+    const focusable = modalRef.current?.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    if (!focusable || focusable.length === 0) return
+    const first = focusable[0]
+    const last  = focusable[focusable.length - 1]
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus() }
+    } else {
+      if (document.activeElement === last)  { e.preventDefault(); first.focus() }
+    }
+  }, [onClose])
 
   if (!open) return null
 
@@ -153,9 +174,11 @@ export default function AuthModal({ open, onClose }) {
       <div
         className="fixed inset-0 bg-black/50 z-50 overflow-y-auto"
         onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
+        onKeyDown={handleKeyDown}
+        role="dialog" aria-modal="true" aria-label={mode === 'login' ? '로그인' : mode === 'signup' ? '회원가입' : '비밀번호 재설정'}
       >
         <div className="min-h-full flex items-end sm:items-center justify-center p-0 sm:p-4">
-          <div className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-sm p-7 space-y-5
+          <div ref={modalRef} className="bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full sm:max-w-sm p-7 space-y-5
             border-t border-gray-100 dark:border-white/10">
 
             {/* 헤더 */}
@@ -297,8 +320,8 @@ export default function AuthModal({ open, onClose }) {
                     />
                     <span className="text-xs text-gray-500 dark:text-white/60 leading-relaxed">
                       (필수){' '}
-                      <a href="/terms" target="_blank" rel="noopener noreferrer"
-                        className="text-indigo-600 dark:text-indigo-400 underline">이용약관</a>에 동의합니다
+                      <Link to="/terms" target="_blank" rel="noopener noreferrer"
+                        className="text-indigo-600 dark:text-indigo-400 underline">이용약관</Link>에 동의합니다
                     </span>
                   </label>
                   <label className="flex items-start gap-2 cursor-pointer">

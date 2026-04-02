@@ -1,3 +1,5 @@
+import { useRef, useEffect, useCallback } from 'react'
+
 /**
  * 개인정보 수집 및 이용 동의 모달
  *
@@ -6,14 +8,39 @@
  * @param {function} onDisagree  — "동의하지 않음" 클릭
  */
 export default function PrivacyConsentModal({ open, onAgree, onDisagree }) {
+  const modalRef  = useRef(null)
+  const agreeBtnRef = useRef(null)
+
+  useEffect(() => {
+    if (open) agreeBtnRef.current?.focus()
+  }, [open])
+
+  const handleKeyDown = useCallback((e) => {
+    if (e.key === 'Escape') { onDisagree(); return }
+    if (e.key !== 'Tab') return
+    const focusable = modalRef.current?.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    )
+    if (!focusable || focusable.length === 0) return
+    const first = focusable[0]
+    const last  = focusable[focusable.length - 1]
+    if (e.shiftKey) {
+      if (document.activeElement === first) { e.preventDefault(); last.focus() }
+    } else {
+      if (document.activeElement === last)  { e.preventDefault(); first.focus() }
+    }
+  }, [onDisagree])
+
   if (!open) return null
 
   return (
     <div
       className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4"
+      role="dialog" aria-modal="true" aria-label="개인정보 수집 및 이용 동의"
       onClick={(e) => { if (e.target === e.currentTarget) onDisagree() }}
+      onKeyDown={handleKeyDown}
     >
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4
+      <div ref={modalRef} className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4
         border border-gray-100 dark:border-white/10">
 
         <h3 className="text-base font-black text-gray-900 dark:text-white">
@@ -55,6 +82,7 @@ export default function PrivacyConsentModal({ open, onAgree, onDisagree }) {
             동의하지 않음
           </button>
           <button
+            ref={agreeBtnRef}
             onClick={onAgree}
             className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700
               text-white text-sm font-bold transition-colors"

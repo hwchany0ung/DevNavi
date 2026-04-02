@@ -6,6 +6,7 @@ import ExistingRoadmapModal from '../components/onboarding/ExistingRoadmapModal'
 import Step1Form from '../components/onboarding/Step1Form'
 import Step2Form from '../components/onboarding/Step2Form'
 import TeaserStream from '../components/onboarding/TeaserStream'
+import FullRoadmapLoading from '../components/onboarding/FullRoadmapLoading'
 import CareerSummaryPanel from '../components/roadmap/CareerSummaryPanel'
 import AuthModal from '../components/auth/AuthModal'
 import { useSSE } from '../hooks/useSSE'
@@ -129,57 +130,10 @@ function isStep2Complete(v) {
   return !!v.daily_study_hours
 }
 
-/** 전체 로드맵 생성 중 로딩 화면 */
-function FullRoadmapLoading({ progress }) {
-  const [timerProgress, setTimerProgress] = useState(0)
-
-  // Lambda/CloudFront SSE 버퍼링으로 청크가 한꺼번에 도착할 수 있어
-  // 청크 카운트 기반 progress가 0에 머무는 문제를 타이머로 보완
-  useEffect(() => {
-    const DURATION = 75000 // 75초에 90%까지 (ease-out 곡선)
-    const start = Date.now()
-    const id = setInterval(() => {
-      const ratio = Math.min((Date.now() - start) / DURATION, 1)
-      // ease-out: 처음엔 빠르게, 마지막엔 느리게
-      setTimerProgress(Math.round(90 * (1 - Math.pow(1 - ratio, 2))))
-    }, 600)
-    return () => clearInterval(id)
-  }, [])
-
-  // 청크 기반 progress와 타이머 중 더 큰 값 사용
-  const display = Math.max(progress, timerProgress)
-
-  return (
-    <div className="rounded-2xl bg-white dark:bg-white/5 border border-indigo-100 dark:border-indigo-500/20 shadow-sm p-8 text-center space-y-5">
-      <div className="flex gap-1 justify-center">
-        {[0, 1, 2].map((i) => (
-          <span key={i} className="w-3 h-3 rounded-full bg-indigo-400 animate-bounce"
-            style={{ animationDelay: `${i * 0.15}s` }} />
-        ))}
-      </div>
-      <div>
-        <p className="text-gray-700 dark:text-white/80 font-bold text-sm">
-          AI가 맞춤 로드맵을 생성하고 있어요 ✨
-        </p>
-        <p className="text-gray-400 dark:text-white/70 text-xs mt-1">
-          스킬·목표 회사·학습 시간을 모두 반영 중…
-        </p>
-      </div>
-      {/* 진행 바 */}
-      <div className="w-full h-2 rounded-full bg-indigo-100 dark:bg-indigo-900/40 overflow-hidden">
-        <div
-          className="h-full bg-indigo-500 rounded-full transition-all duration-700"
-          style={{ width: `${display}%` }}
-        />
-      </div>
-      <p className="text-xs text-indigo-400 font-medium">{display}%</p>
-    </div>
-  )
-}
 
 export default function OnboardingPage() {
   const navigate = useNavigate()
-  const { user, signOut } = useAuth()
+  const { user, signOut, getAuthHeaders } = useAuth()
 
   useEffect(() => {
     document.title = '시작하기 — DevNavi'
@@ -226,10 +180,10 @@ export default function OnboardingPage() {
     }
 
     // localStorage에 없으면 서버 조회 (다른 기기 또는 로그아웃 후 재로그인)
-    request('/roadmap/my', { headers: { Authorization: `Bearer ${user.accessToken}` } })
+    request('/roadmap/my', { headers: getAuthHeaders() })
       .then(({ roadmap_id }) => { if (roadmap_id) setExistingRoadmapId(roadmap_id) })
       .catch(() => {}) // 실패 시 신규 생성으로 진행
-  }, [user])
+  }, [user, getAuthHeaders])
 
   // ── Google OAuth 리다이렉트 복원 ──────────────────────────────────
   // Google로 로그인하면 /onboarding으로 리다이렉트됨 → 폼 상태 복원
@@ -261,7 +215,7 @@ export default function OnboardingPage() {
     try {
       const data = await request('/roadmap/career-summary', {
         method: 'POST',
-        headers: user ? { Authorization: `Bearer ${user.accessToken}` } : {},
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           role,
           period,
@@ -273,11 +227,12 @@ export default function OnboardingPage() {
       })
       setCareerSummary(data)
     } catch (e) {
-      setSummaryError(e?.message || '오류가 발생했어요. 다시 시도해주세요.')
+      // I12: Error 객체를 그대로 저장하여 status(429 등) 구분 가능하게 처리
+      setSummaryError(e instanceof Error ? e : new Error(e?.message || '오류가 발생했어요. 다시 시도해주세요.'))
     } finally {
       setSummaryLoading(false)
     }
-  }, [user])  // step1/step2 replaced with refs
+  }, [user, getAuthHeaders])  // step1/step2 replaced with refs
 
   // ── 로그인 완료 감지 → pending 액션 실행 ─────────────────────────
   useEffect(() => {
@@ -286,7 +241,13 @@ export default function OnboardingPage() {
       pendingActionRef.current = null
       setShowAuth(false)
       _doCareerSummary()
+    } else if (pendingActionRef.current === 'generate') {
+      pendingActionRef.current = null
+      setShowAuth(false)
+      // 로그인 완료 후 generate 재실행 — 인증 상태가 갱신된 후 호출
+      handleStartGenerate()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- handleStartGenerate는 안정적 참조
   }, [user, _doCareerSummary])
 
   // 티저 스트리밍
@@ -327,7 +288,7 @@ export default function OnboardingPage() {
       try {
         const { roadmap_id: serverId } = await request('/roadmap/persist', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${user.accessToken}` },
+          headers: getAuthHeaders(),
           body: JSON.stringify({
             role: step1Ref.current.role,
             period: step1Ref.current.period,
@@ -349,7 +310,7 @@ export default function OnboardingPage() {
     }
 
     navigate(`/roadmap/${id}`)
-  }, [user, careerSummary, navigate])  // step1/step2 replaced with refs
+  }, [user, careerSummary, navigate, getAuthHeaders])  // step1/step2 replaced with refs
 
   // 전체 로드맵 스트리밍
   const { isStreaming: fullStreaming, progress, error: fullError, start: startFull, stop: stopFull } = useRoadmapStream({
@@ -393,6 +354,13 @@ export default function OnboardingPage() {
   // summary 스텝 → 전체 로드맵 SSE 스트리밍 (캐시 우선 확인)
   const handleStartGenerate = () => {
     if (fullStreaming || generatingRef.current) return
+    // I8: 미인증 시 로그인 모달 표시 (generate는 인증 필수)
+    if (!user) {
+      sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ step1, step2 }))
+      pendingActionRef.current = 'generate'
+      setShowAuth(true)
+      return
+    }
     generatingRef.current = true
 
     // ── 보관된 로드맵 캐시 확인 ─────────────────────────────────────
@@ -417,7 +385,7 @@ export default function OnboardingPage() {
         company_type: step2.company_type,
         daily_study_hours: step2.daily_study_hours,
       },
-      user ? { Authorization: `Bearer ${user.accessToken}` } : {},
+      getAuthHeaders(),
     )
     // generatingRef.current은 onSaved/onError 콜백에서 리셋 (스트리밍 완료 전 중복 클릭 방지)
   }
@@ -613,12 +581,22 @@ export default function OnboardingPage() {
               </div>
             ) : summaryError ? (
               <div className="rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-6 text-center space-y-3">
-                <p className="text-red-600 dark:text-red-400 font-semibold text-sm">분석 중 오류가 발생했어요</p>
-                <p className="text-red-400 dark:text-red-400/70 text-xs">{summaryError}</p>
-                <button onClick={_doCareerSummary}
-                  className="px-5 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors">
-                  다시 시도
-                </button>
+                {/* I12: 429 Too Many Requests 전용 메시지 */}
+                {summaryError?.status === 429 ? (
+                  <>
+                    <p className="text-orange-600 dark:text-orange-400 font-semibold text-sm">일일 사용 한도에 도달했어요</p>
+                    <p className="text-orange-400 dark:text-orange-400/70 text-xs">잠시 후 다시 시도해주세요. 내일 한도가 초기화됩니다.</p>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-red-600 dark:text-red-400 font-semibold text-sm">분석 중 오류가 발생했어요</p>
+                    <p className="text-red-400 dark:text-red-400/70 text-xs">{summaryError?.message ?? summaryError}</p>
+                    <button onClick={_doCareerSummary}
+                      className="px-5 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors">
+                      다시 시도
+                    </button>
+                  </>
+                )}
               </div>
             ) : careerSummary ? (
               <div className="rounded-2xl bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/10 p-5">
@@ -632,13 +610,23 @@ export default function OnboardingPage() {
                 <FullRoadmapLoading progress={progress} />
               ) : fullError ? (
                 <div className="rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 p-6 text-center space-y-3">
-                  <p className="text-red-600 dark:text-red-400 font-semibold text-sm">로드맵 생성 중 오류가 발생했어요</p>
-                  <p className="text-red-400 dark:text-red-400/70 text-xs">{fullError.message}</p>
-                  <button
-                    onClick={handleStartGenerate}
-                    className="px-5 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors">
-                    다시 시도
-                  </button>
+                  {/* I12: 429 Too Many Requests 전용 메시지 */}
+                  {fullError.status === 429 ? (
+                    <>
+                      <p className="text-orange-600 dark:text-orange-400 font-semibold text-sm">일일 사용 한도에 도달했어요</p>
+                      <p className="text-orange-400 dark:text-orange-400/70 text-xs">잠시 후 다시 시도해주세요. 내일 한도가 초기화됩니다.</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-red-600 dark:text-red-400 font-semibold text-sm">로드맵 생성 중 오류가 발생했어요</p>
+                      <p className="text-red-400 dark:text-red-400/70 text-xs">{fullError.message}</p>
+                      <button
+                        onClick={handleStartGenerate}
+                        className="px-5 py-2 bg-red-500 text-white text-sm font-bold rounded-xl hover:bg-red-600 transition-colors">
+                        다시 시도
+                      </button>
+                    </>
+                  )}
                 </div>
               ) : (
                 <button

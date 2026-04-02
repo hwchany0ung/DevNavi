@@ -19,6 +19,7 @@ from app.core.supabase_client import close_supabase_client, get_supabase_client,
 from app.api.roadmap import router as roadmap_router
 from app.api.admin import router as admin_router, save_error_log
 from app.api.auth import router as auth_router
+from app.services.claude_service import close_anthropic_client
 
 logger = logging.getLogger(__name__)
 
@@ -28,8 +29,9 @@ async def lifespan(app: FastAPI):
     """앱 시작/종료 라이프사이클 훅."""
     # startup: lazy-initialized 클라이언트들은 첫 요청 시 자동 생성
     yield
-    # shutdown: Supabase httpx 클라이언트 정상 종료
+    # shutdown: Supabase httpx 클라이언트 및 Anthropic 클라이언트 정상 종료
     await close_supabase_client()
+    await close_anthropic_client()
 
 
 _is_dev = settings.ENV == "development"
@@ -150,6 +152,11 @@ class ErrorLoggingMiddleware:
         await self.app(scope, receive, send_wrapper)
 
         if status_ref["code"] >= 500 and path not in _LOG_SKIP_PATHS:
+            # Lambda 환경에서 CloudWatch로 에러가 올바르게 전달되도록 즉시 로깅
+            logger.error(
+                "5xx error: method=%s path=%s status=%d",
+                method, path, status_ref["code"],
+            )
             task = asyncio.create_task(
                 save_error_log(
                     method=method,
