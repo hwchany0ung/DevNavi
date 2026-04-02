@@ -3,6 +3,14 @@ Supabase httpx 클라이언트 공유 모듈.
 
 - 싱글턴 AsyncClient (연결 풀 재사용 — 매 요청마다 TCP 핸드셰이크 방지)
 - 공통 헤더 / URL 생성 헬퍼 (roadmap_service + auth 중복 제거)
+
+[Thread-safety 주의사항]
+AWS Lambda는 단일 이벤트 루프에서 단일 요청을 처리하므로
+동일 인스턴스 내에서는 thread-safe하다.
+단, Lambda Concurrent Invocations(동시 실행)는 별도 컨테이너 인스턴스를
+각각 생성하므로 싱글턴이 공유되지 않는다 — 인스턴스 간 상태 공유는 없음.
+콜드 스타트 시 _client=None에서 초기화되며, 웜 인스턴스 재사용 시
+기존 연결 풀을 그대로 활용한다.
 """
 import httpx
 from app.core.config import settings

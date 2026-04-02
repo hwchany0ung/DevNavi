@@ -15,6 +15,7 @@ ROLE_MAP = {
 PERIOD_MAP = {
     "3months":    3,
     "6months":    6,
+    "1month":     1,   # M6: RerouteRequest.original_period에서 사용되는 값 추가
     "1year":     12,
     "1year_plus": 18,
 }

@@ -50,6 +50,38 @@ class TestHeuristicQualityCheck:
 
 
 @pytest.mark.asyncio
+async def test_quality_score_threshold_pass():
+    """quality_score ≥ 85%인 로드맵은 타겟 기준 충족."""
+    from app.ml.evaluation.metrics import MLEvaluationResult, MLTargetMetrics, evaluate_against_targets
+
+    result = MLEvaluationResult(
+        passed=True,
+        roadmap_quality_score=85.0,
+        hallucination_rate=4.0,
+        avg_response_time_sec=2.5,
+        consistency_score=82.0,
+        iteration_count=1,
+    )
+    assert evaluate_against_targets(result, MLTargetMetrics()) is True
+
+
+@pytest.mark.asyncio
+async def test_quality_score_threshold_fail():
+    """quality_score < 85%인 로드맵은 타겟 기준 미달."""
+    from app.ml.evaluation.metrics import MLEvaluationResult, MLTargetMetrics, evaluate_against_targets
+
+    result = MLEvaluationResult(
+        passed=False,
+        roadmap_quality_score=84.9,
+        hallucination_rate=4.0,
+        avg_response_time_sec=2.5,
+        consistency_score=82.0,
+        iteration_count=1,
+    )
+    assert evaluate_against_targets(result, MLTargetMetrics()) is False
+
+
+@pytest.mark.asyncio
 async def test_evaluate_roadmap_quality_returns_dict():
     """evaluate_roadmap_quality가 필수 키를 포함한 dict 반환."""
     roadmap = {

@@ -114,6 +114,10 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(async () => {
     // FI-4: 서버 signOut 실패해도 로컬 세션은 반드시 정리 (불일치 방지)
+    // M5: JWT는 stateless이므로 서버에서 토큰을 즉시 무효화할 수 없음.
+    // supabase.auth.signOut()은 서버 세션 테이블을 삭제하지만,
+    // 이미 발급된 JWT는 만료 시각까지 유효한 상태를 유지한다.
+    // 보안 강화가 필요하면 서버 측 JWT blacklist 테이블 도입을 고려할 것.
     try {
       if (supabase) await supabase.auth.signOut()
     } catch (err) {

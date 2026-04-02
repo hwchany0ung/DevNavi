@@ -162,6 +162,9 @@ async def _stream_teaser_and_cache(
 
 @router.post("/teaser")
 @limiter.limit("20/hour")
+# TODO: Add burst rate limiting for teaser endpoint (e.g. 5/minute per IP)
+# 현재 per-hour 제한(20/hour)만 있어 단시간 집중 요청(burst) 차단 불가.
+# slowapi 또는 Redis 기반 sliding window로 단기 burst limit 추가 권장.
 async def teaser(request: Request, body: TeaserRequest):
     """무료 사용자용 월별 뼈대 텍스트 스트리밍. Supabase 캐시 우선 반환."""
     params_key = f"{body.role}|{body.period}|{body.level}"
