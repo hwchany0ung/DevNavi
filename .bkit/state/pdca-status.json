@@ -1,32 +1,29 @@
 {
   "version": "3.0",
-  "lastUpdated": "2026-04-02T01:00:51.717Z",
+  "lastUpdated": "2026-04-02T03:09:51.406Z",
   "activeFeatures": [
-    "backend",
-    "middleware",
-    "contexts",
-    "roadmap",
-    "api",
+    "ml",
+    "evaluation",
+    "inference",
+    "pipeline",
+    "__tests__",
+    "tests",
+    "unit",
+    "integration",
     "frontend",
-    "onboarding",
-    "auth"
+    "e2e"
   ],
-  "primaryFeature": "backend",
+  "primaryFeature": "test-environment",
   "features": {
-    "backend": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
+    "code-review-4th": {
+      "phase": "archived",
+      "matchRate": 96,
       "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-04-02T00:53:25.749Z",
-        "lastUpdated": "2026-04-02T00:56:31.232Z"
-      },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\app\\services\\claude_service.py"
+      "startedAt": "2026-04-02T00:53:00.000Z",
+      "archivedAt": "2026-04-02T01:10:00.000Z",
+      "archivedTo": "docs/archive/2026-04/code-review-4th/"
     },
-    "middleware": {
+    "ml": {
       "phase": "do",
       "phaseNumber": 3,
       "matchRate": null,
@@ -34,12 +31,12 @@
       "requirements": [],
       "documents": {},
       "timestamps": {
-        "started": "2026-04-02T00:53:36.395Z",
-        "lastUpdated": "2026-04-02T00:54:25.595Z"
+        "started": "2026-04-02T01:15:23.511Z",
+        "lastUpdated": "2026-04-02T02:20:13.095Z"
       },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\app\\middleware\\auth.py"
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\tests\\unit\\ml\\test_optimizer.py"
     },
-    "contexts": {
+    "evaluation": {
       "phase": "do",
       "phaseNumber": 3,
       "matchRate": null,
@@ -47,12 +44,12 @@
       "requirements": [],
       "documents": {},
       "timestamps": {
-        "started": "2026-04-02T00:53:48.954Z",
-        "lastUpdated": "2026-04-02T00:54:23.169Z"
+        "started": "2026-04-02T01:15:36.377Z",
+        "lastUpdated": "2026-04-02T01:15:36.377Z"
       },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\contexts\\AuthContext.jsx"
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\app\\ml\\evaluation\\metrics.py"
     },
-    "roadmap": {
+    "inference": {
       "phase": "do",
       "phaseNumber": 3,
       "matchRate": null,
@@ -60,12 +57,12 @@
       "requirements": [],
       "documents": {},
       "timestamps": {
-        "started": "2026-04-02T00:53:58.233Z",
-        "lastUpdated": "2026-04-02T01:00:13.855Z"
+        "started": "2026-04-02T01:15:49.047Z",
+        "lastUpdated": "2026-04-02T01:15:49.047Z"
       },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\components\\roadmap\\MonthTimeline.jsx"
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\app\\ml\\inference\\roadmap_evaluator.py"
     },
-    "api": {
+    "pipeline": {
       "phase": "do",
       "phaseNumber": 3,
       "matchRate": null,
@@ -73,10 +70,77 @@
       "requirements": [],
       "documents": {},
       "timestamps": {
-        "started": "2026-04-02T00:54:02.088Z",
-        "lastUpdated": "2026-04-02T00:54:08.701Z"
+        "started": "2026-04-02T01:16:01.602Z",
+        "lastUpdated": "2026-04-02T01:16:01.602Z"
       },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\app\\api\\admin.py"
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\app\\ml\\pipeline\\prompt_optimizer.py"
+    },
+    "__tests__": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-02T01:21:41.348Z",
+        "lastUpdated": "2026-04-02T02:14:24.563Z"
+      },
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\pages\\__tests__\\RoadmapPage.test.jsx"
+    },
+    "test-environment": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {
+        "plan": "docs/01-plan/features/test-environment.plan.md",
+        "design": "docs/02-design/features/test-environment.design.md"
+      },
+      "timestamps": {
+        "started": "2026-04-02T01:30:00.000Z",
+        "lastUpdated": "2026-04-02T01:30:00.000Z"
+      }
+    },
+    "tests": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-02T01:49:50.786Z",
+        "lastUpdated": "2026-04-02T01:49:50.786Z"
+      },
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\tests\\conftest.py"
+    },
+    "unit": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-02T01:49:55.933Z",
+        "lastUpdated": "2026-04-02T02:19:44.845Z"
+      },
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\tests\\unit\\test_limiter.py"
+    },
+    "integration": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-02T01:49:56.646Z",
+        "lastUpdated": "2026-04-02T02:58:48.203Z"
+      },
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\tests\\integration\\test_roadmap.py"
     },
     "frontend": {
       "phase": "do",
@@ -86,12 +150,12 @@
       "requirements": [],
       "documents": {},
       "timestamps": {
-        "started": "2026-04-02T00:54:33.464Z",
-        "lastUpdated": "2026-04-02T01:00:32.535Z"
+        "started": "2026-04-02T01:55:27.627Z",
+        "lastUpdated": "2026-04-02T02:58:16.178Z"
       },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\pages\\LandingPage.jsx"
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\vitest.config.js"
     },
-    "onboarding": {
+    "e2e": {
       "phase": "do",
       "phaseNumber": 3,
       "matchRate": null,
@@ -99,537 +163,338 @@
       "requirements": [],
       "documents": {},
       "timestamps": {
-        "started": "2026-04-02T00:55:54.792Z",
-        "lastUpdated": "2026-04-02T01:00:51.715Z"
+        "started": "2026-04-02T02:12:16.544Z",
+        "lastUpdated": "2026-04-02T03:09:51.405Z"
       },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\components\\onboarding\\ExistingRoadmapModal.jsx"
-    },
-    "auth": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-04-02T00:57:40.367Z",
-        "lastUpdated": "2026-04-02T00:58:35.362Z"
-      },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\components\\auth\\PrivacyConsentModal.jsx"
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\e2e\\roadmap-flow.spec.ts"
     }
   },
   "pipeline": {
     "currentPhase": 1,
-    "level": "Dynamic",
+    "level": "Enterprise",
     "phaseHistory": []
   },
   "session": {
     "startedAt": "2026-04-02T00:39:54.245Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-04-02T01:00:51.717Z"
+    "lastActivity": "2026-04-02T03:09:51.406Z"
   },
   "history": [
     {
-      "timestamp": "2026-04-02T00:53:25.752Z",
-      "feature": "backend",
+      "timestamp": "2026-04-02T01:10:00.000Z",
+      "feature": "code-review-4th",
+      "phase": "archived",
+      "action": "archived"
+    },
+    {
+      "timestamp": "2026-04-02T01:15:23.513Z",
+      "feature": "ml",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:53:30.243Z",
-      "feature": "backend",
+      "timestamp": "2026-04-02T01:15:36.379Z",
+      "feature": "evaluation",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:53:36.396Z",
-      "feature": "middleware",
+      "timestamp": "2026-04-02T01:15:49.048Z",
+      "feature": "inference",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:53:48.955Z",
-      "feature": "contexts",
+      "timestamp": "2026-04-02T01:16:01.604Z",
+      "feature": "pipeline",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:53:53.155Z",
-      "feature": "contexts",
+      "timestamp": "2026-04-02T01:21:41.350Z",
+      "feature": "__tests__",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:53:56.685Z",
-      "feature": "backend",
+      "timestamp": "2026-04-02T01:21:47.521Z",
+      "feature": "__tests__",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:53:58.234Z",
-      "feature": "roadmap",
+      "timestamp": "2026-04-02T01:49:50.788Z",
+      "feature": "tests",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:53:58.321Z",
-      "feature": "contexts",
+      "timestamp": "2026-04-02T01:49:55.934Z",
+      "feature": "unit",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:02.030Z",
-      "feature": "contexts",
+      "timestamp": "2026-04-02T01:49:56.648Z",
+      "feature": "integration",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:02.090Z",
-      "feature": "api",
+      "timestamp": "2026-04-02T01:50:05.402Z",
+      "feature": "unit",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:08.703Z",
-      "feature": "api",
+      "timestamp": "2026-04-02T01:50:15.999Z",
+      "feature": "integration",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:09.218Z",
-      "feature": "contexts",
+      "timestamp": "2026-04-02T01:50:22.185Z",
+      "feature": "ml",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:18.097Z",
-      "feature": "backend",
+      "timestamp": "2026-04-02T01:50:39.581Z",
+      "feature": "ml",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:18.568Z",
-      "feature": "contexts",
+      "timestamp": "2026-04-02T01:50:55.933Z",
+      "feature": "ml",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:20.230Z",
-      "feature": "roadmap",
+      "timestamp": "2026-04-02T01:51:11.095Z",
+      "feature": "ml",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:23.171Z",
-      "feature": "contexts",
+      "timestamp": "2026-04-02T01:52:09.657Z",
+      "feature": "ml",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:25.596Z",
-      "feature": "middleware",
+      "timestamp": "2026-04-02T01:54:50.239Z",
+      "feature": "integration",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:28.406Z",
-      "feature": "roadmap",
+      "timestamp": "2026-04-02T01:55:05.872Z",
+      "feature": "integration",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:33.468Z",
+      "timestamp": "2026-04-02T01:55:27.628Z",
       "feature": "frontend",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:34.686Z",
-      "feature": "backend",
+      "timestamp": "2026-04-02T01:56:04.878Z",
+      "feature": "__tests__",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:40.088Z",
-      "feature": "backend",
+      "timestamp": "2026-04-02T01:56:18.461Z",
+      "feature": "__tests__",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:45.301Z",
-      "feature": "backend",
+      "timestamp": "2026-04-02T01:56:33.400Z",
+      "feature": "__tests__",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:47.067Z",
+      "timestamp": "2026-04-02T02:00:59.040Z",
+      "feature": "__tests__",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:01:14.349Z",
+      "feature": "__tests__",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:02:15.318Z",
+      "feature": "__tests__",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:02:39.342Z",
+      "feature": "__tests__",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:03:41.175Z",
+      "feature": "__tests__",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:05:19.779Z",
+      "feature": "__tests__",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:06:20.374Z",
+      "feature": "__tests__",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:07:48.488Z",
+      "feature": "__tests__",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:11:57.382Z",
       "feature": "frontend",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:48.419Z",
-      "feature": "roadmap",
+      "timestamp": "2026-04-02T02:12:16.545Z",
+      "feature": "e2e",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:51.942Z",
+      "timestamp": "2026-04-02T02:13:07.876Z",
       "feature": "frontend",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:53.056Z",
+      "timestamp": "2026-04-02T02:14:24.564Z",
+      "feature": "__tests__",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:14:30.321Z",
       "feature": "frontend",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:54:58.149Z",
+      "timestamp": "2026-04-02T02:19:43.518Z",
+      "feature": "unit",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:19:43.842Z",
+      "feature": "unit",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:19:44.129Z",
+      "feature": "unit",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:19:44.847Z",
+      "feature": "unit",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:19:49.776Z",
+      "feature": "ml",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:20:00.505Z",
+      "feature": "ml",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:20:12.038Z",
+      "feature": "ml",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:20:13.096Z",
+      "feature": "ml",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:49:44.854Z",
+      "feature": "e2e",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:50:28.630Z",
+      "feature": "integration",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T02:57:01.243Z",
       "feature": "frontend",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:55:04.276Z",
+      "timestamp": "2026-04-02T02:58:01.172Z",
       "feature": "frontend",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:55:08.731Z",
+      "timestamp": "2026-04-02T02:58:16.179Z",
       "feature": "frontend",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:55:09.806Z",
-      "feature": "frontend",
+      "timestamp": "2026-04-02T02:58:38.906Z",
+      "feature": "integration",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:55:11.513Z",
-      "feature": "frontend",
+      "timestamp": "2026-04-02T02:58:48.204Z",
+      "feature": "integration",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:55:14.506Z",
-      "feature": "frontend",
+      "timestamp": "2026-04-02T03:04:14.774Z",
+      "feature": "e2e",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-02T00:55:28.957Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:55:33.680Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:55:37.595Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:55:38.107Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:55:40.836Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:55:44.758Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:55:48.116Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:55:51.242Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:55:54.793Z",
-      "feature": "onboarding",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:55:57.545Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:05.786Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:09.497Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:18.253Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:19.852Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:29.914Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:31.234Z",
-      "feature": "backend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:32.312Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:42.465Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:47.084Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:47.482Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:50.872Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:51.696Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:54.810Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:56:59.046Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:03.512Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:06.904Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:13.767Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:14.570Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:17.587Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:25.658Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:27.183Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:31.532Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:40.368Z",
-      "feature": "auth",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:45.401Z",
-      "feature": "auth",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:54.038Z",
-      "feature": "auth",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:57:59.005Z",
-      "feature": "onboarding",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:58:03.891Z",
-      "feature": "auth",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:58:04.450Z",
-      "feature": "onboarding",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:58:09.947Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:58:15.925Z",
-      "feature": "auth",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:58:27.828Z",
-      "feature": "auth",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:58:35.364Z",
-      "feature": "auth",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:58:52.225Z",
-      "feature": "onboarding",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:58:57.331Z",
-      "feature": "onboarding",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:59:12.193Z",
-      "feature": "roadmap",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:59:32.645Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T00:59:45.121Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T01:00:04.804Z",
-      "feature": "roadmap",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T01:00:13.856Z",
-      "feature": "roadmap",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T01:00:21.476Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T01:00:32.537Z",
-      "feature": "frontend",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-04-02T01:00:51.717Z",
-      "feature": "onboarding",
+      "timestamp": "2026-04-02T03:09:51.406Z",
+      "feature": "e2e",
       "phase": "do",
       "action": "updated"
     }
