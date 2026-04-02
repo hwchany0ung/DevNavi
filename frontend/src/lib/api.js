@@ -180,8 +180,11 @@ export function streamSSE(path, body, onChunk, onDone, onError, extraHeaders = {
                 onProgress?.(parsed)
                 continue
               }
+              // followups: 동적 팔로업 질문 배열 — 객체 그대로 전달
+              if (parsed.followups !== undefined) {
+                onChunk?.({ followups: parsed.followups })
               // teaser: { type:'text', chunk } / full: { type:'chunk', chunk }
-              if (parsed.chunk !== undefined || parsed.text !== undefined) {
+              } else if (parsed.chunk !== undefined || parsed.text !== undefined) {
                 onChunk?.(parsed.chunk ?? parsed.text)
               }
             } catch {

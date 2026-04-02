@@ -62,7 +62,7 @@ async def _qa_stream(body: QARequest, user_id: str):
         yield f"data: {json.dumps({'type': 'error', 'code': 'rate_limit', 'message': msg})}\n\n"
         return
 
-    # Layer 5: Haiku 스트리밍 (max_tokens=250)
+    # Layer 5: Haiku 스트리밍 (max_tokens=120) + 팔로업 질문 생성
     async for chunk in stream_qa_response(body, user_id):
         yield chunk
 

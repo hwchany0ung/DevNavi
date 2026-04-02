@@ -28,6 +28,8 @@ export function useSSE() {
       path,
       body,
       (chunk) => {
+        // followups 같은 비문자열 이벤트는 이 훅에서 처리하지 않음
+        if (typeof chunk !== 'string') return
         textRef.current += chunk
         setText((prev) => prev + chunk)
       },

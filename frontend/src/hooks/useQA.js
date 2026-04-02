@@ -82,7 +82,7 @@ export function useQA() {
     })
 
     // 어시스턴트 메시지 자리 확보 (스트리밍용 빈 메시지)
-    const assistantMsg = { role: 'assistant', content: '' }
+    const assistantMsg = { role: 'assistant', content: '', followups: [] }
     setMessagesMap((prev) => {
       const next = new Map(prev)
       const existing = next.get(currentTaskId) ?? []
@@ -113,20 +113,37 @@ export function useQA() {
     const controller = streamSSE(
       '/ai/qa',
       body,
-      // onChunk — delta 수신 시 어시스턴트 마지막 메시지에 append
-      (chunk) => {
-        setMessagesMap((prev) => {
-          const next = new Map(prev)
-          const msgs = [...(next.get(currentTaskId) ?? [])]
-          if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
-            msgs[msgs.length - 1] = {
-              ...msgs[msgs.length - 1],
-              content: msgs[msgs.length - 1].content + chunk,
+      // onChunk — 텍스트 청크 또는 {followups:[]} 이벤트 처리
+      (chunkOrEvent) => {
+        if (chunkOrEvent !== null && typeof chunkOrEvent === 'object' && Array.isArray(chunkOrEvent.followups)) {
+          // followups 이벤트 — 마지막 어시스턴트 메시지에 저장
+          setMessagesMap((prev) => {
+            const next = new Map(prev)
+            const msgs = [...(next.get(currentTaskId) ?? [])]
+            if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
+              msgs[msgs.length - 1] = {
+                ...msgs[msgs.length - 1],
+                followups: chunkOrEvent.followups,
+              }
             }
-          }
-          next.set(currentTaskId, msgs)
-          return next
-        })
+            next.set(currentTaskId, msgs)
+            return next
+          })
+        } else {
+          // 텍스트 청크 — 마지막 어시스턴트 메시지에 append
+          setMessagesMap((prev) => {
+            const next = new Map(prev)
+            const msgs = [...(next.get(currentTaskId) ?? [])]
+            if (msgs.length > 0 && msgs[msgs.length - 1].role === 'assistant') {
+              msgs[msgs.length - 1] = {
+                ...msgs[msgs.length - 1],
+                content: msgs[msgs.length - 1].content + chunkOrEvent,
+              }
+            }
+            next.set(currentTaskId, msgs)
+            return next
+          })
+        }
       },
       // onDone
       () => {

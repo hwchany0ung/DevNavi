@@ -143,40 +143,27 @@ export default function QAPanel({ isOpen, taskContext = null, onClose }) {
                       isLoggedIn={!!user}
                     />
                   )}
-                  {msg.role === 'assistant' && !msg.isError && !isStreaming && msg.content && idx === messages.length - 1 && (
-                    <div className="flex gap-1.5 mt-1.5">
-                      <button
-                        type="button"
-                        onClick={() => sendMessage('방금 답변을 조금 더 자세히 설명해주세요.')}
-                        disabled={isStreaming}
-                        className="
-                          px-2.5 py-1 rounded-full text-xs
-                          bg-gray-100 dark:bg-white/10
-                          text-gray-500 dark:text-white/50
-                          hover:bg-gray-200 dark:hover:bg-white/20
-                          hover:text-gray-700 dark:hover:text-white/70
-                          transition-colors
-                          disabled:opacity-40 disabled:cursor-not-allowed
-                        "
-                      >
-                        부가 설명
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => sendMessage('실무에서 어떻게 활용하나요?')}
-                        disabled={isStreaming}
-                        className="
-                          px-2.5 py-1 rounded-full text-xs
-                          bg-gray-100 dark:bg-white/10
-                          text-gray-500 dark:text-white/50
-                          hover:bg-gray-200 dark:hover:bg-white/20
-                          hover:text-gray-700 dark:hover:text-white/70
-                          transition-colors
-                          disabled:opacity-40 disabled:cursor-not-allowed
-                        "
-                      >
-                        실무 예시
-                      </button>
+                  {msg.role === 'assistant' && !msg.isError && !isStreaming && msg.content && idx === messages.length - 1 && msg.followups?.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {msg.followups.map((q, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={() => sendMessage(q)}
+                          disabled={isStreaming}
+                          className="
+                            px-2.5 py-1 rounded-full text-xs
+                            bg-gray-100 dark:bg-white/10
+                            text-gray-500 dark:text-white/50
+                            hover:bg-gray-200 dark:hover:bg-white/20
+                            hover:text-gray-700 dark:hover:text-white/70
+                            transition-colors
+                            disabled:opacity-40 disabled:cursor-not-allowed
+                          "
+                        >
+                          {q}
+                        </button>
+                      ))}
                     </div>
                   )}
                 </div>

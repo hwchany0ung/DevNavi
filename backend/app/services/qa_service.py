@@ -14,18 +14,26 @@ from app.models.qa_models import QARequest, QATaskContext
 logger = logging.getLogger(__name__)
 
 _QA_MODEL = "claude-haiku-4-5-20251001"
-_MAX_TOKENS = 250  # 안전망 역할 — 팔로업 질문 여유 공간 확보
+_MAX_TOKENS = 120  # 1~2문장 안전망
+_FOLLOWUP_MAX_TOKENS = 200
 
 _SYSTEM_PROMPT_TEMPLATE = """DevNavi 코치. {job_type} 취업 준비생의 태스크 질문에 답합니다.
 현재: {month}개월차 {week}주차 | 카테고리: {category} | 태스크: {task_name}
 
 [답변 형식 — {job_type} 맥락 기준]
-- 3문장 이내, 핵심만 말할 것
-- ## ### 같은 마크다운 헤더 절대 사용 금지
-- 불릿 목록은 최대 3개까지만
-- 코드는 꼭 필요한 경우에만 2줄 이내 인라인으로
+- 1~2문장으로만 답할 것. 이보다 길면 안 됨.
+- 마크다운 헤더(## ###) 사용 금지
+- 불릿 목록 사용 금지
+- 예시 코드 사용 금지
 - 마무리 질문·격려 문장 금지
 """
+
+_FOLLOWUP_SYSTEM = (
+    "당신은 취업 준비 코치입니다. 다음 질문과 답변을 읽고, "
+    "{job_type} 취업 준비생이 자연스럽게 이어서 물어볼 법한 궁금증 3개를 "
+    'JSON 배열로만 출력하세요. 형식: ["질문1", "질문2", "질문3"]. '
+    "각 질문은 8자 이상 20자 이내 한국어. 다른 텍스트 없이 JSON 배열만."
+)
 
 _client: anthropic.AsyncAnthropic | None = None
 
@@ -139,6 +147,33 @@ async def verify_task_ownership(user_id: str, task_id: str) -> bool:
     return False
 
 
+async def generate_followup_questions(
+    question: str,
+    answer: str,
+    task_context: QATaskContext,
+) -> list[str]:
+    """메인 답변 기반 팔로업 질문 3개 생성 (비스트리밍)."""
+    client = _get_client()
+    try:
+        resp = await client.messages.create(
+            model=_QA_MODEL,
+            max_tokens=_FOLLOWUP_MAX_TOKENS,
+            system=_FOLLOWUP_SYSTEM.format(job_type=task_context.job_type),
+            messages=[{
+                "role": "user",
+                "content": f"질문: {question}\n답변: {answer}",
+            }],
+        )
+        raw = resp.content[0].text.strip()
+        data = json.loads(raw)
+        if not isinstance(data, list):
+            return []
+        return [q for q in data if isinstance(q, str)][:3]
+    except Exception as e:
+        logger.warning("generate_followup_questions 실패: %s", e)
+        return []
+
+
 async def stream_qa_response(request: QARequest, user_id: str) -> AsyncGenerator[str, None]:
     """Haiku를 SSE 스트리밍으로 호출하여 QA 응답 생성."""
     system_prompt = build_system_prompt(request.task_context)
@@ -151,6 +186,7 @@ async def stream_qa_response(request: QARequest, user_id: str) -> AsyncGenerator
     conversation.append({"role": "user", "content": request.question})
 
     client = _get_client()
+    full_answer: list[str] = []
     try:
         async with client.messages.stream(
             model=_QA_MODEL,
@@ -159,6 +195,7 @@ async def stream_qa_response(request: QARequest, user_id: str) -> AsyncGenerator
             messages=conversation,
         ) as stream:
             async for text in stream.text_stream:
+                full_answer.append(text)
                 yield f"data: {json.dumps({'chunk': text}, ensure_ascii=False)}\n\n"
     except anthropic.RateLimitError:
         logger.warning("Anthropic rate limit (user=%s)", user_id)
@@ -168,5 +205,12 @@ async def stream_qa_response(request: QARequest, user_id: str) -> AsyncGenerator
         logger.error("stream_qa_response 오류 (user=%s): %s", user_id, e, exc_info=True)
         yield f"data: {json.dumps({'type': 'error', 'code': 'server_error', 'message': 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'})}\n\n"
         return
+
+    # 팔로업 질문 생성 (실패 시 조용히 건너뜀)
+    followups = await generate_followup_questions(
+        request.question, "".join(full_answer), request.task_context,
+    )
+    if followups:
+        yield f"data: {json.dumps({'followups': followups}, ensure_ascii=False)}\n\n"
 
     yield "data: [DONE]\n\n"
