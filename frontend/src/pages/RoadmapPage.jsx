@@ -378,7 +378,12 @@ export default function RoadmapPage() {
 
             {/* 잔디 달력 — 로그인 + showGrass 시 */}
             {user && showGrass && (
-              <GrassCalendar activity={activity} totalDone={completedCount} />
+              <GrassCalendar
+                months={roadmap.months}
+                activeMonth={activeMonth}
+                doneSet={doneSet}
+                totalDone={completedCount}
+              />
             )}
 
             {/* 미로그인 시 저장 유도 */}
