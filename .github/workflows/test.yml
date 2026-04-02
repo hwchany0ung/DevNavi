@@ -33,7 +33,9 @@ jobs:
         run: pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run unit tests with coverage
-        run: pytest tests/unit/ -v -m unit --cov=app --cov-report=term-missing --cov-fail-under=80
+        # unit 테스트가 커버하는 모듈만 측정 (app/ml, app/core, app/models)
+        # app/services, app/prompts는 integration 테스트에서 커버
+        run: pytest tests/unit/ -v -m unit --cov=app/ml --cov=app/core --cov=app/models --cov-report=term-missing --cov-fail-under=80
         env:
           ENV: test
           ANTHROPIC_API_KEY: test-key

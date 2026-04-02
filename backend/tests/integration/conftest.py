@@ -43,9 +43,11 @@ def app():
 @pytest.fixture
 async def async_client(app):
     from httpx import AsyncClient, ASGITransport
+    cf_secret = os.environ.get("CLOUDFRONT_SECRET", "test-cf-secret")
     async with AsyncClient(
         transport=ASGITransport(app=app),
         base_url="http://test",
+        headers={"X-CF-Secret": cf_secret},  # CloudFront 미들웨어 통과 (403 방지)
     ) as client:
         yield client
 
