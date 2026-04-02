@@ -100,6 +100,8 @@ describe('RoadmapPage 렌더링', () => {
 
   it('로컬 데이터 없으면 API로 로드맵 요청', async () => {
     loadRoadmapLocal.mockReturnValue(null)
+    // API 실패 시 roadmap=null 유지 → useMemo 가드 통과, forEach 크래시 없음
+    request.mockRejectedValue(new Error('not found'))
     renderRoadmapPage()
     await waitFor(() => {
       // loadRoadmapLocal 호출 확인
