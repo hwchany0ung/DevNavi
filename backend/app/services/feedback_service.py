@@ -5,6 +5,7 @@ Design Ref: §6.1 — feedback_service: upsert 기반 중복 방지
 import json
 import logging
 
+from app.core.config import settings
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
 
 logger = logging.getLogger(__name__)
@@ -22,6 +23,8 @@ async def save_feedback(
     (user_id, task_id, question) 중복 시 rating + updated_at UPDATE.
     실패 시 False 반환 (예외 전파 없음).
     """
+    if not settings.supabase_ready:
+        return False
     try:
         client = get_supabase_client()
         payload = {

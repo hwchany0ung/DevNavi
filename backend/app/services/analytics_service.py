@@ -7,6 +7,7 @@ import json
 import logging
 from typing import Optional
 
+from app.core.config import settings
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,8 @@ async def log_event(
     비로그인 시 user_id = None.
     실패 시 False 반환 (예외 전파 없음 — fire-and-forget).
     """
+    if not settings.supabase_ready:
+        return False
     try:
         client = get_supabase_client()
         row: dict = {
