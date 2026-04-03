@@ -10,10 +10,10 @@ import anthropic
 from app.core.config import settings
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
 from app.models.qa_models import QARequest, QATaskContext
+from app.services.claude_service import HAIKU as _QA_MODEL, _get_client
 
 logger = logging.getLogger(__name__)
 
-_QA_MODEL = "claude-haiku-4-5-20251001"
 _MAX_TOKENS = 120  # 1~2문장 안전망
 _FOLLOWUP_MAX_TOKENS = 200
 
@@ -34,19 +34,6 @@ _FOLLOWUP_SYSTEM = (
     'JSON 배열로만 출력하세요. 형식: ["질문1", "질문2", "질문3"]. '
     "각 질문은 8자 이상 20자 이내 한국어. 다른 텍스트 없이 JSON 배열만."
 )
-
-_client: anthropic.AsyncAnthropic | None = None
-
-
-def _get_client() -> anthropic.AsyncAnthropic:
-    global _client
-    if _client is None:
-        _client = anthropic.AsyncAnthropic(
-            api_key=settings.ANTHROPIC_API_KEY,
-            timeout=60.0,
-        )
-    return _client
-
 
 def build_system_prompt(task_context: QATaskContext) -> str:
     """태스크 컨텍스트를 시스템 프롬프트에 주입."""

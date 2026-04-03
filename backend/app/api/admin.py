@@ -120,54 +120,50 @@ async def get_stats(request: Request, admin: dict = Depends(require_admin)) -> d
     today    = date.today().isoformat()
     week_ago = (date.today() - timedelta(days=6)).isoformat()
 
-    # ── 스칼라 카운트 (병렬) ───────────────────────────────────────
-    total_users_task    = asyncio.create_task(_count("users"))
-    new_users_task      = asyncio.create_task(_count("users", {"created_at": f"gte.{today}"}))
-    total_roadmaps_task = asyncio.create_task(_count("roadmaps"))
-    roadmaps_today_task = asyncio.create_task(_count("roadmaps", {"created_at": f"gte.{today}"}))
-    errors_today_task   = asyncio.create_task(_count("error_logs", {"created_at": f"gte.{today}"}))
-
-    # ── 오늘 api_usage (엔드포인트 분석용) ───────────────────────
-    usage_resp = await client.get(
-        sb_url("api_usage"),
-        params={"select": "endpoint,count", "usage_date": f"eq.{today}", "limit": "1000"},
-        headers=sb_headers(),
-    )
-    usage_rows: list[dict] = usage_resp.json() if usage_resp.status_code == 200 else []
-    api_calls_today    = sum(r.get("count", 0) for r in usage_rows)
-    endpoint_breakdown: dict[str, int] = defaultdict(int)
-    for row in usage_rows:
-        endpoint_breakdown[row.get("endpoint", "unknown")] += row.get("count", 0)
-
-    # ── 최근 7일 일별 데이터 ──────────────────────────────────────
-    user_rows_resp = await client.get(
-        sb_url("users"),
-        params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "1000"},
-        headers=sb_headers(),
-    )
-    user_rows: list[dict] = user_rows_resp.json() if user_rows_resp.status_code == 200 else []
-
-    roadmap_rows_resp = await client.get(
-        sb_url("roadmaps"),
-        params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "1000"},
-        headers=sb_headers(),
-    )
-    roadmap_rows: list[dict] = roadmap_rows_resp.json() if roadmap_rows_resp.status_code == 200 else []
-
-    # 병렬 태스크 결과 수집
+    # ── 스칼라 카운트 + 행 데이터 + usage 전부 asyncio.gather로 통합 ──
+    # create_task 후 sequential await 실패 시 orphan 태스크가 되는 문제 방지.
     (
         total_users,
         new_users_today,
         total_roadmaps,
         roadmaps_today,
         errors_today,
+        usage_resp,
+        user_rows_resp,
+        roadmap_rows_resp,
     ) = await asyncio.gather(
-        total_users_task,
-        new_users_task,
-        total_roadmaps_task,
-        roadmaps_today_task,
-        errors_today_task,
+        _count("users"),
+        _count("users", {"created_at": f"gte.{today}"}),
+        _count("roadmaps"),
+        _count("roadmaps", {"created_at": f"gte.{today}"}),
+        _count("error_logs", {"created_at": f"gte.{today}"}),
+        client.get(
+            sb_url("api_usage"),
+            params={"select": "endpoint,count", "usage_date": f"eq.{today}", "limit": "1000"},
+            headers=sb_headers(),
+        ),
+        client.get(
+            sb_url("users"),
+            params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "1000"},
+            headers=sb_headers(),
+        ),
+        client.get(
+            sb_url("roadmaps"),
+            params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "1000"},
+            headers=sb_headers(),
+        ),
     )
+
+    # ── usage 집계 ────────────────────────────────────────────────
+    usage_rows: list[dict] = usage_resp.json() if usage_resp.status_code == 200 else []
+    api_calls_today    = sum(r.get("count", 0) for r in usage_rows)
+    endpoint_breakdown: dict[str, int] = defaultdict(int)
+    for row in usage_rows:
+        endpoint_breakdown[row.get("endpoint", "unknown")] += row.get("count", 0)
+
+    # ── 최근 7일 행 데이터 ────────────────────────────────────────
+    user_rows: list[dict] = user_rows_resp.json() if user_rows_resp.status_code == 200 else []
+    roadmap_rows: list[dict] = roadmap_rows_resp.json() if roadmap_rows_resp.status_code == 200 else []
 
     return {
         "total_users":        total_users,
@@ -199,7 +195,8 @@ async def get_errors(request: Request, admin: dict = Depends(require_admin)) -> 
 
 
 @router.get("/me")
-async def admin_me(admin: dict = Depends(require_admin)) -> dict:
+@limiter.limit("30/minute")
+async def admin_me(request: Request, admin: dict = Depends(require_admin)) -> dict:
     """관리자 신원 확인용 (프론트 진입 시 권한 체크에 사용)."""
     return {"id": admin["id"], "email": admin["email"], "role": "admin"}
 

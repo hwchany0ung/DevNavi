@@ -289,7 +289,9 @@ async def career_summary(
 # ─────────────────────────── Supabase 저장 ──────────────────────────
 
 @router.post("/persist", response_model=RoadmapSaveResponse)
+@limiter.limit("10/hour")
 async def persist(
+    request: Request,
     body: PersistRequest,
     user: dict = Depends(require_user),
 ):
@@ -331,14 +333,16 @@ async def reroute(
 # ─────────────────────────── 조회 ───────────────────────────────────
 
 @router.get("/my")
-async def my_roadmaps(user: dict = Depends(require_user)):
+@limiter.limit("30/minute")
+async def my_roadmaps(request: Request, user: dict = Depends(require_user)):
     """로그인 사용자의 최신 로드맵 ID 반환 (홈 자동 리다이렉트용)."""
     items = await list_user_roadmaps(user["id"])
     return {"roadmap_id": items[0]["id"] if items else None}
 
 
 @router.get("/activity/me")
-async def get_activity(user: dict = Depends(require_user)):
+@limiter.limit("30/minute")
+async def get_activity(request: Request, user: dict = Depends(require_user)):
     """잔디 달력용 최근 365일 날짜별 완료 수."""
     data = await list_activity(user["id"])
     return {"activity": data}

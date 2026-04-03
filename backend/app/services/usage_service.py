@@ -149,7 +149,7 @@ async def _legacy_check_and_increment(
             },
         )
 
-    if new_count >= limit:
+    if new_count > limit:
         raise HTTPException(
             status_code=429,
             detail={

@@ -4,6 +4,8 @@ feedback_service + analytics_service 단위 테스트.
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
+pytestmark = [pytest.mark.unit, pytest.mark.asyncio]
+
 
 # ── feedback_service 테스트 ──────────────────────────────────────
 
