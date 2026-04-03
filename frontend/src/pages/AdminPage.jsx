@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { request } from '../lib/api'
 import QAStats from '../components/admin/QAStats'
+import SecurityEvents from '../components/admin/SecurityEvents'
 import StatCard from '../components/common/StatCard'
 
 // ── 상수 ────────────────────────────────────────────────────────
@@ -348,6 +349,9 @@ export default function AdminPage() {
 
         {/* Q&A Analytics */}
         <QAStats />
+
+        {/* 보안 모니터링 */}
+        <SecurityEvents />
 
         {/* 엔드포인트 분석 + 에러 로그 */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-4">

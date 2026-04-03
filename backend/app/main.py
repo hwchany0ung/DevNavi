@@ -20,6 +20,7 @@ from app.api.roadmap import router as roadmap_router
 from app.api.admin import router as admin_router, save_error_log
 from app.api.auth import router as auth_router
 from app.api.ai_qa import router as ai_qa_router
+from app.middleware.security_events import SecurityEventMiddleware
 from app.services.claude_service import close_anthropic_client
 
 logger = logging.getLogger(__name__)
@@ -178,9 +179,10 @@ class ErrorLoggingMiddleware:
 
 
 # ── 미들웨어 등록 순서 (add_middleware: 나중에 추가할수록 outermost) ──
-# 실행 순서 (안→밖): FastAPI → SecurityHeaders → ErrorLogging → CloudFrontSecret → CORS
+# 실행 순서 (안→밖): FastAPI → SecurityHeaders → ErrorLogging → SecurityEvent → CloudFrontSecret → CORS
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(ErrorLoggingMiddleware)
+app.add_middleware(SecurityEventMiddleware)
 app.add_middleware(CloudFrontSecretMiddleware)
 
 

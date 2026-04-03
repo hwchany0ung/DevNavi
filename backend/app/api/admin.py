@@ -194,6 +194,64 @@ async def get_errors(request: Request, admin: dict = Depends(require_admin)) -> 
     return r.json() if r.status_code == 200 else []
 
 
+@router.get("/security-events")
+@limiter.limit("30/minute")
+async def get_security_events(
+    request: Request,
+    admin: dict = Depends(require_admin),
+    limit: int = 50,
+    event_type: Optional[str] = None,
+) -> dict:
+    """보안 이벤트 조회 — 최근 이벤트 목록 + 오늘 요약.
+
+    Design Ref: security-monitoring-be.design.md §3
+    """
+    if not settings.supabase_ready:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="DB 미설정")
+
+    client = get_supabase_client()
+    today = date.today().isoformat()
+
+    # limit 범위 제한 (1~200)
+    safe_limit = max(1, min(limit, 200))
+
+    # 이벤트 조회 파라미터
+    events_params: dict = {
+        "select": "id,event_type,ip,path,method,status_code,created_at",
+        "order": "created_at.desc",
+        "limit": str(safe_limit),
+    }
+    if event_type in ("rate_limit_exceeded", "auth_failure"):
+        events_params["event_type"] = f"eq.{event_type}"
+
+    # 병렬 조회: 이벤트 목록 + 오늘 유형별 카운트
+    events_resp, rl_count, af_count = await asyncio.gather(
+        client.get(
+            sb_url("security_events"),
+            params=events_params,
+            headers=sb_headers(),
+        ),
+        _count("security_events", {
+            "created_at": f"gte.{today}",
+            "event_type": "eq.rate_limit_exceeded",
+        }),
+        _count("security_events", {
+            "created_at": f"gte.{today}",
+            "event_type": "eq.auth_failure",
+        }),
+    )
+
+    events = events_resp.json() if events_resp.status_code == 200 else []
+
+    return {
+        "events": events,
+        "summary": {
+            "rate_limit_today": rl_count,
+            "auth_failure_today": af_count,
+        },
+    }
+
+
 @router.get("/me")
 @limiter.limit("30/minute")
 async def admin_me(request: Request, admin: dict = Depends(require_admin)) -> dict:
