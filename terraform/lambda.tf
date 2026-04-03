@@ -56,7 +56,10 @@ resource "aws_lambda_function" "api" {
 
 resource "aws_lambda_function_url" "api" {
   function_name      = aws_lambda_function.api.function_name
-  authorization_type = "NONE"  # CloudFront에서 인증 처리
+  # 인증: CloudFront → Lambda 요청 시 X-CF-Secret 헤더로 앱 레이어 인증.
+  # IAM 인증(AWS_IAM)은 CloudFront Function URL 호출 시 SigV4 서명이
+  # 불가능한 제약으로 미적용. CloudFrontSecretMiddleware(main.py)가 보호.
+  authorization_type = "NONE"
 
   # Lambda URL이 CORS 단일 처리 (FastAPI CORSMiddleware는 개발 환경에서만 활성)
   # - OPTIONS preflight: Lambda URL이 자동 처리 (Lambda 도달 안 함)
@@ -66,7 +69,7 @@ resource "aws_lambda_function_url" "api" {
     allow_headers     = ["content-type", "authorization"]
     allow_methods     = ["GET", "POST"]
     allow_origins     = ["https://devnavi.kr"]
-    max_age           = 86400
+    max_age           = 3600  # 1시간 — CORS 정책 변경 시 빠른 반영
   }
 
   # BUFFERED: Mangum이 Lambda Proxy JSON 형식으로 응답 → Function URL이 정상 해석

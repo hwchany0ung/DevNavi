@@ -248,7 +248,7 @@ async def career_summary(
             body.skills, body.certifications, body.company_type,
         )
         raw = await call_haiku(system, user_msg)
-        logger.info("career-summary raw response: %s", raw[:200])
+        logger.debug("career-summary raw response: %s", raw[:200])
     except Exception as e:
         logger.exception("career-summary AI 호출 실패")
         raise HTTPException(status_code=500, detail={"message": "AI 호출에 실패했습니다. 잠시 후 다시 시도해주세요."})

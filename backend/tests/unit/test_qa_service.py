@@ -126,9 +126,10 @@ class TestIncrementAndCheckQaUsage:
                 await increment_and_check_qa_usage("user-abc")
 
     @pytest.mark.asyncio
-    async def test_allows_on_rpc_error(self, mock_supabase_ready):
-        """RPC 실패(5xx) 시 서비스 가용성 우선으로 allowed=True를 반환한다."""
+    async def test_raises_503_on_rpc_error(self, mock_supabase_ready):
+        """RPC 실패(5xx) 시 비용 보호 우선으로 HTTPException(503)을 발생시킨다."""
         from app.services.qa_service import increment_and_check_qa_usage
+        from fastapi import HTTPException
 
         mock_resp = MagicMock()
         mock_resp.status_code = 500
@@ -139,9 +140,11 @@ class TestIncrementAndCheckQaUsage:
             mock_client.post = AsyncMock(return_value=mock_resp)
             mock_get_client.return_value = mock_client
 
-            result = await increment_and_check_qa_usage("user-abc")
+            with pytest.raises(HTTPException) as exc_info:
+                await increment_and_check_qa_usage("user-abc")
 
-        assert result["allowed"] is True
+        assert exc_info.value.status_code == 503
+        assert exc_info.value.detail["code"] == "QA_USAGE_SERVICE_UNAVAILABLE"
 
 
 # ── verify_task_ownership ────────────────────────────────────────────────

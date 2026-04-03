@@ -7,6 +7,8 @@ from typing import AsyncGenerator
 
 import anthropic
 
+from fastapi import HTTPException
+
 from app.core.config import settings
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
 from app.models.qa_models import QARequest, QATaskContext
@@ -35,14 +37,22 @@ _FOLLOWUP_SYSTEM = (
     "각 질문은 8자 이상 20자 이내 한국어. 다른 텍스트 없이 JSON 배열만."
 )
 
+def _sanitize_prompt_input(value: str) -> str:
+    """프롬프트 인젝션 방어: 중괄호 및 제어 문자 제거."""
+    return str(value).replace("{", "").replace("}", "")
+
+
 def build_system_prompt(task_context: QATaskContext) -> str:
-    """태스크 컨텍스트를 시스템 프롬프트에 주입."""
+    """태스크 컨텍스트를 시스템 프롬프트에 주입.
+
+    사용자 입력값은 sanitize하여 프롬프트 인젝션을 방어한다.
+    """
     return _SYSTEM_PROMPT_TEMPLATE.format(
-        job_type=task_context.job_type,
+        job_type=_sanitize_prompt_input(task_context.job_type),
         month=task_context.month,
         week=task_context.week,
-        category=task_context.category,
-        task_name=task_context.task_name,
+        category=_sanitize_prompt_input(task_context.category),
+        task_name=_sanitize_prompt_input(task_context.task_name),
     )
 
 
@@ -71,8 +81,14 @@ async def increment_and_check_qa_usage(user_id: str) -> dict:
             "increment_and_check_qa_usage RPC 실패 (user=%s, status=%d): %s",
             user_id, resp.status_code, resp.text[:200],
         )
-        # RPC 실패 시 허용 (서비스 가용성 우선)
-        return {"allowed": True, "daily_count": 0, "monthly_count": 0}
+        # RPC 실패 시 차단 (비용 보호 우선 — usage_service.py와 동일 정책)
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "QA_USAGE_SERVICE_UNAVAILABLE",
+                "message": "사용량 확인 서비스에 일시적 문제가 있습니다. 잠시 후 다시 시도해 주세요.",
+            },
+        )
 
     return resp.json()
 
@@ -145,7 +161,7 @@ async def generate_followup_questions(
         resp = await client.messages.create(
             model=_QA_MODEL,
             max_tokens=_FOLLOWUP_MAX_TOKENS,
-            system=_FOLLOWUP_SYSTEM.format(job_type=task_context.job_type),
+            system=_FOLLOWUP_SYSTEM.format(job_type=_sanitize_prompt_input(task_context.job_type)),
             messages=[{
                 "role": "user",
                 "content": f"질문: {question}\n답변: {answer}",
@@ -161,8 +177,22 @@ async def generate_followup_questions(
         return []
 
 
+_ALLOWED_ROLES = {"user", "assistant"}
+
+
 async def stream_qa_response(request: QARequest, user_id: str) -> AsyncGenerator[str, None]:
     """Haiku를 SSE 스트리밍으로 호출하여 QA 응답 생성."""
+    # 대화 이력 role 검증 — "user"/"assistant"만 허용
+    for msg in request.messages:
+        if msg.role not in _ALLOWED_ROLES:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "code": "INVALID_MESSAGE_ROLE",
+                    "message": f"허용되지 않는 메시지 role입니다: {msg.role}",
+                },
+            )
+
     system_prompt = build_system_prompt(request.task_context)
 
     # 대화 이력 + 현재 질문 구성

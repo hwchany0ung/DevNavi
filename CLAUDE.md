@@ -1,5 +1,41 @@
 # DevNavi — 멀티 에이전트 운영 규칙
 
+## 코드 탐색 규칙 (qmd 우선)
+
+파일을 읽기 전에 반드시 qmd로 먼저 검색한다.
+
+- `qmd search "query" -c devnavi` — 키워드 검색 (80% 사용)
+- `qmd vsearch "query" -c devnavi` — 개념적 질문 (예: "에러 처리 방식")
+- `qmd query "query" -c devnavi` — 복잡한 탐색적 질문 (최고 품질)
+
+qmd 결과로 충분하지 않을 때만 Read/Glob/Grep 사용.
+
+---
+
+## 오케스트레이터 자동 선택 로직
+
+작업 시작 시 필요한 specialist 수를 먼저 파악하고, 아래 규칙에 따라 오케스트레이터를 자동 선택한다.
+
+| 조건 | 선택 오케스트레이터 | 설명 |
+|------|-----------------|------|
+| specialist **2개 이하** | **cto-lead 단독** | 소규모 작업, 오버헤드 최소화 |
+| specialist **3개 이상** | **cto-lead + 팀 에이전트 풀 가동** | 대규모 작업, 병렬 실행 |
+
+> **판단 기준**: 구현(developer) + 검증(code-reviewer/gap-detector)만 필요 → cto-lead 단독.
+> PM + 설계 + 구현 + 검증 + ML 등 복합 작업 → 팀 전체 가동.
+
+---
+
+## 파일 기반 컨텍스트 전달 원칙
+
+에이전트 간 컨텍스트 전달 시 **외부 시스템(MCP 등)에 의존하지 않고 파일 시스템을 진실의 원천으로 사용**한다.
+
+- Orchestrator(cto-lead)는 하위 에이전트에게 작업을 위임할 때 반드시 관련 파일 경로를 명시한다
+- 설계 문서(`docs/02-design/`), Plan 문서(`docs/01-plan/`), QA 시나리오(`.qa-evidence.json`)를 직접 읽어 specialist에게 전달
+- 에이전트 간 구두(텍스트) 요약 전달보다 파일 경로 직접 참조를 우선
+
+---
+
 ## 핵심 철학 (멀티에이전트 구성 메뉴얼.txt 기반)
 
 ### 1. 관심사의 분리 (Separation of Concerns)
@@ -96,85 +132,9 @@
 
 ---
 
-## ML 통합 병렬 워크플로우 (ML에이전트 구성.txt 기반)
+## QA 검증
 
-### Phase 1 — 요구사항 정의
-- PM이 일반 기능 명세 + **ML 모델 타겟 지표**를 함께 명시
-- 예: "로드맵 생성 정확도 ≥ 85%, 응답 시간 ≤ 3초, Hallucination 비율 ≤ 5%"
-
-### Phase 2 — 시스템 설계
-- Architect가 일반 DB 설계 + **ML 데이터 파이프라인(ETL) + 추론 서버 아키텍처** 분리 설계
-- DevNavi 적용: Claude API 프롬프트 최적화 파이프라인 + 로드맵 품질 평가 서버
-
-### Phase 3 — 병렬 구현 (핵심)
-```
-Developer Agent  ─── UI·백엔드 로직·DB 연동 ──────────────┐
-                                                            ├─→ 통합
-ML Agent ─────── 모델 학습·추론 모듈·Inference API화 ────────┘
-```
-- 두 에이전트는 **독립적으로 병렬 실행** (서로의 작업에 개입 금지)
-- ML Agent 산출물: `backend/app/ml/` 디렉토리 아래 추론 모듈 + API 엔드포인트
-
-### Phase 4 — 하이브리드 검증 루프
-QA 에이전트가 두 트랙을 모두 검증:
-
-| 검증 트랙 | 담당 | 기준 | 실패 시 |
-|---------|------|------|--------|
-| 코드 검증 | code-analyzer / gap-detector | Match Rate ≥ 90% | developer 재수정 |
-| **모델 검증** | **qa-monitor (ML 트랙)** | **타겟 지표 달성 + 과적합 없음** | **ML Agent 재학습 (최대 3회)** |
-
----
-
-## QA 검증 — 테스트 서버 활용 규칙
-
-### `/pdca analyze` 실행 시 필수 절차
-
-QA 에이전트(gap-detector / qa-monitor)는 정적 분석만으로 검증을 종결하지 않는다.
-**반드시 아래 순서로 테스트 서버를 기동하고 실제 테스트 스위트를 실행한다.**
-
-#### 1단계 — 백엔드 단위 테스트 (항상 실행)
-```bash
-cd backend
-pytest tests/unit/ -v -m unit --cov=app/ml --cov=app/core --cov=app/models --cov-report=term-missing
-```
-
-#### 2단계 — 프론트엔드 단위 테스트 (항상 실행)
-```bash
-cd frontend
-npm test -- --coverage --run
-```
-
-#### 3단계 — 통합 테스트 (SUPABASE_TEST_URL 설정 시)
-```bash
-cd backend
-pytest tests/integration/ -v -m integration
-# SUPABASE_TEST_URL 미설정 시 conftest.py의 pytest.skip()이 자동 스킵
-```
-
-#### 4단계 — E2E 테스트 (프론트+백엔드 서버 기동 후 실행)
-```bash
-# 터미널 1: 백엔드 기동
-cd backend && uvicorn app.main:app --port 8000 &
-
-# 터미널 2: 프론트엔드 빌드+프리뷰 (또는 dev)
-cd frontend && npm run build && npm run preview -- --port 4173 &
-
-# E2E 실행 (playwright.config.ts의 webServer가 자동 관리)
-cd frontend && npx playwright test
-```
-
-#### 서버 기동 없이 정적 분석만 허용되는 경우
-- E2E 테스트 파일이 존재하지 않는 경우
-- 사용자가 명시적으로 `--static-only` 옵션을 지정한 경우
-- 백엔드/프론트엔드가 아직 구현되지 않은 초기 단계(Do 미완료)
-
-### Match Rate 산정 기준 (테스트 서버 사용 시)
-```
-Overall = (Structural × 0.15) + (Functional × 0.25)
-        + (Contract × 0.25) + (Runtime × 0.35)
-```
-- Runtime 점수는 위 1~4단계 테스트 결과(통과율)를 반영
-- 단위 테스트만 실행 가능한 경우: Runtime × 0.20 (나머지 비율 재분배)
+> `/pdca analyze` 시 테스트 실행 순서·Match Rate 산정 기준: `.claude/rules/qa-testing.md` 참조
 
 ---
 
@@ -184,27 +144,15 @@ Overall = (Structural × 0.15) + (Functional × 0.25)
 |------|----------|-----------------|
 | Plan | Plan 문서 생성 + **ML 타겟 지표 포함** | Design 문서 없으면 진행 불가 |
 | Design | Design 문서 생성 + **ML 파이프라인 설계 포함** | 설계 문서 검토 완료 |
+| **Phase 2.5** | **`.qa-evidence.json` QA 시나리오 확정** | **구현(Do) 시작 전 반드시 완료** |
 | Do | 구현 완료 (Developer + ML Agent 병렬) | **gap-detector + 모델 성능 검증 모두 필수** |
 | Analyze | Match Rate + **ML 지표** 확인 | 둘 다 ≥ 기준: Report / 미달: iterate (최대 3회) |
 | Iterate | 수정 완료 | 3회 초과 시 사용자 판단 요청 |
 | Report | 완료 보고서 생성 | 완료 |
 
+
+> Phase 2.5 상세 절차: `.claude/rules/qa-testing.md` 참조
+
 ---
 
-## DevNavi ML 적용 범위
-
-| ML 기능 | 현재 상태 | ML Agent 역할 |
-|---------|---------|-------------|
-| 로드맵 생성 | Claude API (claude_service.py) | 프롬프트 파이프라인 최적화, 품질 평가 모델 |
-| 커리어 경로 추천 | 미구현 | 사용자 스킬 데이터 기반 추천 모델 |
-| 로드맵 품질 평가 | 미구현 | Hallucination 탐지, 일관성 점수 |
-| 사용자 성향 분석 | 미구현 | 온보딩 응답 기반 클러스터링 |
-
-### ML Agent 작업 디렉토리
-```
-backend/app/ml/
-├── pipeline/      # 데이터 전처리·Feature Engineering
-├── models/        # 학습된 모델 저장
-├── inference/     # 추론 로직 모듈
-└── evaluation/    # 성능 지표 평가 스크립트
-```
+> ML 통합 워크플로우·적용 범위 상세: `.claude/rules/ml-workflow.md` 참조

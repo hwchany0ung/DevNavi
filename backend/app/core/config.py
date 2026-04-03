@@ -92,12 +92,19 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _check_production_secrets(self) -> "Settings":
-        if self.ENV == "production" and not self.CLOUDFRONT_SECRET:
-            raise ValueError(
-                "CLOUDFRONT_SECRET이 설정되지 않았습니다. "
-                "프로덕션에서는 Lambda Function URL 직접 접근 차단을 위해 필수입니다. "
-                "SSM Parameter Store(/devnavi/prod/CLOUDFRONT_SECRET)를 확인하세요."
-            )
+        if self.ENV == "production":
+            if not self.CLOUDFRONT_SECRET:
+                raise ValueError(
+                    "CLOUDFRONT_SECRET이 설정되지 않았습니다. "
+                    "프로덕션에서는 Lambda Function URL 직접 접근 차단을 위해 필수입니다. "
+                    "SSM Parameter Store(/devnavi/prod/CLOUDFRONT_SECRET)를 확인하세요."
+                )
+            if not self.supabase_ready:
+                raise ValueError(
+                    "SUPABASE_URL 또는 SUPABASE_SERVICE_KEY가 설정되지 않았습니다. "
+                    "프로덕션에서는 인증/DB 기능이 필수입니다. "
+                    "SSM Parameter Store(/devnavi/prod/SUPABASE_*)를 확인하세요."
+                )
         return self
 
     @property
