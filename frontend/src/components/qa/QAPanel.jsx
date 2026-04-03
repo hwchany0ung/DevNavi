@@ -18,19 +18,11 @@ export default function QAPanel({ isOpen, taskContext = null, onClose }) {
   const { user } = useAuth()
   const messagesEndRef = useRef(null)
 
-  // taskContext 변경 시 패널 상태 동기화
+  // taskContext 변경 및 패널 열림/닫힘 동기화 (경쟁 조건 방지를 위해 단일 effect로 통합)
   useEffect(() => {
-    if (isOpen && taskContext?.taskId) {
-      openPanel(taskContext.taskId, taskContext)
-    }
-  }, [isOpen, taskContext?.taskId, openPanel])
-
-  // 패널 닫힐 때 스트리밍 정리
-  useEffect(() => {
-    if (!isOpen) {
-      closePanel()
-    }
-  }, [isOpen, closePanel])
+    if (isOpen && taskContext?.taskId) openPanel(taskContext.taskId, taskContext)
+    else closePanel()
+  }, [isOpen, taskContext?.taskId, openPanel, closePanel])
 
   // 새 메시지 도착 시 스크롤 하단으로
   useEffect(() => {
@@ -114,7 +106,7 @@ export default function QAPanel({ isOpen, taskContext = null, onClose }) {
           ) : (
             messages.map((msg, idx) => (
               <div
-                key={msg.id}
+                key={msg.id ?? idx}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div className="flex flex-col max-w-[85%]">

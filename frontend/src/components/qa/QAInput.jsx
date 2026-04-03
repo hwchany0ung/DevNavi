@@ -23,7 +23,7 @@ export default function QAInput({ onSubmit, disabled = false }) {
 
   const handleSubmit = () => {
     const trimmed = value.trim()
-    if (!trimmed || disabled) return
+    if (!trimmed || disabled || isOverLimit) return
     onSubmit(trimmed)
     setValue('')
   }

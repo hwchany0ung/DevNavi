@@ -23,6 +23,7 @@ export default function LandingPage() {
 
   useEffect(() => {
     document.title = 'DevNavi — AI 맞춤 커리어 로드맵'
+    return () => { document.title = 'DevNavi' }
   }, [])
 
   useEffect(() => {

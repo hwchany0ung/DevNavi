@@ -232,7 +232,7 @@ export default function OnboardingPage() {
     } finally {
       setSummaryLoading(false)
     }
-  }, [user, getAuthHeaders])  // step1/step2 replaced with refs
+  }, [getAuthHeaders])  // step1/step2 replaced with refs; user removed (not accessed directly, only via getAuthHeaders)
 
   // ── 로그인 완료 감지 → pending 액션 실행 ─────────────────────────
   useEffect(() => {

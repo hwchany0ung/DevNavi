@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import Footer from '../components/common/Footer'
 import PersonaCard         from '../components/roadmap/PersonaCard'
 import MonthTimeline       from '../components/roadmap/MonthTimeline'
@@ -310,6 +310,10 @@ export default function RoadmapPage() {
       setRerouteLoading(false)
     }
   }
+
+  // ── UUID 검증 — hooks 호출 완료 후 early return ─────────────────
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  if (!UUID_RE.test(id)) return <Navigate to="/" replace />
 
   // ── 로딩 ────────────────────────────────────────────────────────
   if (loading) {
