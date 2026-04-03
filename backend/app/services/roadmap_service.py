@@ -115,6 +115,9 @@ async def get_roadmap(roadmap_id: str, user_id: str) -> dict | None:
     # 공유 기능 추가 시: 별도 share_token 검증 라우트를 신설하고
     # 이 함수는 None 허용 없이 유지할 것.
     """
+    # M2: user_id=None 방어 — None 허용 시 소유자 필터 무효화로 타인 데이터 접근 위험
+    if user_id is None:
+        return None
     if not settings.supabase_ready:
         return None
     # BI-10: PostgREST 파라미터 UUID 형식 검증 (라우트 검증 후 이중 방어)

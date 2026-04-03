@@ -162,7 +162,7 @@ async def _stream_teaser_and_cache(
 
 @router.post("/teaser")
 @limiter.limit("20/hour")
-@limiter.limit("5/minute")
+@limiter.limit("5/minute")   # M3: burst 방어 — 1분 5회 초과 시 429 (확인됨)
 async def teaser(request: Request, body: TeaserRequest):
     """무료 사용자용 월별 뼈대 텍스트 스트리밍. Supabase 캐시 우선 반환.
 

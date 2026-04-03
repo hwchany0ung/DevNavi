@@ -217,52 +217,68 @@ async def get_qa_stats(request: Request, admin: dict = Depends(require_admin)) -
     client = get_supabase_client()
 
     try:
-        # 총 Q&A 횟수
-        total_r = await client.get(
-            sb_url("qa_events"),
-            params={"select": "id", "event_type": "eq.qa_submitted"},
-            headers={**sb_headers(), "Prefer": "count=exact", "Range-Unit": "items", "Range": "0-0"},
+        # 병렬 쿼리 — asyncio.gather()로 동시 실행 (get_stats의 create_task 패턴 참고)
+        (
+            total_r,
+            up_r,
+            down_r,
+            daily_r,
+            checked_r,
+            recent_r,
+        ) = await asyncio.gather(
+            # 총 Q&A 횟수
+            client.get(
+                sb_url("qa_events"),
+                params={"select": "id", "event_type": "eq.qa_submitted"},
+                headers={**sb_headers(), "Prefer": "count=exact", "Range-Unit": "items", "Range": "0-0"},
+            ),
+            # 만족도 up 건수 (C5: 서버사이드 필터로 전체 로드 제거)
+            client.get(
+                sb_url("qa_feedback"),
+                params={"select": "id", "rating": "eq.up"},
+                headers={**sb_headers(), "Prefer": "count=exact", "Range-Unit": "items", "Range": "0-0"},
+            ),
+            # 만족도 down 건수
+            client.get(
+                sb_url("qa_feedback"),
+                params={"select": "id", "rating": "eq.down"},
+                headers={**sb_headers(), "Prefer": "count=exact", "Range-Unit": "items", "Range": "0-0"},
+            ),
+            # 일별 Q&A (최근 7일) — v_qa_daily_counts 뷰 사용
+            client.get(
+                sb_url("v_qa_daily_counts"),
+                params={"select": "date,count"},
+                headers=sb_headers(),
+            ),
+            # task_checked 이벤트 수
+            client.get(
+                sb_url("qa_events"),
+                params={"select": "id", "event_type": "eq.task_checked"},
+                headers={**sb_headers(), "Prefer": "count=exact", "Range-Unit": "items", "Range": "0-0"},
+            ),
+            # 최근 피드백 20건
+            client.get(
+                sb_url("qa_feedback"),
+                params={"select": "id,task_id,question,rating,created_at", "order": "created_at.desc", "limit": "20"},
+                headers=sb_headers(),
+            ),
         )
+
         total_qa_count = _parse_count(total_r.headers.get("content-range", "0/0"))
 
-        # 만족도 (qa_feedback 기준)
-        feedback_r = await client.get(
-            sb_url("qa_feedback"),
-            params={"select": "rating", "limit": "10000"},
-            headers=sb_headers(),
-        )
-        feedbacks = feedback_r.json() if feedback_r.status_code == 200 else []
-        total_fb = len(feedbacks)
-        up_count = sum(1 for f in feedbacks if f.get("rating") == "up")
+        up_count = _parse_count(up_r.headers.get("content-range", "0/0"))
+        down_count = _parse_count(down_r.headers.get("content-range", "0/0"))
+        total_fb = up_count + down_count
         satisfaction_rate = round(up_count / total_fb, 2) if total_fb > 0 else 0.0
 
-        # 일별 Q&A (최근 7일) — v_qa_daily_counts 뷰 사용
-        daily_r = await client.get(
-            sb_url("v_qa_daily_counts"),
-            params={"select": "date,count"},
-            headers=sb_headers(),
-        )
         daily_counts = [
             {"date": str(row["date"]), "count": row["count"]}
             for row in (daily_r.json() if daily_r.status_code == 200 else [])
         ]
 
-        # task_checked 이벤트 수
-        checked_r = await client.get(
-            sb_url("qa_events"),
-            params={"select": "id", "event_type": "eq.task_checked"},
-            headers={**sb_headers(), "Prefer": "count=exact", "Range-Unit": "items", "Range": "0-0"},
-        )
         task_checked_count = _parse_count(checked_r.headers.get("content-range", "0/0"))
-
         task_completion_lift = round(task_checked_count / max(total_qa_count, 1), 2)
 
-        # 최근 피드백 20건
-        recent_r = await client.get(
-            sb_url("qa_feedback"),
-            params={"select": "id,task_id,question,rating,created_at", "order": "created_at.desc", "limit": "20"},
-            headers=sb_headers(),
-        )
         recent_feedback = recent_r.json() if recent_r.status_code == 200 else []
 
         return {

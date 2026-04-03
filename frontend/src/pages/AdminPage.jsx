@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { request } from '../lib/api'
 import QAStats from '../components/admin/QAStats'
+import StatCard from '../components/common/StatCard'
 
 // ── 상수 ────────────────────────────────────────────────────────
 const REFRESH_INTERVAL_MS = 30_000 // 30초 자동 갱신
@@ -15,22 +16,6 @@ const ENDPOINT_LABELS = {
 }
 
 // ── 소형 컴포넌트들 ──────────────────────────────────────────────
-
-function StatCard({ label, value, sub }) {
-  return (
-    <div className="bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm border border-gray-100 dark:border-gray-700">
-      <p className="text-xs font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">
-        {label}
-      </p>
-      <p className="text-3xl font-bold text-gray-900 dark:text-white">
-        {value ?? '—'}
-      </p>
-      {sub && (
-        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{sub}</p>
-      )}
-    </div>
-  )
-}
 
 // 단순 SVG 바 차트 (외부 라이브러리 없음)
 function BarChart({ data, color = '#6366f1' }) {

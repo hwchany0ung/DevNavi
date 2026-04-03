@@ -23,14 +23,14 @@ export default function QAPanel({ isOpen, taskContext = null, onClose }) {
     if (isOpen && taskContext?.taskId) {
       openPanel(taskContext.taskId, taskContext)
     }
-  }, [isOpen, taskContext?.taskId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, taskContext?.taskId, openPanel])
 
   // 패널 닫힐 때 스트리밍 정리
   useEffect(() => {
     if (!isOpen) {
       closePanel()
     }
-  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen, closePanel])
 
   // 새 메시지 도착 시 스크롤 하단으로
   useEffect(() => {
@@ -114,7 +114,7 @@ export default function QAPanel({ isOpen, taskContext = null, onClose }) {
           ) : (
             messages.map((msg, idx) => (
               <div
-                key={idx}
+                key={msg.id}
                 className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div className="flex flex-col max-w-[85%]">

@@ -1,9 +1,10 @@
 """
 QA 요청/응답 Pydantic 모델.
 """
+import json
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class QAMessage(BaseModel):
@@ -37,3 +38,10 @@ class EventRequest(BaseModel):
     task_id: str | None = Field(default=None, pattern=r"^\d+-\d+-\d+$")
     event_type: Literal["qa_opened", "qa_submitted", "task_checked"]
     metadata: dict = Field(default_factory=dict)
+
+    @field_validator('metadata')
+    @classmethod
+    def validate_metadata_size(cls, v):
+        if len(json.dumps(v)) > 1024:
+            raise ValueError('metadata exceeds 1024 bytes limit')
+        return v

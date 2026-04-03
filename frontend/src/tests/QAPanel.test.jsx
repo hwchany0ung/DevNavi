@@ -21,7 +21,7 @@ vi.mock('../contexts/ThemeContext', () => ({
 }))
 
 vi.mock('../hooks/useAuth', () => ({
-  useAuth: () => ({ user: null }),
+  useAuth: () => ({ user: null, getAuthHeaders: () => ({}) }),
 }))
 
 vi.mock('../hooks/useAnalytics', () => ({
