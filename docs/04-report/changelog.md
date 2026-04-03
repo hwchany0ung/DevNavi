@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 ---
 
+## [2026-04-02] - Minor 이슈 처리 완료
+
+### Fixed
+- **roadmap_service.py**: user_id를 Optional[str]에서 str(필수)로 변경, 소유자 필터 항상 적용 (M2)
+- **roadmap.py**: `/teaser` 엔드포인트에 burst rate limit `@limiter.limit("5/minute")` 추가 (M3)
+- **test_qa_service.py**: 컬럼명 `roadmap_data` → `data` 동기화, dev 환경 작동 수정 (M4)
+- **test_auth_quota_persist.py**: dev 환경 테스트 구성 복구 (M4)
+
+### Verified
+- **supabase_client.py**: thread-safety docstring 이미 포함됨 (M1)
+- **AuthContext.jsx**: JWT 서버 미무효화 한계 주석 명시됨 (M5)
+- **PERIOD_MAP**: `"1month": 1` 이미 포함됨 (M6)
+
+### Metrics
+- Test Coverage: 88.8% (기준 80% 초과)
+- Match Rate: 95%+ (기준 90% 초과)
+- Issue Resolution: 6/6 (100%)
+
+### Related Documents
+- Report: `docs/04-report/features/minor-fixes.report.md`
+
+---
+
 ## [2026-04-02] - 태스크별 AI Q&A 기능 완료
 
 ### Added

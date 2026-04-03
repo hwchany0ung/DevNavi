@@ -1,6 +1,6 @@
 {
   "version": "3.0",
-  "lastUpdated": "2026-04-02T07:13:28.788Z",
+  "lastUpdated": "2026-04-03T04:01:26.104Z",
   "activeFeatures": [
     "ml",
     "evaluation",
@@ -92,7 +92,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-02T01:21:41.348Z",
-        "lastUpdated": "2026-04-02T02:14:24.563Z"
+        "lastUpdated": "2026-04-03T04:01:26.100Z"
       },
       "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\pages\\__tests__\\RoadmapPage.test.jsx"
     },
@@ -120,9 +120,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-02T01:49:50.786Z",
-        "lastUpdated": "2026-04-02T07:13:28.785Z"
+        "lastUpdated": "2026-04-03T03:41:07.108Z"
       },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\tests\\QAFeedback.test.jsx"
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\tests\\QAPanel.test.jsx"
     },
     "unit": {
       "phase": "do",
@@ -133,7 +133,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-02T01:49:55.933Z",
-        "lastUpdated": "2026-04-02T07:13:09.970Z"
+        "lastUpdated": "2026-04-03T03:56:30.716Z"
       },
       "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\tests\\unit\\test_feedback_analytics.py"
     },
@@ -159,9 +159,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-02T01:55:27.627Z",
-        "lastUpdated": "2026-04-02T07:12:21.823Z"
+        "lastUpdated": "2026-04-03T03:56:10.408Z"
       },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\pages\\RoadmapPage.jsx"
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\pages\\LandingPage.jsx"
     },
     "e2e": {
       "phase": "do",
@@ -198,9 +198,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-02T04:35:22.470Z",
-        "lastUpdated": "2026-04-02T07:12:27.054Z"
+        "lastUpdated": "2026-04-03T03:56:26.337Z"
       },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\app\\models\\qa_models.py"
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\app\\services\\qa_service.py"
     },
     "api": {
       "phase": "do",
@@ -211,9 +211,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-02T04:35:29.061Z",
-        "lastUpdated": "2026-04-02T07:02:52.585Z"
+        "lastUpdated": "2026-04-03T03:56:09.424Z"
       },
-      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\app\\api\\admin.py"
+      "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\backend\\app\\api\\roadmap.py"
     },
     "contexts": {
       "phase": "do",
@@ -263,7 +263,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-02T06:32:15.225Z",
-        "lastUpdated": "2026-04-02T07:04:13.169Z"
+        "lastUpdated": "2026-04-03T03:56:02.806Z"
       },
       "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\components\\qa\\QAPanel.jsx"
     },
@@ -276,7 +276,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-02T07:05:30.735Z",
-        "lastUpdated": "2026-04-02T07:12:15.726Z"
+        "lastUpdated": "2026-04-03T03:35:50.165Z"
       },
       "lastFile": "C:\\Users\\chany\\SideProject\\Careerpath\\frontend\\src\\components\\admin\\QAStats.jsx"
     }
@@ -289,7 +289,7 @@
   "session": {
     "startedAt": "2026-04-02T00:39:54.245Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-04-02T07:13:28.788Z"
+    "lastActivity": "2026-04-03T04:01:26.104Z"
   },
   "history": [
     {
@@ -1117,6 +1117,276 @@
     {
       "timestamp": "2026-04-02T07:13:28.788Z",
       "feature": "tests",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-02T07:34:20.759Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:26:10.424Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:26:18.694Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:26:49.436Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:27:00.673Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:27:04.230Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:27:04.915Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:34:13.878Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:34:18.628Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:34:23.305Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:34:29.053Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:34:34.437Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:34:38.119Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:34:59.812Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:35:00.107Z",
+      "feature": "api",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:35:06.343Z",
+      "feature": "qa",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:35:08.724Z",
+      "feature": "qa",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:35:12.578Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:35:15.998Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:35:21.176Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:35:22.946Z",
+      "feature": "api",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:35:26.714Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:35:50.166Z",
+      "feature": "admin",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:38:12.120Z",
+      "feature": "qa",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:41:07.109Z",
+      "feature": "tests",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:46:09.520Z",
+      "feature": "unit",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:48:50.901Z",
+      "feature": "unit",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:48:54.711Z",
+      "feature": "unit",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:49:02.378Z",
+      "feature": "unit",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:55:35.992Z",
+      "feature": "api",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:55:45.175Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:55:49.528Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:55:54.144Z",
+      "feature": "qa",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:55:55.555Z",
+      "feature": "api",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:56:00.206Z",
+      "feature": "qa",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:56:02.407Z",
+      "feature": "api",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:56:02.807Z",
+      "feature": "qa",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:56:06.774Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:56:09.425Z",
+      "feature": "api",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:56:10.409Z",
+      "feature": "frontend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:56:12.474Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:56:22.070Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:56:26.338Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T03:56:30.717Z",
+      "feature": "unit",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-03T04:01:26.103Z",
+      "feature": "__tests__",
       "phase": "do",
       "action": "updated"
     }

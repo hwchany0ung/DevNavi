@@ -67,3 +67,4 @@ frontend/coverage/
 frontend/test-results/
 frontend/playwright-report/
 frontend/e2e/screenshots/
+.github_token
