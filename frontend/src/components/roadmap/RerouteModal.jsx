@@ -8,17 +8,20 @@ const PERIOD_OPTIONS = [
 ]
 
 /**
- * GPS 재탐색 기간 선택 모달
+ * GPS 재탐색 기간 선택 + 사용자 추가 요청 모달
  */
 export default function RerouteModal({
   open,
   completionRate,
   completedCount,
   totalCount,
+  rerouteCount,
   reroutePeriod,
   rerouteLoading,
   rerouteError,
+  userRequests,
   onPeriodChange,
+  onUserRequestsChange,
   onConfirm,
   onClose,
 }) {
@@ -49,6 +52,8 @@ export default function RerouteModal({
 
   if (!open) return null
 
+  const remaining = 2 - (rerouteCount ?? 0)
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -64,6 +69,7 @@ export default function RerouteModal({
           <p className="text-lg font-black text-gray-900 dark:text-white">🧭 방향 재설정</p>
           <p className="text-sm text-gray-400 dark:text-white/40 mt-1">
             현재 <span className="font-bold text-indigo-600 dark:text-indigo-400">{Math.round(completionRate)}%</span> 완료 ({completedCount}/{totalCount} 태스크)
+            <span className="ml-2 text-xs text-gray-300 dark:text-white/30">· 잔여 {remaining}회</span>
           </p>
         </div>
 
@@ -86,6 +92,24 @@ export default function RerouteModal({
               <span className="text-xs text-gray-400 dark:text-white/40">{sub}</span>
             </button>
           ))}
+        </div>
+
+        {/* 사용자 추가 학습 요청 */}
+        <div className="space-y-2">
+          <p className="text-xs font-bold text-gray-500 dark:text-white/50 uppercase tracking-widest">추가 학습 요청 <span className="normal-case font-normal text-gray-300 dark:text-white/30">(선택)</span></p>
+          <textarea
+            value={userRequests}
+            onChange={(e) => onUserRequestsChange(e.target.value)}
+            placeholder={"예) Redis 캐시 전략 추가해줘\n포트폴리오 발표 준비 항목도 넣어줘"}
+            rows={3}
+            maxLength={500}
+            className="w-full px-3 py-2.5 rounded-xl border border-gray-200 dark:border-white/10
+              bg-gray-50 dark:bg-white/5 text-sm text-gray-700 dark:text-white/80
+              placeholder:text-gray-300 dark:placeholder:text-white/20
+              focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500/60
+              resize-none transition-colors"
+          />
+          <p className="text-right text-xs text-gray-300 dark:text-white/20">{userRequests.length}/500</p>
         </div>
 
         {/* 재탐색 오류 메시지 */}

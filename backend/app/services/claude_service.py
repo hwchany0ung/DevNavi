@@ -157,11 +157,12 @@ async def _fetch_chunk(client, system: str, user_msg: str) -> tuple[str, str | N
 async def stream_full_multicall(
     role: str,
     level: str,
-    skills: list[str],
+    skills,
     certifications: list[str],
     company_type: str,
     daily_study_hours: str,
     total_months: int,
+    extra_profile=None,
 ) -> AsyncGenerator[str, None]:
     """6개월씩 병렬 분할 호출 후 JSON을 병합해 SSE 스트리밍.
 
@@ -187,14 +188,15 @@ async def stream_full_multicall(
     total_chunks = len(chunks)
 
     # 모든 청크 프롬프트 빌드 후 태스크 동시 시작
-    prompt_pairs = [
+    prompt_pairs = await asyncio.gather(*(
         build_full_prompt_partial(
             role, level, skills, certifications,
             company_type, daily_study_hours,
             month_start, month_end, total_months,
+            extra_profile=extra_profile,
         )
         for month_start, month_end in chunks
-    ]
+    ))
 
     tasks = [
         asyncio.create_task(_fetch_chunk(client, system, user_msg))

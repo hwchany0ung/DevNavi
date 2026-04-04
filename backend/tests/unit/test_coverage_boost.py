@@ -69,7 +69,7 @@ class TestCloseSupabaseClient:
 
 class TestRoadmapModels:
     def test_full_roadmap_request_truncates_skills(self):
-        """skills 리스트가 sanitize 처리됨."""
+        """skills 리스트가 sanitize 처리됨 (list[str] 하위호환 → OnboardingSkillItem)."""
         from app.models.roadmap import FullRoadmapRequest
         req = FullRoadmapRequest(
             role="backend",
@@ -77,7 +77,43 @@ class TestRoadmapModels:
             level="beginner",
             skills=["Python", "SQL"],
         )
-        assert req.skills == ["Python", "SQL"]
+        # list[str] → list[OnboardingSkillItem] 자동 변환 검증
+        assert len(req.skills) == 2
+        assert req.skills[0].name == "Python"
+        assert req.skills[0].level.value == "basic"
+        assert req.skills[1].name == "SQL"
+
+    def test_full_roadmap_request_skill_items(self):
+        """skills를 list[dict] (SkillItem 형태)로 전달 시 정상 변환."""
+        from app.models.roadmap import FullRoadmapRequest
+        req = FullRoadmapRequest(
+            role="backend",
+            period="6months",
+            level="beginner",
+            skills=[
+                {"name": "React", "level": "intermediate"},
+                {"name": "Docker", "level": "beginner"},
+            ],
+        )
+        assert req.skills[0].name == "React"
+        assert req.skills[0].level.value == "intermediate"
+        assert req.skills[1].name == "Docker"
+        assert req.skills[1].level.value == "beginner"
+
+    def test_full_roadmap_request_extra_profile(self):
+        """extra_profile Optional 필드 검증."""
+        from app.models.roadmap import FullRoadmapRequest
+        # None (기본)
+        req1 = FullRoadmapRequest(role="backend", period="6months", level="beginner")
+        assert req1.extra_profile is None
+        # 값 제공
+        req2 = FullRoadmapRequest(
+            role="backend", period="6months", level="beginner",
+            extra_profile={"has_deployment": True, "coding_test_level": "intermediate", "team_project_count": 2},
+        )
+        assert req2.extra_profile.has_deployment is True
+        assert req2.extra_profile.coding_test_level == "intermediate"
+        assert req2.extra_profile.team_project_count == 2
 
     def test_reroute_request_1month(self):
         """original_period에 '1month' 허용 (M6 수정 검증)."""
@@ -140,3 +176,61 @@ class TestRoadmapModels:
         from app.models.roadmap import CompletionToggleRequest
         req = CompletionToggleRequest(task_id="1-2-3", completed=True)
         assert req.task_id == "1-2-3"
+
+
+# ── prompt builder ────────────────────────────────────────────────────
+
+class TestPromptBuilder:
+    def test_format_skills_with_levels_three_zones(self):
+        """3구간(SKIP/REVIEW/FOCUS) 분류 및 레이블 포함 확인."""
+        from app.prompts.builder import _format_skills_with_levels
+        from app.models.roadmap import OnboardingSkillItem, SkillLevel
+
+        skills = [
+            OnboardingSkillItem(name="React", level=SkillLevel.advanced),
+            OnboardingSkillItem(name="Python", level=SkillLevel.intermediate),
+            OnboardingSkillItem(name="SQL", level=SkillLevel.basic),
+            OnboardingSkillItem(name="Docker", level=SkillLevel.beginner),
+        ]
+        result = _format_skills_with_levels(skills)
+
+        assert "스킵/최소화 구간" in result
+        assert "빠른 복습 구간" in result
+        assert "집중 학습 구간" in result
+        assert "React" in result
+        assert "Python" in result
+        assert "SQL" in result
+        assert "Docker" in result
+
+    def test_format_skills_with_levels_str_list(self):
+        """list[str] 입력 → 기존 동작(보유 스킬: ...) 확인."""
+        from app.prompts.builder import _format_skills_with_levels
+
+        result = _format_skills_with_levels(["React", "Python"])
+        assert result == "보유 스킬: React, Python"
+
+    def test_format_skills_with_levels_empty(self):
+        """스킬 없음 → '보유 스킬: 없음' 확인."""
+        from app.prompts.builder import _format_skills_with_levels
+
+        result = _format_skills_with_levels([])
+        assert result == "보유 스킬: 없음"
+
+    def test_format_extra_profile_none(self):
+        """_format_extra_profile(None) → 빈 문자열 확인."""
+        from app.prompts.builder import _format_extra_profile
+
+        result = _format_extra_profile(None)
+        assert result == ""
+
+    def test_format_extra_profile_with_values(self):
+        """_format_extra_profile 값 있을 때 → 3항목 포함 확인."""
+        from app.prompts.builder import _format_extra_profile
+        from app.models.roadmap import ExtraProfile
+
+        ep = ExtraProfile(has_deployment=True, coding_test_level="intermediate", team_project_count=2)
+        result = _format_extra_profile(ep)
+
+        assert "실배포 경험" in result
+        assert "코딩테스트 준비 수준" in result
+        assert "팀 프로젝트 경험" in result

@@ -75,6 +75,13 @@ class Settings(BaseSettings):
     TOSS_SECRET_KEY: Optional[str] = None
     TOSS_WEBHOOK_SECRET: Optional[str] = None
 
+    # ── 이메일 알림 (없으면 알림 비활성) ─────────────────────────
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    NOTIFY_EMAIL: Optional[str] = None  # 수신 이메일
+
     # ── CORS ──────────────────────────────────────────────────────
     CORS_ORIGINS: list[str] = ["http://localhost:5173"]
 

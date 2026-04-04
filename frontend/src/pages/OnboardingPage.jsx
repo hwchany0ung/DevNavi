@@ -26,29 +26,54 @@ const VALID_PERIODS = ['3months', '6months', '1year', '1year_plus']
 const VALID_LEVELS = ['beginner', 'basic', 'some_exp', 'career_change']
 const VALID_COMPANY_TYPES = ['startup', 'msp', 'bigco', 'si', 'foreign', 'any']
 const VALID_STUDY_HOURS = ['under1h', '1to2h', '3to4h', 'over5h']
+const VALID_SKILL_LEVELS = ['beginner', 'basic', 'intermediate', 'advanced']
 
 function _isValidDraft(s1, s2) {
-  const isValidItems = (arr) =>
+  const isValidStringItems = (arr) =>
     Array.isArray(arr) &&
     arr.every(item => typeof item === 'string' && item.length < 100)
+
+  // skills: [{name, level}] 또는 [string] (하위호환)
+  const isValidSkills = (arr) =>
+    Array.isArray(arr) &&
+    arr.every(item =>
+      (typeof item === 'string' && item.length < 100) ||
+      (typeof item === 'object' && item !== null &&
+        typeof item.name === 'string' && item.name.length < 100 &&
+        VALID_SKILL_LEVELS.includes(item.level))
+    )
+
+  const isValidExtraProfile = (ep) => {
+    if (ep === null || ep === undefined) return true
+    if (typeof ep !== 'object') return false
+    if (typeof ep.has_deployment !== 'boolean') return false
+    if (!['none', 'basic', 'intermediate', 'advanced'].includes(ep.coding_test_level)) return false
+    if (![0, 1, 2, 3].includes(ep.team_project_count)) return false
+    return true
+  }
 
   return (
     VALID_ROLES.includes(s1?.role) &&
     VALID_PERIODS.includes(s1?.period) &&
     VALID_LEVELS.includes(s1?.level) &&
-    isValidItems(s2?.skills) &&
-    isValidItems(s2?.certifications) &&
+    isValidSkills(s2?.skills) &&
+    isValidStringItems(s2?.certifications) &&
     VALID_COMPANY_TYPES.includes(s2?.company_type) &&
-    VALID_STUDY_HOURS.includes(s2?.daily_study_hours)
+    VALID_STUDY_HOURS.includes(s2?.daily_study_hours) &&
+    isValidExtraProfile(s2?.extra_profile)
   )
 }
 
 // ── 파라미터 캐시 유틸 ─────────────────────────────────────────────────
 /** 생성 파라미터를 정렬된 문자열 키로 변환 (캐시 비교용) */
 function computeParamsKey(s1, s2) {
+  // skills: [{name, level}] 또는 [string] 둘 다 처리
+  const skillKeys = [...(s2.skills || [])].map(s =>
+    typeof s === 'string' ? s : `${s.name}:${s.level || 'basic'}`
+  ).sort().join(',')
   return [
     s1.role, s1.period, s1.level,
-    [...(s2.skills         || [])].sort().join(','),
+    skillKeys,
     [...(s2.certifications || [])].sort().join(','),
     s2.company_type,
     s2.daily_study_hours,
@@ -116,10 +141,11 @@ const STEP1_INITIAL = {
 }
 
 const STEP2_INITIAL = {
-  skills: [],
+  skills: [],           // [{name, level}] 형태
   certifications: [],
   company_type: 'any',
   daily_study_hours: '1to2h',
+  extra_profile: null,  // null = 미입력 (기존 동작 유지)
 }
 
 function isStep1Complete(v) {
@@ -153,6 +179,7 @@ export default function OnboardingPage() {
   const [careerSummary, setCareerSummary] = useState(null)
   const [summaryLoading, setSummaryLoading] = useState(false)
   const [summaryError, setSummaryError] = useState(null)
+  const summaryParamsKeyRef = useRef(null)  // 마지막 API 호출 시 파라미터 키 (캐시용)
 
   // 로그인 모달
   const [showAuth, setShowAuth] = useState(false)
@@ -208,22 +235,18 @@ export default function OnboardingPage() {
   // ── 커리어 분석 API 실제 호출 (로그인 확인 후 실행) ──────────────
   const _doCareerSummary = useCallback(async () => {
     const { role, period, level } = step1Ref.current
-    const { skills, certifications, company_type } = step2Ref.current
+    const { skills, certifications, company_type, extra_profile } = step2Ref.current
     setSummaryLoading(true)
     setSummaryError(null)
     setStep(STEP.SUMMARY)
     try {
+      const payload = { role, period, level, skills, certifications, company_type }
+      // extra_profile이 입력된 경우에만 포함 (미입력 시 서버 기본 동작 유지)
+      if (extra_profile) payload.extra_profile = extra_profile
       const data = await request('/roadmap/career-summary', {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify({
-          role,
-          period,
-          level,
-          skills,
-          certifications,
-          company_type,
-        }),
+        body: JSON.stringify(payload),
       })
       setCareerSummary(data)
     } catch (e) {
@@ -348,6 +371,13 @@ export default function OnboardingPage() {
       setShowAuth(true)
       return
     }
+    // 입력값이 동일하고 이미 결과가 있으면 API 재호출 생략 (토큰 절약)
+    const currentKey = computeParamsKey(step1, step2)
+    if (careerSummary && summaryParamsKeyRef.current === currentKey) {
+      setStep(STEP.SUMMARY)
+      return
+    }
+    summaryParamsKeyRef.current = currentKey
     _doCareerSummary()
   }
 
@@ -375,18 +405,18 @@ export default function OnboardingPage() {
     }
 
     // ── 신규 생성 (스텝 전환 없이 summary 내에서 로딩 인라인 표시) ──
-    startFull(
-      {
-        role: step1.role,
-        period: step1.period,
-        level: step1.level,
-        skills: step2.skills,
-        certifications: step2.certifications,
-        company_type: step2.company_type,
-        daily_study_hours: step2.daily_study_hours,
-      },
-      getAuthHeaders(),
-    )
+    const fullPayload = {
+      role: step1.role,
+      period: step1.period,
+      level: step1.level,
+      skills: step2.skills,
+      certifications: step2.certifications,
+      company_type: step2.company_type,
+      daily_study_hours: step2.daily_study_hours,
+    }
+    // extra_profile이 입력된 경우에만 포함
+    if (step2.extra_profile) fullPayload.extra_profile = step2.extra_profile
+    startFull(fullPayload, getAuthHeaders())
     // generatingRef.current은 onSaved/onError 콜백에서 리셋 (스트리밍 완료 전 중복 클릭 방지)
   }
 
@@ -613,8 +643,8 @@ export default function OnboardingPage() {
                   {/* I12: 429 Too Many Requests 전용 메시지 */}
                   {fullError.status === 429 ? (
                     <>
-                      <p className="text-orange-600 dark:text-orange-400 font-semibold text-sm">일일 사용 한도에 도달했어요</p>
-                      <p className="text-orange-400 dark:text-orange-400/70 text-xs">잠시 후 다시 시도해주세요. 내일 한도가 초기화됩니다.</p>
+                      <p className="text-orange-600 dark:text-orange-400 font-semibold text-sm">주간 로드맵 생성 한도에 도달했어요</p>
+                      <p className="text-orange-400 dark:text-orange-400/70 text-xs">로드맵은 주 1회 생성할 수 있습니다. 추가 이용이 필요하시면 <a href="mailto:support@devnavi.kr" className="underline">support@devnavi.kr</a>로 문의해 주세요.</p>
                     </>
                   ) : (
                     <>

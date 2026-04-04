@@ -352,3 +352,74 @@ async def get_qa_stats(request: Request, admin: dict = Depends(require_admin)) -
             "task_completion_lift": 0.0,
             "recent_feedback": [],
         }
+
+
+# ── role_references 롤백 ──────────────────────────────────────────
+
+_VALID_ROLES = [
+    "backend", "frontend", "cloud_devops", "fullstack",
+    "data", "ai_ml", "security", "ios_android", "qa",
+]
+
+
+@router.post("/references/{role}/rollback", status_code=200)
+@limiter.limit("10/minute")
+async def rollback_reference(
+    request: Request,
+    role: str,
+    _: dict = Depends(require_admin),
+):
+    """특정 직군의 role_references를 이전 버전으로 롤백."""
+    if role not in _VALID_ROLES:
+        raise HTTPException(status_code=400, detail="유효하지 않은 직군입니다.")
+
+    if not settings.supabase_ready:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, detail="DB 미설정")
+
+    client = get_supabase_client()
+
+    # 현재 active 버전 조회
+    r = await client.get(
+        sb_url("role_references"),
+        headers=sb_headers(),
+        params={"role": f"eq.{role}", "is_active": "eq.true",
+                "select": "id,version", "limit": "1"},
+    )
+    active_rows = r.json() if r.status_code == 200 else []
+    if not active_rows:
+        raise HTTPException(status_code=404, detail="활성 버전이 없습니다.")
+
+    current_version = active_rows[0]["version"]
+    if current_version <= 1:
+        raise HTTPException(status_code=400, detail="롤백할 이전 버전이 없습니다.")
+
+    prev_version = current_version - 1
+
+    # 이전 버전 조회
+    r2 = await client.get(
+        sb_url("role_references"),
+        headers=sb_headers(),
+        params={"role": f"eq.{role}", "version": f"eq.{prev_version}",
+                "select": "id", "limit": "1"},
+    )
+    prev_rows = r2.json() if r2.status_code == 200 else []
+    if not prev_rows:
+        raise HTTPException(status_code=404, detail=f"v{prev_version}이 존재하지 않습니다.")
+
+    # 현재 active 해제
+    await client.patch(
+        sb_url("role_references"),
+        headers=sb_headers(prefer="return=minimal"),
+        params={"id": f"eq.{active_rows[0]['id']}"},
+        json={"is_active": False},
+    )
+    # 이전 버전 활성화
+    await client.patch(
+        sb_url("role_references"),
+        headers=sb_headers(prefer="return=minimal"),
+        params={"id": f"eq.{prev_rows[0]['id']}"},
+        json={"is_active": True, "activated_by": "admin_rollback"},
+    )
+
+    logger.info("role_references rollback: %s v%d -> v%d", role, current_version, prev_version)
+    return {"role": role, "rolled_back_to": prev_version}

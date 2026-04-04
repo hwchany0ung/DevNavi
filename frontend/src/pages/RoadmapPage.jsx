@@ -70,6 +70,8 @@ export default function RoadmapPage() {
   const [rerouteLoading, setRerouteLoading] = useState(false)
   const [rerouteModalOpen, setRerouteModalOpen] = useState(false)
   const [reroutePeriod,    setReroutePeriod]    = useState('3months')
+  const [rerouteCount,     setRerouteCount]     = useState(0)   // 로드맵당 최대 2회
+  const [userRequests,     setUserRequests]     = useState('')  // 사용자 추가 학습 요청
   const [sidebarOpen,  setSidebarOpen]  = useState(false)
   const [authOpen,     setAuthOpen]     = useState(false)
   const [showGrass,    setShowGrass]    = useState(true)
@@ -164,6 +166,8 @@ export default function RoadmapPage() {
       setDoneSet(loadDoneLocal(id))
       setLoading(false)
       loadedForIdRef.current = id
+      // 로드맵별 방향재설정 사용 횟수 복원
+      setRerouteCount(Number(localStorage.getItem(`devnavi_reroute_count_${id}`) ?? 0))
       return
     }
     // FC-4 통일: getAuthHeaders()로 항상 최신 토큰 사용
@@ -173,6 +177,7 @@ export default function RoadmapPage() {
         setRoadmap(rm)
         setDoneSet(loadDoneLocal(id))
         loadedForIdRef.current = id  // 성공 시만 set — 실패 시 userId 변경으로 재시도 허용
+        setRerouteCount(Number(localStorage.getItem(`devnavi_reroute_count_${id}`) ?? 0))
       })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
@@ -267,6 +272,12 @@ export default function RoadmapPage() {
       )
     )
     const weeksLeft = PERIOD_WEEKS[reroutePeriod] ?? 13
+    // 사용자 추가 요청을 줄 단위로 파싱 (빈 줄 제거)
+    const parsedUserRequests = userRequests
+      .split('\n')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 10)  // 최대 10개
     try {
       const res = await request('/roadmap/reroute', {
         method: 'POST',
@@ -279,10 +290,15 @@ export default function RoadmapPage() {
           done_contents:     doneContents,
           weeks_left:        weeksLeft,
           daily_study_hours: roadmap._meta?.daily_study_hours ?? '1to2h',
+          user_requests:     parsedUserRequests,
         }),
       })
       const rerouteMeta = { ...roadmap._meta, period: reroutePeriod }
       const newId = saveRoadmapLocal({ ...res, _meta: rerouteMeta })
+      // 방향재설정 횟수 증가 (기존 로드맵 ID 기준)
+      const newCount = rerouteCount + 1
+      if (id) localStorage.setItem(`devnavi_reroute_count_${id}`, String(newCount))
+      setUserRequests('')  // 요청 초기화
 
       // I9: Reroute 결과를 Supabase에도 저장 (로컬 전용 문제 해결)
       if (user) {
@@ -430,6 +446,7 @@ export default function RoadmapPage() {
 
             <RerouteButton
               completionRate={completionRate}
+              rerouteCount={rerouteCount}
               onClick={handleReroute}
               loading={rerouteLoading}
             />
@@ -515,10 +532,13 @@ export default function RoadmapPage() {
         completionRate={completionRate}
         completedCount={completedCount}
         totalCount={totalCount}
+        rerouteCount={rerouteCount}
         reroutePeriod={reroutePeriod}
         rerouteLoading={rerouteLoading}
         rerouteError={rerouteError}
+        userRequests={userRequests}
         onPeriodChange={setReroutePeriod}
+        onUserRequestsChange={setUserRequests}
         onConfirm={handleRerouteConfirm}
         onClose={() => { setRerouteModalOpen(false); setRerouteError(null) }}
       />

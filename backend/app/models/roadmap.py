@@ -1,5 +1,6 @@
 import json
 import re
+from enum import Enum
 from pydantic import BaseModel, Field, field_validator
 from typing import Literal, Optional, Union
 
@@ -26,6 +27,57 @@ def _truncate_items(items: list) -> list[str]:
     return [_sanitize_item(item) for item in items]
 
 
+# ───────────────────────────── 숙련도·추가 프로필 ─────────────────────
+
+class SkillLevel(str, Enum):
+    """스킬 숙련도 4단계."""
+    beginner = "beginner"           # 입문 (들어본 정도)
+    basic = "basic"                 # 기초 (튜토리얼 수준)
+    intermediate = "intermediate"   # 중급 (개인 프로젝트 경험)
+    advanced = "advanced"           # 능숙 (실무/팀 프로젝트 경험)
+
+
+class OnboardingSkillItem(BaseModel):
+    """온보딩에서 전송하는 스킬+숙련도 쌍."""
+    name: str
+    level: SkillLevel = SkillLevel.basic
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def sanitize_name(cls, v):
+        return _sanitize_item(str(v))
+
+
+class ExtraProfile(BaseModel):
+    """더 정교한 로드맵을 위한 선택적 추가 프로필."""
+    has_deployment: bool = False
+    coding_test_level: Literal["none", "basic", "intermediate", "advanced"] = "none"
+    team_project_count: Literal[0, 1, 2, 3] = 0  # 3 = 3회 이상
+
+
+def _coerce_skills(v: list) -> list:
+    """list[str] 또는 list[dict/OnboardingSkillItem] 을 list[OnboardingSkillItem]로 통합 변환.
+
+    하위호환: 기존 클라이언트가 ["React", "Python"] 형태로 보내도
+    [OnboardingSkillItem(name="React", level="basic"), ...] 로 자동 변환.
+    """
+    if not isinstance(v, list):
+        return v
+    result = []
+    for item in v:
+        if isinstance(item, str):
+            result.append(OnboardingSkillItem(name=_sanitize_item(item), level=SkillLevel.basic))
+        elif isinstance(item, dict):
+            name = _sanitize_item(str(item.get("name", "")))
+            level = item.get("level", "basic")
+            result.append(OnboardingSkillItem(name=name, level=level))
+        elif isinstance(item, OnboardingSkillItem):
+            result.append(item)
+        else:
+            result.append(OnboardingSkillItem(name=_sanitize_item(str(item)), level=SkillLevel.basic))
+    return result
+
+
 # ───────────────────────────── 요청 모델 ─────────────────────────────
 
 class TeaserRequest(BaseModel):
@@ -44,14 +96,21 @@ class FullRoadmapRequest(BaseModel):
     ]
     period: Literal["3months", "6months", "1year", "1year_plus"]
     level: Literal["beginner", "basic", "some_exp", "career_change"]
-    skills: list[str] = Field(default_factory=list, max_length=20)
+    skills: list[OnboardingSkillItem] = Field(default_factory=list, max_length=20)
     certifications: list[str] = Field(default_factory=list, max_length=10)
     company_type: Literal["startup", "msp", "bigco", "si", "foreign", "any"] = "any"
     daily_study_hours: Literal["under1h", "1to2h", "3to4h", "over5h"] = "1to2h"
+    extra_profile: Optional[ExtraProfile] = None
 
-    @field_validator("skills", "certifications", mode="before")
+    @field_validator("skills", mode="before")
     @classmethod
-    def truncate_items(cls, v: list) -> list[str]:
+    def coerce_skills_items(cls, v: list) -> list:
+        """list[str] 하위호환 → OnboardingSkillItem 변환."""
+        return _coerce_skills(v) if isinstance(v, list) else v
+
+    @field_validator("certifications", mode="before")
+    @classmethod
+    def truncate_certs(cls, v: list) -> list[str]:
         return _truncate_items(v) if isinstance(v, list) else v
 
 
@@ -75,6 +134,8 @@ class RerouteRequest(BaseModel):
     daily_study_hours: Literal["under1h", "1to2h", "3to4h", "over5h"] = "1to2h"
     # I-3: 서버측 완료율 계산용 — 제공 시 DB에서 실제 완료율 조회 (하위 호환 유지)
     roadmap_id: Optional[str] = None
+    # 사용자 추가 학습 요청 항목 (최대 10개, 각 100자 이내)
+    user_requests: list[str] = Field(default_factory=list, max_length=10)
 
     @field_validator("roadmap_id", mode="after")
     @classmethod
@@ -87,6 +148,13 @@ class RerouteRequest(BaseModel):
     @classmethod
     def sanitize_done_contents(cls, v: list) -> list[str]:
         return _truncate_items(v) if isinstance(v, list) else v
+
+    @field_validator("user_requests", mode="before")
+    @classmethod
+    def sanitize_user_requests(cls, v: list) -> list[str]:
+        if not isinstance(v, list):
+            return []
+        return [_sanitize_item(str(item))[:100] for item in v if item][:10]
 
 
 class PersistRequest(BaseModel):
@@ -174,13 +242,20 @@ class CareerSummaryRequest(BaseModel):
     ]
     period: Literal["3months", "6months", "1year", "1year_plus"]
     level: Literal["beginner", "basic", "some_exp", "career_change"]
-    skills: list[str] = Field(default_factory=list, max_length=20)
+    skills: list[OnboardingSkillItem] = Field(default_factory=list, max_length=20)
     certifications: list[str] = Field(default_factory=list, max_length=10)
     company_type: Literal["startup", "msp", "bigco", "si", "foreign", "any"] = "any"
+    extra_profile: Optional[ExtraProfile] = None
 
-    @field_validator("skills", "certifications", mode="before")
+    @field_validator("skills", mode="before")
     @classmethod
-    def truncate_items(cls, v: list) -> list[str]:
+    def coerce_skills_items(cls, v: list) -> list:
+        """list[str] 하위호환 → OnboardingSkillItem 변환."""
+        return _coerce_skills(v) if isinstance(v, list) else v
+
+    @field_validator("certifications", mode="before")
+    @classmethod
+    def truncate_certs(cls, v: list) -> list[str]:
         return _truncate_items(v) if isinstance(v, list) else v
 
 

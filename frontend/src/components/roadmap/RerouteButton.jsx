@@ -1,8 +1,11 @@
 /**
- * 방향 재설정 버튼 — 완료율 기반으로 남은 로드맵을 재생성
+ * 방향 재설정 버튼 — 완료율 50% 이상, 로드맵당 최대 2회
  */
-export default function RerouteButton({ completionRate, onClick, loading }) {
-  if (completionRate < 20) return null  // 20% 미만엔 노출 안 함
+export default function RerouteButton({ completionRate, rerouteCount, onClick, loading }) {
+  if (completionRate < 50) return null   // 50% 미만엔 노출 안 함
+  if (rerouteCount >= 2)  return null    // 2회 소진 시 숨김
+
+  const remaining = 2 - rerouteCount
 
   return (
     <button
@@ -19,7 +22,7 @@ export default function RerouteButton({ completionRate, onClick, loading }) {
           {loading ? '방향 재설정 중…' : '방향 재설정'}
         </p>
         <p className="text-xs text-indigo-400 dark:text-indigo-400/70">
-          {Math.round(completionRate)}% 완료 기준으로 남은 일정을 재조정해드려요
+          {Math.round(completionRate)}% 완료 기준으로 남은 일정을 재조정해드려요 · 잔여 {remaining}회
         </p>
       </div>
       {!loading && (

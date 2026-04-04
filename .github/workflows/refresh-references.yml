@@ -1,0 +1,48 @@
+# .github/workflows/refresh-references.yml
+name: Monthly Role References Refresh
+
+on:
+  schedule:
+    - cron: '0 17 1 * *'   # 매월 1일 02:00 KST (UTC+9 -> UTC 17:00)
+  workflow_dispatch:
+    inputs:
+      roles:
+        description: '특정 직군만 실행 (쉼표 구분, 비우면 전체)'
+        required: false
+        default: ''
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install httpx feedparser anthropic
+
+      - name: Run pipeline
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          ANTHROPIC_API_KEY:    ${{ secrets.ANTHROPIC_API_KEY }}
+          WORKNET_API_KEY:      ${{ secrets.WORKNET_API_KEY }}
+          NOTIFY_EMAIL:         ${{ secrets.NOTIFY_EMAIL }}
+          SMTP_HOST:            ${{ secrets.SMTP_HOST }}
+          SMTP_USER:            ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:        ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          ROLES="${{ github.event.inputs.roles }}"
+          if [ -n "$ROLES" ]; then
+            python backend/scripts/refresh_references.py \
+              --roles "$ROLES" --triggered-by "manual"
+          else
+            python backend/scripts/refresh_references.py \
+              --triggered-by "cron"
+          fi

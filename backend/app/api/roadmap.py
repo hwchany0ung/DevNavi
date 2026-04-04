@@ -37,6 +37,7 @@ from app.models.roadmap import (
     RoadmapSaveResponse,
     CareerSummaryRequest,
     CareerSummaryResponse,
+    OnboardingSkillItem,
 )
 from app.prompts.builder import build_teaser_prompt, build_full_prompt, build_reroute_prompt, build_career_summary_prompt
 from app.prompts.constants import PERIOD_MAP
@@ -185,7 +186,7 @@ async def teaser(request: Request, body: TeaserRequest):
 
     # 2. 캐시 미스 → Claude Haiku 호출 + 결과 캐시 저장
     logger.info("티저 캐시 미스 → AI 호출: %s", params_key)
-    system, user_msg = build_teaser_prompt(body.role, body.period, body.level)
+    system, user_msg = await build_teaser_prompt(body.role, body.period, body.level)
     return StreamingResponse(
         _stream_teaser_and_cache(system, user_msg, params_key),
         headers=SSE_HEADERS,
@@ -216,13 +217,15 @@ async def full_roadmap(
             body.skills, body.certifications,
             body.company_type, body.daily_study_hours,
             months,
+            extra_profile=body.extra_profile,
         )
     else:
         # 6개월 이하 → 단일 호출 스트리밍
-        system, user_msg = build_full_prompt(
+        system, user_msg = await build_full_prompt(
             body.role, body.period, body.level,
             body.skills, body.certifications,
             body.company_type, body.daily_study_hours,
+            extra_profile=body.extra_profile,
         )
         gen = stream_full(system, user_msg)
 
@@ -244,9 +247,10 @@ async def career_summary(
     - 무료 사용자 하루 10회 초과 시 429
     """
     try:
-        system, user_msg = build_career_summary_prompt(
+        system, user_msg = await build_career_summary_prompt(
             body.role, body.period, body.level,
             body.skills, body.certifications, body.company_type,
+            extra_profile=body.extra_profile,
         )
         raw = await call_haiku(system, user_msg)
         logger.debug("career-summary raw response: %s", raw[:200])
@@ -326,11 +330,12 @@ async def reroute(
         if db_rate is not None:
             completion_rate = db_rate
 
-    system, user_msg = build_reroute_prompt(
+    system, user_msg = await build_reroute_prompt(
         body.original_role, body.original_period,
         body.company_type, completion_rate,
         body.done_contents, body.weeks_left,
         body.daily_study_hours,
+        user_requests=body.user_requests or None,
     )
     raw = await call_reroute(system, user_msg)
     try:
