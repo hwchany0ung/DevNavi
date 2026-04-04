@@ -61,6 +61,7 @@ async def check_and_increment(user_id: str, endpoint: str) -> None:
         return  # 개발 모드 (Supabase 미설정) → 제한 없이 통과
 
     if user_id in _DEV_BYPASS_USERS:
+        logger.warning("DEV_BYPASS 적용: user=%s endpoint=%s", user_id, endpoint)
         return  # 개발/테스트 계정 → 한도 미적용
 
     limit = DAILY_LIMITS.get(endpoint, 3)

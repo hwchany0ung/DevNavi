@@ -3,7 +3,7 @@ import { Navigate, Routes, Route } from 'react-router-dom'
 import LandingPage from './pages/LandingPage'
 import OnboardingPage from './pages/OnboardingPage'
 
-// 개발 전용 — 프로덕션 번들에서 제외
+// 개발 전용 — 프로덕션 번들에서 완전 제외 (null이면 라우트 조건도 false)
 const LandingPageMockup = import.meta.env.DEV
   ? lazy(() => import('./pages/LandingPageMockup'))
   : null

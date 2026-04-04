@@ -3,7 +3,7 @@ QA 서비스 — 사용량 체크, 소유권 검증, Haiku 스트리밍.
 """
 import json
 import logging
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 import anthropic
 
@@ -93,11 +93,18 @@ async def increment_and_check_qa_usage(user_id: str) -> dict:
     return resp.json()
 
 
-async def verify_task_ownership(user_id: str, task_id: str) -> bool:
+async def verify_task_ownership(
+    user_id: str, task_id: str, roadmap_id: Optional[str] = None
+) -> bool:
     """사용자의 활성 로드맵에 해당 task_id가 존재하는지 검증.
 
     task_id 형식: "{month}-{week}-{task_index}"
     user의 active roadmap JSON에서 해당 월/주 태스크 존재 여부 확인.
+
+    Args:
+        user_id:    JWT에서 추출한 사용자 UUID
+        task_id:    "{month}-{week}-{task_index}" 형식 태스크 위치 ID
+        roadmap_id: 특정 로드맵 UUID (제공 시 해당 로드맵에서만 검증, 미제공 시 최신 active 로드맵 사용)
     """
     if not settings.supabase_ready:
         return True  # dev 환경: Supabase 미설정 시 접근 허용
@@ -111,21 +118,34 @@ async def verify_task_ownership(user_id: str, task_id: str) -> bool:
         return False
 
     client = get_supabase_client()
-    resp = await client.get(
-        sb_url("roadmaps"),
-        headers=sb_headers(),
-        params={
+
+    if roadmap_id:
+        # 특정 roadmap UUID로 조회 — user_id와 id 모두 검증하여 타인 로드맵 접근 차단
+        params = {
+            "id":      f"eq.{roadmap_id}",
+            "user_id": f"eq.{user_id}",
+            "select":  "data",
+            "limit":   "1",
+        }
+    else:
+        # 기존 동작: 사용자의 최신 활성 로드맵 사용 (하위 호환)
+        params = {
             "user_id": f"eq.{user_id}",
             "status":  "eq.active",
             "select":  "data",
             "limit":   "1",
-        },
+        }
+
+    resp = await client.get(
+        sb_url("roadmaps"),
+        headers=sb_headers(),
+        params=params,
     )
 
     if resp.status_code != 200:
         logger.warning(
-            "verify_task_ownership 조회 실패 (user=%s, status=%d)",
-            user_id, resp.status_code,
+            "verify_task_ownership 조회 실패 (user=%s, roadmap_id=%s, status=%d)",
+            user_id, roadmap_id, resp.status_code,
         )
         return False
 

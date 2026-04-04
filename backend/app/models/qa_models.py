@@ -2,7 +2,7 @@
 QA 요청/응답 Pydantic 모델.
 """
 import json
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -25,6 +25,11 @@ class QARequest(BaseModel):
     question: str = Field(min_length=1, max_length=200)
     task_context: QATaskContext
     messages: list[QAMessage] = Field(default=[], max_length=10)
+    roadmap_id: Optional[str] = Field(
+        default=None,
+        pattern=r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+        description="로드맵 UUID (제공 시 해당 로드맵 내에서만 소유권 검증)",
+    )
 
 
 class FeedbackRequest(BaseModel):

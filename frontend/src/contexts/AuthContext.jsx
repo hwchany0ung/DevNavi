@@ -136,7 +136,7 @@ export function AuthProvider({ children }) {
     }
     try {
       Object.keys(localStorage)
-        .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme' && !k.startsWith('devnavi_consent_sent_'))
+        .filter((k) => k.startsWith('devnavi_') && k !== 'devnavi_theme')
         .forEach((k) => localStorage.removeItem(k))
     } catch { /* localStorage 접근 실패 무시 */ }
     accessTokenRef.current = null

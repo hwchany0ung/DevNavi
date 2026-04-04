@@ -10,7 +10,7 @@ export function useAnalytics() {
         body: JSON.stringify({ event_type: eventType, task_id: taskId, metadata }),
       })
     } catch (e) {
-      console.warn('[useAnalytics] logEvent 실패:', e)
+      if (import.meta.env.DEV) console.warn('[useAnalytics] logEvent 실패:', e)
     }
   }, [])
 

@@ -122,3 +122,11 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# ── 프로덕션 환경에서 DEV_BYPASS_USERS 비어있지 않으면 경고 ──────────
+if settings.ENV == "production" and settings.DEV_BYPASS_USERS.strip():
+    _logger.warning(
+        "DEV_BYPASS_USERS가 프로덕션 환경에서 설정되어 있습니다 — "
+        "의도한 경우가 아니라면 즉시 제거하세요. (값: %s)",
+        settings.DEV_BYPASS_USERS,
+    )

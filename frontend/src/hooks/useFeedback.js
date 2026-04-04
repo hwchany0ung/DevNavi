@@ -10,7 +10,7 @@ export function useFeedback() {
         body: JSON.stringify({ task_id: taskId, question, answer, rating }),
       })
     } catch (e) {
-      console.warn('[useFeedback] sendFeedback 실패:', e)
+      if (import.meta.env.DEV) console.warn('[useFeedback] sendFeedback 실패:', e)
     }
   }, [])
 

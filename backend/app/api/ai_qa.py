@@ -34,8 +34,8 @@ SSE_HEADERS = {
 
 async def _qa_stream(body: QARequest, user_id: str):
     """소유권 검증 → 사용량 체크 → SSE 스트리밍."""
-    # Layer 3: task_id 소유권 검증
-    owned = await verify_task_ownership(user_id, body.task_id)
+    # Layer 3: task_id 소유권 검증 (roadmap_id 제공 시 해당 로드맵으로 한정)
+    owned = await verify_task_ownership(user_id, body.task_id, body.roadmap_id)
     if not owned:
         yield f"data: {json.dumps({'type': 'error', 'code': 'ownership', 'message': '접근 권한이 없습니다.'})}\n\n"
         return
