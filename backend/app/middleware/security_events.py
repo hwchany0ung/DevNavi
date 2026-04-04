@@ -20,12 +20,14 @@ logger = logging.getLogger(__name__)
 def _extract_client_ip(scope: Scope) -> str:
     """X-Forwarded-For 헤더 우선, 없으면 scope의 client IP.
 
-    CloudFront/ALB 경유 시 X-Forwarded-For 첫 번째 값이 실제 클라이언트 IP.
+    CloudFront는 XFF 헤더 맨 끝에 실제 viewer IP를 append한다.
+    split()[0] 사용 시 클라이언트가 헤더를 조작하여 가짜 IP를 기록할 수 있음.
+    limiter.py와 동일하게 마지막 IP 사용.
     """
     headers = dict(scope.get("headers", []))
     xff = headers.get(b"x-forwarded-for", b"").decode("utf-8", errors="ignore")
     if xff:
-        return xff.split(",")[0].strip()
+        return xff.split(",")[-1].strip()
     client = scope.get("client")
     return client[0] if client else ""
 

@@ -24,9 +24,9 @@ class TestExtractClientIp:
         assert _extract_client_ip(scope) == "1.2.3.4"
 
     def test_xff_header_multiple(self):
-        """X-Forwarded-For 다중 IP — 첫 번째(실제 클라이언트) 반환."""
+        """X-Forwarded-For 다중 IP — 마지막(CloudFront 추가, 스푸핑 불가) 반환."""
         scope = {"headers": [(b"x-forwarded-for", b"1.2.3.4, 10.0.0.1, 172.16.0.1")]}
-        assert _extract_client_ip(scope) == "1.2.3.4"
+        assert _extract_client_ip(scope) == "172.16.0.1"
 
     def test_fallback_scope_client(self):
         """X-Forwarded-For 없을 때 scope client IP 사용."""

@@ -104,7 +104,6 @@ def main():
         json={
             "chat_id": telegram_chat_id,
             "text": message,
-            "parse_mode": "HTML",
         },
         timeout=10,
     )
