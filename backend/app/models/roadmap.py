@@ -73,6 +73,15 @@ class RerouteRequest(BaseModel):
     done_contents: list[str] = Field(default_factory=list, max_length=50)
     weeks_left: int = Field(ge=1, le=80)
     daily_study_hours: Literal["under1h", "1to2h", "3to4h", "over5h"] = "1to2h"
+    # I-3: 서버측 완료율 계산용 — 제공 시 DB에서 실제 완료율 조회 (하위 호환 유지)
+    roadmap_id: Optional[str] = None
+
+    @field_validator("roadmap_id", mode="after")
+    @classmethod
+    def validate_roadmap_id(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and not _UUID_RE.match(v):
+            raise ValueError("roadmap_id는 UUID 형식이어야 합니다.")
+        return v
 
     @field_validator("done_contents", mode="before")
     @classmethod

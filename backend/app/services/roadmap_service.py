@@ -211,6 +211,57 @@ async def list_user_roadmaps(user_id: str) -> list[dict]:
     return resp.json() or []
 
 
+async def get_completion_rate(roadmap_id: str, user_id: str) -> float | None:
+    """roadmap_id에 속한 태스크의 실제 완료율 계산 (0~100).
+
+    I-3: 클라이언트가 보낸 completion_rate 대신 DB 값을 사용하기 위한 서버측 계산.
+    소유권 검증 포함 — 요청자가 해당 로드맵 소유자가 아니면 None 반환.
+    로드맵 데이터 없거나 태스크가 없으면 None 반환.
+    """
+    if not settings.supabase_ready:
+        return None
+    if user_id is None:
+        return None
+    if not _UUID_RE.match(roadmap_id):
+        return None
+
+    # 소유권 확인 및 로드맵 데이터 조회
+    roadmap = await get_roadmap(roadmap_id, user_id=user_id)
+    if roadmap is None:
+        return None
+
+    # 전체 태스크 수 계산 — roadmap data 필드에서 직접 계산
+    data = roadmap.get("data", {})
+    months = data.get("months", []) if isinstance(data, dict) else []
+    total_tasks = sum(
+        len(week.get("tasks", []))
+        for month in months
+        for week in (month.get("weeks", []) if isinstance(month, dict) else [])
+    )
+    if total_tasks == 0:
+        return None
+
+    # 완료된 태스크 수 조회
+    client = get_supabase_client()
+    try:
+        resp = await client.get(
+            sb_url("task_completions"),
+            headers=sb_headers(),
+            params={
+                "user_id":    f"eq.{user_id}",
+                "roadmap_id": f"eq.{roadmap_id}",
+                "select":     "task_id",
+            },
+        )
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        logger.warning("get_completion_rate DB 조회 실패: %s", e)
+        return None
+
+    completed_count = len(resp.json() or [])
+    return round(completed_count / total_tasks * 100, 2)
+
+
 async def list_activity(user_id: str) -> list[dict]:
     """잔디 달력용 최근 365일 날짜별 완료 수."""
     if not settings.supabase_ready:

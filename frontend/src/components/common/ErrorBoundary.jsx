@@ -11,7 +11,10 @@ export default class ErrorBoundary extends Component {
   }
 
   static getDerivedStateFromError(error) {
-    return { hasError: true, message: error?.message || '알 수 없는 오류' }
+    return {
+      hasError: true,
+      message: import.meta.env.PROD ? '오류가 발생했습니다.' : (error?.message || '알 수 없는 오류'),
+    }
   }
 
   componentDidCatch(error, info) {

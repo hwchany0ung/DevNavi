@@ -3,18 +3,45 @@ import { supabase } from './supabase'
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 function _parseError(err, status) {
-  let detailMsg
-  // FastAPI validation 오류는 detail이 배열({loc,msg,type})로 올 수 있음
-  if (typeof err.detail === 'string') {
-    detailMsg = err.detail
-  } else if (Array.isArray(err.detail)) {
-    detailMsg = err.detail.map(d => d.msg || JSON.stringify(d)).join(', ')
-  } else if (err.detail && typeof err.detail === 'object') {
-    detailMsg = err.detail.message || JSON.stringify(err.detail)
+  // I-7: HTTP 상태 코드 기반 사용자 친화적 메시지 반환
+  // 원본 서버 메시지는 개발 환경에서만 포함
+  let userMsg
+  if (status === 400) {
+    userMsg = '잘못된 요청입니다.'
+  } else if (status === 401) {
+    userMsg = '인증이 필요합니다. 다시 로그인해 주세요.'
+  } else if (status === 403) {
+    userMsg = '접근 권한이 없습니다.'
+  } else if (status === 404) {
+    userMsg = '요청한 리소스를 찾을 수 없습니다.'
+  } else if (status === 422) {
+    userMsg = '입력값을 확인해주세요.'
+  } else if (status === 429) {
+    userMsg = '잠시 후 다시 시도해주세요.'
+  } else if (status >= 500) {
+    userMsg = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
   } else {
-    detailMsg = `HTTP ${status}`
+    userMsg = '요청 처리 중 오류가 발생했습니다.'
   }
-  const error = new Error(detailMsg)
+
+  // DEV 환경에서만 원본 서버 메시지 추가
+  if (import.meta.env.DEV) {
+    let detailMsg
+    if (typeof err.detail === 'string') {
+      detailMsg = err.detail
+    } else if (Array.isArray(err.detail)) {
+      detailMsg = err.detail.map(d => d.msg || JSON.stringify(d)).join(', ')
+    } else if (err.detail && typeof err.detail === 'object') {
+      detailMsg = err.detail.message || JSON.stringify(err.detail)
+    } else {
+      detailMsg = `HTTP ${status}`
+    }
+    if (detailMsg && detailMsg !== `HTTP ${status}`) {
+      userMsg = `${userMsg} (${detailMsg})`
+    }
+  }
+
+  const error = new Error(userMsg)
   error.status = status
   return error
 }

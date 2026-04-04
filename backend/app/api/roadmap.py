@@ -49,6 +49,7 @@ from app.services.roadmap_service import (
     list_completions,
     list_activity,
     list_user_roadmaps,
+    get_completion_rate,
 )
 from app.middleware.auth import require_user, optional_user
 from app.services.usage_service import check_and_increment
@@ -316,9 +317,18 @@ async def reroute(
     # BC-5+회귀수정: 쿼터를 먼저 확인(429 차단), AI 호출, 성공 후 결과 반환
     # 쿼터 서비스 장애(503) 시에도 AI 결과는 반환 (비용 낭비 방지)
     await check_and_increment(user["id"], "reroute")
+
+    # I-3: roadmap_id 제공 시 DB에서 실제 완료율 계산 (클라이언트 값 신뢰 금지)
+    # 미제공 시 클라이언트 값 사용 (하위 호환 유지)
+    completion_rate = body.completion_rate
+    if body.roadmap_id is not None:
+        db_rate = await get_completion_rate(body.roadmap_id, user["id"])
+        if db_rate is not None:
+            completion_rate = db_rate
+
     system, user_msg = build_reroute_prompt(
         body.original_role, body.original_period,
-        body.company_type, body.completion_rate,
+        body.company_type, completion_rate,
         body.done_contents, body.weeks_left,
         body.daily_study_hours,
     )
@@ -366,6 +376,10 @@ async def toggle_completion(
     user: dict = Depends(require_user),
 ):
     """태스크 완료/취소 토글."""
+    # I-1: IDOR 방어 — 소유권 검증 후 진행
+    owner_check = await get_roadmap(roadmap_id, user_id=user["id"])
+    if owner_check is None:
+        raise HTTPException(status_code=404, detail={"message": "로드맵을 찾을 수 없습니다."})
     await upsert_completion(user["id"], roadmap_id, body.task_id, body.completed)
     return {"ok": True}
 
@@ -376,5 +390,9 @@ async def get_completions(
     user: dict = Depends(require_user),
 ):
     """완료된 task_id 목록 반환."""
+    # I-1: IDOR 방어 — 소유권 검증 후 진행
+    owner_check = await get_roadmap(roadmap_id, user_id=user["id"])
+    if owner_check is None:
+        raise HTTPException(status_code=404, detail={"message": "로드맵을 찾을 수 없습니다."})
     task_ids = await list_completions(user["id"], roadmap_id)
     return {"task_ids": task_ids}
