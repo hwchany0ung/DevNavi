@@ -32,4 +32,4 @@ def _get_real_ip(request: Request) -> str:
     )
 
 
-limiter = Limiter(key_func=_get_real_ip, headers_enabled=True)
+limiter = Limiter(key_func=_get_real_ip)
