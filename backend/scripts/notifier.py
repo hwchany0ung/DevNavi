@@ -39,10 +39,10 @@ def build_report(
 
     for role, diff_text in changed_roles:
         lines.append(f"\n[{role}] 변경됨")
-        lines.append(diff_text[:500])
+        lines.append(diff_text)
 
     if unchanged_roles:
-        lines.append(f"\n변경 없음: {', '.join(unchanged_roles)}")
+        lines.append(f"\n[변경 없음] {', '.join(unchanged_roles)}")
 
     lines += [
         "",

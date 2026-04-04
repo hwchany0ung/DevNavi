@@ -53,13 +53,72 @@ def get_active_content(role: str) -> str:
     return rows[0]["content"] if rows else ""
 
 
+def _parse_priorities(content: str) -> dict[int, list[str]]:
+    """role_references 텍스트에서 priority 1/2/3 기술 목록 파싱."""
+    import re
+    result = {}
+    for p in (1, 2, 3):
+        pattern = rf"priority\s*{p}\s*[^:]*:\s*(.+)"
+        m = re.search(pattern, content, re.IGNORECASE)
+        if m:
+            techs = [t.strip() for t in m.group(1).split(",") if t.strip()]
+            result[p] = techs
+    return result
+
+
+def _parse_section(content: str, header: str) -> str:
+    """특정 섹션 (■ 포트폴리오 등) 텍스트 추출."""
+    lines = content.splitlines()
+    collecting = False
+    section_lines = []
+    for line in lines:
+        if header in line:
+            collecting = True
+            continue
+        if collecting:
+            if line.startswith("■") and header not in line:
+                break
+            section_lines.append(line)
+    return "\n".join(section_lines).strip()
+
+
 def build_diff(old: str, new: str) -> str:
-    """두 텍스트의 diff를 사람이 읽기 쉬운 형태로 반환."""
-    old_lines = old.splitlines()
-    new_lines = new.splitlines()
-    diff = list(difflib.unified_diff(old_lines, new_lines,
-                                     fromfile="이전", tofile="신규", lineterm=""))
-    return "\n".join(diff[:50]) if diff else "(변경 없음)"
+    """priority별 추가/제거/유지 구조화된 diff 반환."""
+    if not old:
+        return "(신규 생성)"
+
+    lines = []
+
+    # Priority 비교
+    old_p = _parse_priorities(old)
+    new_p = _parse_priorities(new)
+
+    for p in (1, 2, 3):
+        label = {1: "필수", 2: "권장", 3: "추천"}[p]
+        old_set = set(old_p.get(p, []))
+        new_set = set(new_p.get(p, []))
+        added   = new_set - old_set
+        removed = old_set - new_set
+        kept    = old_set & new_set
+
+        if added or removed:
+            lines.append(f"  [priority {p} / {label}]")
+            for t in sorted(added):
+                lines.append(f"    ✅ 추가: {t}")
+            for t in sorted(removed):
+                lines.append(f"    ❌ 제거: {t}")
+            lines.append(f"    ─ 유지: {', '.join(sorted(kept)) or '없음'}")
+        else:
+            lines.append(f"  [priority {p} / {label}] 변경 없음 ({len(kept)}개 유지)")
+
+    # 포트폴리오·면접 변경 감지
+    for section_kw in ("포트폴리오", "면접"):
+        old_s = _parse_section(old, section_kw)
+        new_s = _parse_section(new, section_kw)
+        if old_s != new_s:
+            lines.append(f"  [{section_kw} 섹션] 내용 변경됨")
+
+    return "\n".join(lines) if lines else "(변경 없음)"
 
 
 def save_new_version(run_id: str, role: str, content: str) -> tuple[str, bool]:
