@@ -20,8 +20,8 @@
 |-------------|------|----------|
 | `S3_BUCKET` | 프론트엔드 배포용 S3 버킷명 | AWS S3 콘솔에서 확인 |
 | `S3_LAMBDA_BUCKET` | Lambda 패키지 업로드용 S3 버킷명 | AWS S3 콘솔에서 확인 |
-| `CF_FRONTEND_DIST_ID` | 프론트엔드 CloudFront Distribution ID | `E2P1UZ7WSES79H` (devnavi.kr) |
-| `CF_API_DISTRIBUTION_ID` | API CloudFront Distribution ID | `EMOTTXC5WYHVW` (api.devnavi.kr) |
+| `CF_FRONTEND_DIST_ID` | 프론트엔드 CloudFront Distribution ID | AWS CloudFront 콘솔 → Distributions → devnavi.kr Distribution ID |
+| `CF_API_DISTRIBUTION_ID` | API CloudFront Distribution ID | AWS CloudFront 콘솔 → Distributions → api.devnavi.kr Distribution ID |
 
 ### 프론트엔드 빌드 환경변수
 
@@ -95,7 +95,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 
 AWS 콘솔에서 직접 설정 필요 (Terraform 미관리):
 
-1. CloudFront → Distributions → `EMOTTXC5WYHVW` (api.devnavi.kr)
+1. CloudFront → Distributions → api.devnavi.kr Distribution (`CF_API_DISTRIBUTION_ID` 시크릿 값 참조)
 2. Origins 탭 → Lambda Origin 편집
 3. Add custom header: `X-CF-Secret` = `/devnavi/prod/CLOUDFRONT_SECRET` 값과 동일
 
