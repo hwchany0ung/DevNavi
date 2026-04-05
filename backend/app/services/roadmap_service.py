@@ -262,6 +262,52 @@ async def get_completion_rate(roadmap_id: str, user_id: str) -> float | None:
     return round(completed_count / total_tasks * 100, 2)
 
 
+async def set_share_token(roadmap_id: str, user_id: str, token: Optional[str]) -> bool:
+    """share_token 설정(토큰) 또는 해제(None). UUID 검증 + 본인 소유 검증 포함."""
+    if not settings.supabase_ready:
+        return False
+    if not _UUID_RE.match(roadmap_id):
+        return False
+    # 소유자 검증
+    existing = await get_roadmap(roadmap_id, user_id)
+    if existing is None:
+        return False
+    client = get_supabase_client()
+    try:
+        resp = await client.patch(
+            sb_url("roadmaps"),
+            headers={**sb_headers(), "Prefer": "return=representation"},
+            params={"id": f"eq.{roadmap_id}", "user_id": f"eq.{user_id}"},
+            json={"share_token": token},
+        )
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        logger.warning("set_share_token 실패: %s", e)
+        return False
+    return len(resp.json() or []) > 0
+
+
+async def get_roadmap_by_share_token(token: str) -> Optional[dict]:
+    """공유 토큰으로 로드맵 data 필드 반환. UUID 검증 + 없으면 None."""
+    if not settings.supabase_ready:
+        return None
+    if not _UUID_RE.match(str(token)):
+        return None
+    client = get_supabase_client()
+    try:
+        resp = await client.get(
+            sb_url("roadmaps"),
+            headers=sb_headers(),
+            params={"share_token": f"eq.{token}", "select": "id,data,created_at"},
+        )
+        resp.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        logger.warning("get_roadmap_by_share_token 실패: %s", e)
+        return None
+    rows = resp.json() or []
+    return rows[0] if rows else None
+
+
 async def list_activity(user_id: str) -> list[dict]:
     """잔디 달력용 최근 365일 날짜별 완료 수."""
     if not settings.supabase_ready:
