@@ -1,0 +1,38 @@
+# 빌드 산출물
+node_modules/
+dist/
+build/
+frontend/.vite/
+
+# Python 캐시
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/**/*.pyc
+
+# 테스트 산출물
+coverage/
+.coverage
+htmlcov/
+
+# 로그
+*.log
+
+# 환경 변수
+.env
+.env.*
+
+# bkit 스냅샷 및 감사 로그 (대용량)
+.bkit/snapshots/
+.bkit/audit/
+
+# 아카이브 (과거 작업물)
+docs/archive/
+
+# Playwright 리포트
+playwright-report/
+test-results/
+
+# 임시 스크린샷
+*.png

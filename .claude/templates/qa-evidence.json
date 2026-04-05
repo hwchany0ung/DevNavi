@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "feature": "<feature-name>",
+    "phase": "2.5",
+    "created_at": "<YYYY-MM-DD>",
+    "approved_by": "<cto-lead | user>",
+    "status": "draft"
+  },
+  "scenarios": [
+    {
+      "id": "S01",
+      "name": "<시나리오 이름>",
+      "type": "happy_path",
+      "description": "<정상 동작 설명>",
+      "preconditions": ["<사전 조건 1>", "<사전 조건 2>"],
+      "steps": [
+        "<실행 단계 1>",
+        "<실행 단계 2>"
+      ],
+      "expected_result": "<기대 결과>",
+      "test_target": {
+        "layer": "unit | integration | e2e",
+        "file": "<테스트 파일 경로>",
+        "test_name": "<테스트 함수명>"
+      },
+      "status": "pending"
+    },
+    {
+      "id": "S02",
+      "name": "<엣지 케이스 이름>",
+      "type": "edge_case",
+      "description": "<경계값 또는 비정상 입력 설명>",
+      "preconditions": [],
+      "steps": [],
+      "expected_result": "<기대 결과 (에러 메시지, 상태 코드 등)>",
+      "test_target": {
+        "layer": "unit",
+        "file": "",
+        "test_name": ""
+      },
+      "status": "pending"
+    },
+    {
+      "id": "S03",
+      "name": "<실패 케이스 이름>",
+      "type": "failure_case",
+      "description": "<외부 의존성 실패, 인증 실패 등>",
+      "preconditions": [],
+      "steps": [],
+      "expected_result": "<기대 결과>",
+      "test_target": {
+        "layer": "integration",
+        "file": "",
+        "test_name": ""
+      },
+      "status": "pending"
+    }
+  ],
+  "acceptance_criteria": [
+    "<모든 happy_path 시나리오 통과>",
+    "<edge_case 시나리오 중 __%  이상 통과>",
+    "<failure_case 시나리오 전체 통과>"
+  ],
+  "match_rate_target": 90
+}
