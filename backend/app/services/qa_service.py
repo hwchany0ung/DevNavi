@@ -17,6 +17,8 @@ from app.services.claude_service import HAIKU as _QA_MODEL, _get_client
 
 logger = logging.getLogger(__name__)
 
+_pending_tasks: set = set()
+
 _MAX_TOKENS = 120  # 1~2문장 안전망
 _FOLLOWUP_MAX_TOKENS = 200
 
@@ -277,13 +279,15 @@ async def stream_qa_response(
 
     # 이력 저장 (fire-and-forget — 실패해도 스트리밍 영향 없음)
     if full_answer:
-        asyncio.create_task(save_qa_history(
+        _task = asyncio.create_task(save_qa_history(
             user_id=user_id,
             roadmap_id=roadmap_id,
             task_id=request.task_id,
             question=request.question,
             answer="".join(full_answer),
         ))
+        _pending_tasks.add(_task)
+        _task.add_done_callback(_pending_tasks.discard)
 
     # 팔로업 질문 생성 (실패 시 조용히 건너뜀)
     followups = await generate_followup_questions(

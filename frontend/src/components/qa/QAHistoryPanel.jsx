@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import PropTypes from 'prop-types'
 
-const API_BASE = import.meta.env.VITE_API_URL ?? ''
 
 function formatDate(isoString) {
   const d = new Date(isoString)
@@ -27,27 +26,40 @@ export default function QAHistoryPanel({ taskId }) {
   const [history, setHistory] = useState([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [retryCount, setRetryCount] = useState(0)
 
-  const fetchHistory = useCallback(async () => {
-    if (!taskId) return
-    setIsLoading(true)
-    setError(null)
-    try {
-      const url = `${API_BASE}/ai/qa/history?task_id=${encodeURIComponent(taskId)}&limit=20`
-      const resp = await fetch(url, { credentials: 'include' })
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-      const data = await resp.json()
-      setHistory(data.history ?? [])
-    } catch (e) {
-      setError('이력을 불러오지 못했습니다.')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [taskId])
+  const getAuthHeaders = useCallback(() => {
+    return {}
+  }, [])
 
   useEffect(() => {
-    fetchHistory()
-  }, [fetchHistory])
+    if (!taskId) return
+    const controller = new AbortController()
+    let cancelled = false
+
+    const load = async () => {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const headers = getAuthHeaders()
+        const url = `${import.meta.env.VITE_API_URL}/ai/qa/history?task_id=${encodeURIComponent(taskId)}&limit=20`
+        const resp = await fetch(url, { headers, signal: controller.signal })
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+        const data = await resp.json()
+        if (!cancelled) setHistory(data.history ?? [])
+      } catch (e) {
+        if (!cancelled && e.name !== 'AbortError') setError('이력을 불러오지 못했습니다.')
+      } finally {
+        if (!cancelled) setIsLoading(false)
+      }
+    }
+
+    load()
+    return () => {
+      cancelled = true
+      controller.abort()
+    }
+  }, [taskId, getAuthHeaders, retryCount])
 
   if (isLoading) {
     return (
@@ -71,7 +83,7 @@ export default function QAHistoryPanel({ taskId }) {
         <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
         <button
           type="button"
-          onClick={fetchHistory}
+          onClick={() => setRetryCount(n => n + 1)}
           className="text-xs text-indigo-500 dark:text-indigo-400 underline"
         >
           다시 시도
