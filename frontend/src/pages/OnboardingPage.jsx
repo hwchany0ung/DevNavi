@@ -616,11 +616,10 @@ export default function OnboardingPage() {
                   <>
                     <p className="text-orange-600 dark:text-orange-400 font-semibold text-sm">일일 사용 한도에 도달했어요</p>
                     <p className="text-orange-400 dark:text-orange-400/70 text-xs">
-                      잠시 후 다시 시도해주세요. 내일 한도가 초기화됩니다.
+                      {summaryError?.data?.reset_at
+                        ? '내일 오전 9시에 초기화됩니다.'
+                        : '잠시 후 다시 시도해주세요. 내일 한도가 초기화됩니다.'}
                     </p>
-                    {summaryError?.data?.reset_at && (
-                      <p className="text-orange-400 dark:text-orange-400/70 text-xs">내일 오전 9시에 초기화됩니다.</p>
-                    )}
                   </>
                 ) : (
                   <>
@@ -650,9 +649,6 @@ export default function OnboardingPage() {
                     <>
                       <p className="text-orange-600 dark:text-orange-400 font-semibold text-sm">주간 로드맵 생성 한도에 도달했어요</p>
                       <p className="text-orange-400 dark:text-orange-400/70 text-xs">로드맵은 주 1회 생성할 수 있습니다. 추가 이용이 필요하시면 <a href="mailto:support@devnavi.kr" className="underline">support@devnavi.kr</a>로 문의해 주세요.</p>
-                      {fullError?.data?.reset_at && (
-                        <p className="text-orange-400 dark:text-orange-400/70 text-xs">내일 오전 9시에 초기화됩니다.</p>
-                      )}
                     </>
                   ) : (
                     <>
