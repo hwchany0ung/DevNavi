@@ -222,14 +222,14 @@ export default function RoadmapPage() {
 
   // ── 태스크 토글 ─────────────────────────────────────────────────
   const handleToggle = useCallback((taskId) => {
-    // setDoneSet updater 결과를 외부로 전파하기 위한 단일 소스 계산
-    // doneSetRef.current는 렌더마다 동기 갱신되므로 updater 실행 전에도 최신값 보장
+    // doneSetRef.current는 렌더마다 동기 갱신되므로 updater 실행 전에도 최신값 보장.
+    // nextDoneRef는 여기서만 한 번 쓰고, updater 내부에서는 쓰지 않음
+    // (updater는 deferred 실행될 수 있어 line 244보다 늦게 실행될 수 있음)
     nextDoneRef.current = !doneSetRef.current.has(taskId)
 
     setDoneSet((prev) => {
       const next = new Set(prev)
       const willBeDone = !prev.has(taskId)
-      nextDoneRef.current = willBeDone  // updater 안에서 재확인 (단일 소스 통합)
       if (willBeDone) next.add(taskId)
       else next.delete(taskId)
       saveDoneLocal(id, next)
@@ -240,8 +240,8 @@ export default function RoadmapPage() {
       return next
     })
 
-    // 완료 토스트: 체크 시에만 표시 (state updater 외부에서 side-effect 처리)
-    const nowDone = nextDoneRef.current  // single source (doneSetRef 기준으로 pre-set)
+    // 완료 토스트: doneSetRef 기준 단일 소스 (pre-set 값)
+    const nowDone = nextDoneRef.current
     if (nowDone && roadmap) {
       // taskId 형식: "{month}-{week}-{taskIndex}"
       const [monthStr, weekStr] = taskId.split('-')
