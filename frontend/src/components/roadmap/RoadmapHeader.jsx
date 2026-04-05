@@ -20,11 +20,11 @@ export default function RoadmapHeader({
 
   const handleShare = useCallback(async () => {
     if (!user) { onAuthOpen?.(); return }
-    if (!roadmapId) return
+    if (!roadmapId || !getAuthHeaders) return
     try {
       const data = await request(`/roadmap/${roadmapId}/share`, {
         method: 'POST',
-        headers: getAuthHeaders ? getAuthHeaders() : {},
+        headers: getAuthHeaders(),
       })
       const link = `${window.location.origin}/roadmap/shared/${data.share_token}`
       await navigator.clipboard.writeText(link)
