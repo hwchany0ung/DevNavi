@@ -109,3 +109,41 @@ describe('RoadmapPage 렌더링', () => {
     })
   })
 })
+
+describe('F3: task_completions Supabase 동기화', () => {
+  const ROADMAP_ID = '00000000-0000-4000-8000-000000000001'
+
+  it('fetchRemoteCompletions가 비어있지 않은 Set 반환 시 doneSet이 remote로 교체됨', async () => {
+    loadRoadmapLocal.mockReturnValue(MOCK_ROADMAP)
+    // completions endpoint → remote task_ids 반환, 그 외 → 기본 응답
+    request.mockImplementation((url) => {
+      if (url.endsWith('/completions')) {
+        return Promise.resolve({ task_ids: ['task-remote-1', 'task-remote-2'] })
+      }
+      return Promise.resolve({ task_ids: [], activity: [] })
+    })
+    renderRoadmapPage(ROADMAP_ID)
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(`devnavi_done_${ROADMAP_ID}`) || '[]')
+      expect(stored).toContain('task-remote-1')
+      expect(stored).toContain('task-remote-2')
+    })
+  })
+
+  it('fetchRemoteCompletions가 빈 Set 반환 시 doneSet이 기존 local 유지됨', async () => {
+    loadRoadmapLocal.mockReturnValue(MOCK_ROADMAP)
+    // 미리 local에 task 저장
+    localStorage.setItem(`devnavi_done_${ROADMAP_ID}`, JSON.stringify(['task-local-1']))
+    request.mockImplementation((url) => {
+      if (url.endsWith('/completions')) {
+        return Promise.resolve({ task_ids: [] })
+      }
+      return Promise.resolve({ task_ids: [], activity: [] })
+    })
+    renderRoadmapPage(ROADMAP_ID)
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(`devnavi_done_${ROADMAP_ID}`) || '[]')
+      expect(stored).toContain('task-local-1')
+    })
+  })
+})

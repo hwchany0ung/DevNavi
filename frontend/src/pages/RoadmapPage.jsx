@@ -187,8 +187,10 @@ export default function RoadmapPage() {
   // ── 로그인 시 Supabase completions 동기화 ───────────────────────
   useEffect(() => {
     if (!userId) return
+    let cancelled = false
     fetchRemoteCompletions(id, getAuthHeaders())
       .then((remote) => {
+        if (cancelled) return
         // remote 우선: remote 데이터가 있으면 remote로 덮어씀 (기기 간 동기화)
         // remote가 비어있으면(첫 로그인 등) local 유지 (offline fallback)
         setDoneSet((local) => {
@@ -198,6 +200,7 @@ export default function RoadmapPage() {
         })
       })
       .catch(() => {}) // 실패 시 로컬 유지
+    return () => { cancelled = true }
   }, [id, userId, getAuthHeaders])
 
   // ── 로그인 시 잔디 활동 로드 ─────────────────────────────────────
