@@ -5,7 +5,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import { request } from '../lib/api'
 import AuthModal from '../components/auth/AuthModal'
 import ThemeToggle from '../components/common/ThemeToggle'
-import { makeThemeHelper } from '../utils/i18n'
+import { makeThemeHelper } from '../lib/i18n'
 
 import HeroPreview from '../components/landing/HeroPreview'
 

@@ -89,9 +89,9 @@ def setup_alarms(function_name: str, email: str, region: str) -> None:
     )
     print(f"알람 생성: {function_name}-throttles (5분 내 스로틀 5건 초과)")
 
-    print("\n✅ CloudWatch 알람 설정 완료")
-    print("   → SNS 구독 확인 이메일을 반드시 승인하세요 (스팸함 확인)")
-    print(f"   → 알람 확인: https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#alarmsV2:")
+    print("\n[완료] CloudWatch 알람 설정 완료")
+    print("   -> SNS 구독 확인 이메일을 반드시 승인하세요 (스팸함 확인)")
+    print(f"   -> 알람 확인: https://{region}.console.aws.amazon.com/cloudwatch/home?region={region}#alarmsV2:")
 
 
 def main():

@@ -1,9 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import QAFeedback from '../components/qa/QAFeedback'
+import QAFeedback from '../QAFeedback'
 
 const mockSendFeedback = vi.fn()
-vi.mock('../hooks/useFeedback', () => ({
+vi.mock('../../../hooks/useFeedback', () => ({
   useFeedback: () => ({ sendFeedback: mockSendFeedback }),
 }))
 

@@ -101,6 +101,11 @@ export default function RoadmapPage() {
     return () => { document.title = 'DevNavi — IT 직군 맞춤형 AI 로드맵' }
   }, [])
 
+  // 로그아웃 시 메인화면으로 이동
+  useEffect(() => {
+    if (!authLoading && !user) navigate('/', { replace: true })
+  }, [user, authLoading, navigate])
+
   // ── id 변경 시 이전 로드맵 상태 초기화 ────────────────────────────
   // 다른 로드맵으로 이동할 때 이전 데이터가 잠깐 노출되지 않도록 즉시 초기화
   useEffect(() => {

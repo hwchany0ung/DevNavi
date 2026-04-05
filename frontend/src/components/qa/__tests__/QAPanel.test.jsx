@@ -6,32 +6,32 @@ import userEvent from '@testing-library/user-event'
 
 // ── 모듈 모킹 ──────────────────────────────────────────────────────────────
 
-vi.mock('../lib/supabase', () => ({
+vi.mock('../../../lib/supabase', () => ({
   supabase: null,
 }))
 
-vi.mock('../lib/api', () => ({
+vi.mock('../../../lib/api', () => ({
   streamSSE: vi.fn(),
   request: vi.fn(),
 }))
 
-vi.mock('../contexts/ThemeContext', () => ({
+vi.mock('../../../contexts/ThemeContext', () => ({
   ThemeProvider: ({ children }) => children,
   useTheme: () => ({ theme: 'light', toggle: vi.fn() }),
 }))
 
-vi.mock('../hooks/useAuth', () => ({
+vi.mock('../../../hooks/useAuth', () => ({
   useAuth: () => ({ user: null, getAuthHeaders: () => ({}) }),
 }))
 
-vi.mock('../hooks/useAnalytics', () => ({
+vi.mock('../../../hooks/useAnalytics', () => ({
   useAnalytics: () => ({ logEvent: vi.fn() }),
 }))
 
-import { streamSSE } from '../lib/api'
-import QAPanel from '../components/qa/QAPanel'
-import QAButton from '../components/qa/QAButton'
-import QAInput from '../components/qa/QAInput'
+import { streamSSE } from '../../../lib/api'
+import QAPanel from '../QAPanel'
+import QAButton from '../QAButton'
+import QAInput from '../QAInput'
 
 // ── 공통 픽스처 ─────────────────────────────────────────────────────────────
 
