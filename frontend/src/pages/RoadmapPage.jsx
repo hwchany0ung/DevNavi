@@ -7,6 +7,7 @@ import MonthTimeline       from '../components/roadmap/MonthTimeline'
 import WeekAccordion       from '../components/roadmap/WeekAccordion'
 import RerouteButton       from '../components/roadmap/RerouteButton'
 import GrassCalendar       from '../components/roadmap/GrassCalendar'
+import WeeklyProgressBar  from '../components/roadmap/WeeklyProgressBar'
 import RoadmapHeader       from '../components/roadmap/RoadmapHeader'
 import RerouteModal        from '../components/roadmap/RerouteModal'
 import CareerSummaryModal  from '../components/roadmap/CareerSummaryModal'
@@ -472,6 +473,15 @@ export default function RoadmapPage() {
                 activeMonth={activeMonth}
                 doneSet={doneSet}
                 totalDone={completedCount}
+              />
+            )}
+
+            {/* 주간 진도율 — 로그인 + showGrass 시 */}
+            {user && showGrass && (
+              <WeeklyProgressBar
+                months={roadmap.months}
+                activeMonth={activeMonth}
+                doneSet={doneSet}
               />
             )}
 
