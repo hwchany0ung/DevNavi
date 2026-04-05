@@ -205,6 +205,8 @@ export default function RoadmapPage() {
   }, [userId, getAuthHeaders])
 
   // ── 태스크 토글 ─────────────────────────────────────────────────
+  // React concurrent mode 안전: doneSet이 단일 소스 (updater 내부 상태)
+  // nowDone은 updater 내에서만 계산되고, deferred 실행 안정성 보장
   const handleToggle = useCallback((taskId) => {
     setDoneSet((prev) => {
       const next = new Set(prev)
