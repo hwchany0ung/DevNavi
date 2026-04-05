@@ -64,11 +64,12 @@ server.log
 
 # ──────────────────────────────────────────────
 # Claude Code — 런타임·로컬 전용 (커밋 불필요)
-# 추적 대상: rules/, hooks/, templates/, settings.local.json
+# 추적 대상: rules/, hooks/, templates/
 # ──────────────────────────────────────────────
 .claude/worktrees/
 .claude/agent-memory/
 .claude/launch.json
+.claude/settings.local.json
 
 # ──────────────────────────────────────────────
 # bkit — 런타임 상태 파일 (세션마다 재생성)
