@@ -8,6 +8,7 @@ const LandingPageMockup = import.meta.env.DEV
   ? lazy(() => import('./pages/LandingPageMockup'))
   : null
 import RoadmapPage from './pages/RoadmapPage'
+import SharedRoadmapPage from './pages/SharedRoadmapPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
 import AdminPage from './pages/AdminPage'
@@ -37,6 +38,8 @@ export default function App() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
+      {/* F8: 공유 로드맵 — /roadmap/:id 보다 먼저 선언해야 매칭됨 */}
+      <Route path="/roadmap/shared/:token" element={<SharedRoadmapPage />} />
       <Route path="/roadmap/:id" element={<RoadmapPage />} />
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
