@@ -59,7 +59,7 @@ export default function PrivacyPage() {
         </button>
 
         <h1 className="text-2xl font-black text-gray-900 dark:text-white mb-2">개인정보처리방침</h1>
-        <p className="text-sm text-gray-400 dark:text-white/40 mb-10">최종 업데이트: 2025년 1월 1일</p>
+        <p className="text-sm text-gray-400 dark:text-white/40 mb-10">최종 업데이트: 2026년 4월 5일</p>
 
         <div className="space-y-8">
           {sections.map(({ title, content }) => (
