@@ -71,6 +71,34 @@ _SECURITY_HEADERS = {
 _LOG_SKIP_PATHS = {"/health"}
 
 
+class MaintenanceModeMiddleware:
+    """긴급 점검 모드 — MAINTENANCE_MODE=true 시 모든 요청에 503 반환.
+
+    /health 경로는 AWS ALB 헬스체크 목적으로 항상 통과.
+    Lambda 환경변수 변경만으로 즉시 활성화 가능 (재배포 불필요).
+    Pure ASGI — SSE 스트리밍 안전.
+    """
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        if settings.MAINTENANCE_MODE and scope.get("path", "") != "/health":
+            response = JSONResponse(
+                {"detail": "서비스 점검 중입니다. 잠시 후 다시 시도해 주세요."},
+                status_code=503,
+                headers={"Retry-After": "300"},
+            )
+            await response(scope, receive, send)
+            return
+
+        await self.app(scope, receive, send)
+
+
 class CloudFrontSecretMiddleware:
     """CloudFront → Lambda 직접 접근 차단 — Pure ASGI, SSE 스트리밍 안전.
 
@@ -173,10 +201,11 @@ class ErrorLoggingMiddleware:
 
 
 # ── 미들웨어 등록 순서 (add_middleware: 나중에 추가할수록 outermost) ──
-# 실행 순서 (안→밖): FastAPI → SecurityHeaders → ErrorLogging → SecurityEvent → CloudFrontSecret → CORS
+# 실행 순서 (안→밖): FastAPI → SecurityHeaders → ErrorLogging → SecurityEvent → MaintenanceMode → CloudFrontSecret → CORS
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(ErrorLoggingMiddleware)
 app.add_middleware(SecurityEventMiddleware)
+app.add_middleware(MaintenanceModeMiddleware)
 app.add_middleware(CloudFrontSecretMiddleware)
 
 

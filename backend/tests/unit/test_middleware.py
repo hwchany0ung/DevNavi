@@ -88,3 +88,55 @@ async def test_health_always_bypasses_cf_secret(app_with_cf_secret):
     ) as client:
         resp = await client.get("/health")
     assert resp.status_code == 200
+
+
+# ── MaintenanceModeMiddleware 테스트 ──────────────────────────────────
+
+@pytest.fixture
+def app_maintenance_on(monkeypatch):
+    """MAINTENANCE_MODE=True + CLOUDFRONT_SECRET 미설정 (로컬 환경 시뮬레이션)."""
+    monkeypatch.setattr(config.settings, "MAINTENANCE_MODE", True)
+    monkeypatch.setattr(config.settings, "CLOUDFRONT_SECRET", "")
+    return _app
+
+
+@pytest.fixture
+def app_maintenance_off(monkeypatch):
+    """MAINTENANCE_MODE=False (정상 운영)."""
+    monkeypatch.setattr(config.settings, "MAINTENANCE_MODE", False)
+    monkeypatch.setattr(config.settings, "CLOUDFRONT_SECRET", "")
+    return _app
+
+
+@pytest.mark.asyncio
+async def test_maintenance_mode_blocks_requests(app_maintenance_on):
+    """MAINTENANCE_MODE=True → 모든 API 요청에 503 반환."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app_maintenance_on),
+        base_url="http://test",
+    ) as client:
+        resp = await client.get("/roadmap/")
+    assert resp.status_code == 503
+    assert "점검" in resp.json()["detail"]
+
+
+@pytest.mark.asyncio
+async def test_maintenance_mode_health_bypass(app_maintenance_on):
+    """/health는 MAINTENANCE_MODE=True에서도 통과."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app_maintenance_on),
+        base_url="http://test",
+    ) as client:
+        resp = await client.get("/health")
+    assert resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_maintenance_mode_off_passes(app_maintenance_off):
+    """MAINTENANCE_MODE=False → 정상 라우팅 (미들웨어 미차단)."""
+    async with AsyncClient(
+        transport=ASGITransport(app=app_maintenance_off),
+        base_url="http://test",
+    ) as client:
+        resp = await client.get("/nonexistent")
+    assert resp.status_code == 404  # 미들웨어 통과 → FastAPI 404

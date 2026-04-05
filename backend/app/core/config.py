@@ -98,6 +98,11 @@ class Settings(BaseSettings):
     # 프로덕션에서는 False 유지 권장
     ALLOW_HS256_FALLBACK: bool = False
 
+    # ── 긴급 점검 모드 ────────────────────────────────────────────
+    # True 시 모든 API 요청에 503 반환 (재배포 없이 Lambda 환경변수로 즉시 전환)
+    # 공격 감지 → Lambda 콘솔에서 MAINTENANCE_MODE=true 저장 → 수분 내 전 요청 차단
+    MAINTENANCE_MODE: bool = False
+
     # ── 개발/테스트 계정 일일 한도 제외 (쉼표 구분 UUID 문자열) ──
     # 예: DEV_BYPASS_USERS=uuid1,uuid2
     DEV_BYPASS_USERS: str = ""
