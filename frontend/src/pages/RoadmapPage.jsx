@@ -87,6 +87,9 @@ export default function RoadmapPage() {
   const [qaSessionSet,  setQaSessionSet] = useState(() => new Set())
   const [toastMsg,      setToastMsg]     = useState(null)
   const toastTimerRef                    = useRef(null)
+  useEffect(() => {
+    return () => { clearTimeout(toastTimerRef.current) }
+  }, [])
   // doneSet을 ref로 미러링 — handleToggle deps에 doneSet 추가 없이 최신값 참조 (렌더마다 동기 갱신)
   const doneSetRef                       = useRef(doneSet)
   doneSetRef.current                     = doneSet
