@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import PropTypes from 'prop-types'
 import { useQA } from '../../hooks/useQA'
 import { useAuth } from '../../hooks/useAuth'
 import QAInput from './QAInput'
 import QAFeedback from './QAFeedback'
+import QAHistoryPanel from './QAHistoryPanel'
 
 /**
  * QAPanel — 우측 고정 AI Q&A 사이드 패널
@@ -17,12 +18,18 @@ export default function QAPanel({ isOpen, taskContext = null, onClose }) {
   const { messages, isStreaming, openPanel, closePanel, sendMessage } = useQA()
   const { user } = useAuth()
   const messagesEndRef = useRef(null)
+  const [activeTab, setActiveTab] = useState('chat')
 
   // taskContext 변경 및 패널 열림/닫힘 동기화 (경쟁 조건 방지를 위해 단일 effect로 통합)
   useEffect(() => {
     if (isOpen && taskContext?.taskId) openPanel(taskContext.taskId, taskContext)
     else closePanel()
   }, [isOpen, taskContext?.taskId, openPanel, closePanel])
+
+  // 태스크 변경 시 탭을 대화로 초기화
+  useEffect(() => {
+    setActiveTab('chat')
+  }, [taskContext?.taskId])
 
   // 새 메시지 도착 시 스크롤 하단으로
   useEffect(() => {
@@ -89,7 +96,36 @@ export default function QAPanel({ isOpen, taskContext = null, onClose }) {
           </button>
         </div>
 
-        {/* 메시지 목록 */}
+        {/* 탭 바 */}
+        <div className="flex border-b border-gray-100 dark:border-white/10 flex-shrink-0">
+          {[
+            { id: 'chat', label: '대화' },
+            { id: 'history', label: '이력' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`
+                flex-1 py-2 text-xs font-medium transition-colors
+                ${activeTab === tab.id
+                  ? 'text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400'
+                  : 'text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60'
+                }
+              `}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* 이력 탭 */}
+        {activeTab === 'history' && (
+          <QAHistoryPanel taskId={taskContext?.taskId} />
+        )}
+
+        {/* 대화 탭 — 메시지 목록 */}
+        {activeTab === 'chat' && (
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-2 py-8">
@@ -174,9 +210,12 @@ export default function QAPanel({ isOpen, taskContext = null, onClose }) {
 
           <div ref={messagesEndRef} />
         </div>
+        )}
 
-        {/* 입력 폼 */}
-        <QAInput onSubmit={sendMessage} disabled={isStreaming} />
+        {/* 입력 폼 — 대화 탭에서만 표시 */}
+        {activeTab === 'chat' && (
+          <QAInput onSubmit={sendMessage} disabled={isStreaming} />
+        )}
       </div>
     </>
   )

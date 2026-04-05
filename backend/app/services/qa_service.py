@@ -1,6 +1,7 @@
 """
-QA 서비스 — 사용량 체크, 소유권 검증, Haiku 스트리밍.
+QA 서비스 — 사용량 체크, 소유권 검증, Haiku 스트리밍, 이력 저장.
 """
+import asyncio
 import json
 import logging
 from typing import AsyncGenerator, Optional
@@ -170,6 +171,33 @@ async def verify_task_ownership(
     return False
 
 
+async def save_qa_history(
+    user_id: str,
+    roadmap_id: Optional[str],
+    task_id: str,
+    question: str,
+    answer: str,
+) -> None:
+    """Q&A 이력을 DB에 fire-and-forget으로 저장."""
+    if not settings.supabase_ready:
+        return
+    try:
+        client = get_supabase_client()
+        await client.post(
+            sb_url("qa_history"),
+            headers=sb_headers(),
+            json={
+                "user_id":    user_id,
+                "roadmap_id": roadmap_id,
+                "task_id":    task_id,
+                "question":   question,
+                "answer":     answer,
+            },
+        )
+    except Exception as e:
+        logger.warning("qa_history 저장 실패: %s", e)
+
+
 async def generate_followup_questions(
     question: str,
     answer: str,
@@ -200,7 +228,11 @@ async def generate_followup_questions(
 _ALLOWED_ROLES = {"user", "assistant"}
 
 
-async def stream_qa_response(request: QARequest, user_id: str) -> AsyncGenerator[str, None]:
+async def stream_qa_response(
+    request: QARequest,
+    user_id: str,
+    roadmap_id: Optional[str] = None,
+) -> AsyncGenerator[str, None]:
     """Haiku를 SSE 스트리밍으로 호출하여 QA 응답 생성."""
     # 대화 이력 role 검증 — "user"/"assistant"만 허용
     for msg in request.messages:
@@ -242,6 +274,16 @@ async def stream_qa_response(request: QARequest, user_id: str) -> AsyncGenerator
         logger.error("stream_qa_response 오류 (user=%s): %s", user_id, e, exc_info=True)
         yield f"data: {json.dumps({'type': 'error', 'code': 'server_error', 'message': 'AI 응답 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'})}\n\n"
         return
+
+    # 이력 저장 (fire-and-forget — 실패해도 스트리밍 영향 없음)
+    if full_answer:
+        asyncio.create_task(save_qa_history(
+            user_id=user_id,
+            roadmap_id=roadmap_id,
+            task_id=request.task_id,
+            question=request.question,
+            answer="".join(full_answer),
+        ))
 
     # 팔로업 질문 생성 (실패 시 조용히 건너뜀)
     followups = await generate_followup_questions(
