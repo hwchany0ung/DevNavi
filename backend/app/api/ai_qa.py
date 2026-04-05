@@ -49,10 +49,10 @@ async def _qa_stream(body: QARequest, user_id: str):
         daily_limit = usage.get("daily_limit", 30)
         monthly_limit = usage.get("monthly_limit", 100)
 
-        if daily > daily_limit:
-            msg = f"오늘 질문 한도({daily_limit}회)를 소진했습니다."
-        else:
-            msg = f"이번 달 질문 한도({monthly_limit}회)를 소진했습니다."
+        msg = (
+            f"현재 정식 배포 전 베타 운영 중으로 AI 질문은 하루 {daily_limit}회로 제한됩니다. "
+            "내일 다시 이용해 주세요."
+        )
 
         yield f"data: {json.dumps({'type': 'error', 'code': 'rate_limit', 'message': msg})}\n\n"
         return

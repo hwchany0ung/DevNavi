@@ -78,8 +78,8 @@ async def increment_and_check_qa_usage(user_id: str) -> dict:
         headers=sb_headers(prefer="return=representation"),
         json={
             "p_user_id":       user_id,
-            "p_daily_limit":   30,
-            "p_monthly_limit": 100,
+            "p_daily_limit":   5,
+            "p_monthly_limit": 9999,
         },
     )
 

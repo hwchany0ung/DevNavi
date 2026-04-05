@@ -6,8 +6,8 @@ API 사용량 추적 및 제한 서비스.
 
 제한:
   - /roadmap/full          : 주 1회 (Sonnet — 고비용, 해당 주 월요일 날짜를 키로 사용)
-  - /roadmap/career-summary: 하루 10회 (Haiku — 저비용)
-  - /roadmap/reroute       : 하루 3회 (Sonnet — 고비용)
+  - /roadmap/career-summary: 주 10회 (Haiku — 저비용, 주 단위 키 사용)
+  - /roadmap/reroute       : 주 3회 (Sonnet — 고비용, 주 단위 키 사용)
 
 [Race Condition 해결]
   기존: 조회 → 비교 → upsert (3단계 HTTP, 동시 요청 시 limit 우회 가능)
@@ -31,17 +31,17 @@ logger = logging.getLogger(__name__)
 # ── 엔드포인트별 허용 횟수 ───────────────────────────────────────────
 DAILY_LIMITS: dict[str, int] = {
     "full":           1,   # Sonnet 전체 로드맵 — 주 1회 (주 단위 키 사용)
-    "career-summary": 10,  # Haiku 커리어 분석 — 하루 10회
-    "reroute":        3,   # Sonnet GPS 재탐색 — 하루 3회
+    "career-summary": 10,  # Haiku 커리어 분석 — 주 10회 (주 단위 키 사용)
+    "reroute":        3,   # Sonnet GPS 재탐색 — 주 3회 (주 단위 키 사용)
 }
 
-# full은 주 단위로 추적 (해당 주 월요일 날짜를 키로 사용)
-_WEEKLY_ENDPOINTS = frozenset({"full"})
+# 주 단위로 추적하는 엔드포인트 (해당 주 월요일 날짜를 키로 사용)
+_WEEKLY_ENDPOINTS = frozenset({"full", "career-summary", "reroute"})
 
 
 def _limit_message(endpoint: str, limit: int) -> str:
     if endpoint in _WEEKLY_ENDPOINTS:
-        return f"주 최대 {limit}회까지 로드맵을 생성할 수 있습니다. 추가 이용이 필요하시면 support@devnavi.kr로 문의해 주세요."
+        return f"이번 주 사용 한도({limit}회)를 소진했습니다. 다음 주 월요일에 초기화됩니다."
     return f"하루 최대 {limit}회까지 사용 가능합니다. 내일 다시 이용해 주세요."
 
 # ── 개발/테스트 계정 — 일일 한도 적용 제외 ──────────────────────────
