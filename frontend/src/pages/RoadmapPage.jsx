@@ -88,6 +88,7 @@ export default function RoadmapPage() {
   const [qaSessionSet,  setQaSessionSet] = useState(() => new Set())
   const [toastMsg,      setToastMsg]     = useState(null)
   const toastTimerRef                    = useRef(null)
+  const nextDoneRef                      = useRef(false)
   useEffect(() => {
     return () => { clearTimeout(toastTimerRef.current) }
   }, [])
@@ -221,22 +222,26 @@ export default function RoadmapPage() {
 
   // ── 태스크 토글 ─────────────────────────────────────────────────
   const handleToggle = useCallback((taskId) => {
-    // doneSetRef.current를 사용해 최신 doneSet을 deps 없이 참조 (handleToggle 재생성 억제)
-    const nowDone = !doneSetRef.current.has(taskId)
+    // setDoneSet updater 결과를 외부로 전파하기 위한 단일 소스 계산
+    // doneSetRef.current는 렌더마다 동기 갱신되므로 updater 실행 전에도 최신값 보장
+    nextDoneRef.current = !doneSetRef.current.has(taskId)
 
     setDoneSet((prev) => {
       const next = new Set(prev)
-      if (!prev.has(taskId)) next.add(taskId)
+      const willBeDone = !prev.has(taskId)
+      nextDoneRef.current = willBeDone  // updater 안에서 재확인 (단일 소스 통합)
+      if (willBeDone) next.add(taskId)
       else next.delete(taskId)
       saveDoneLocal(id, next)
       // 로그인 시 Supabase에도 동기화
       if (userId) {
-        toggleRemote(id, taskId, !prev.has(taskId), getAuthHeaders()).catch(() => {})
+        toggleRemote(id, taskId, willBeDone, getAuthHeaders()).catch(() => {})
       }
       return next
     })
 
     // 완료 토스트: 체크 시에만 표시 (state updater 외부에서 side-effect 처리)
+    const nowDone = nextDoneRef.current  // single source (doneSetRef 기준으로 pre-set)
     if (nowDone && roadmap) {
       // taskId 형식: "{month}-{week}-{taskIndex}"
       const [monthStr, weekStr] = taskId.split('-')
@@ -429,6 +434,8 @@ export default function RoadmapPage() {
         onAuthOpen={() => setAuthOpen(true)}
         onSidebarToggle={() => setSidebarOpen((v) => !v)}
         signOut={signOut}
+        roadmapId={id}
+        getAuthHeaders={getAuthHeaders}
       />
 
       {/* 자동 저장 실패 알림 */}
