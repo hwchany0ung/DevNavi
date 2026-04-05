@@ -406,20 +406,15 @@ async def rollback_reference(
     if not prev_rows:
         raise HTTPException(status_code=404, detail=f"v{prev_version}이 존재하지 않습니다.")
 
-    # 현재 active 해제
-    await client.patch(
-        sb_url("role_references"),
-        headers=sb_headers(prefer="return=minimal"),
-        params={"id": f"eq.{active_rows[0]['id']}"},
-        json={"is_active": False},
+    # 원자적 롤백 — 트랜잭션으로 처리
+    rpc_resp = await client.post(
+        sb_url("rpc/rollback_role_reference"),
+        headers=sb_headers(),
+        json={"p_current_id": active_rows[0]["id"], "p_prev_id": prev_rows[0]["id"]},
     )
-    # 이전 버전 활성화
-    await client.patch(
-        sb_url("role_references"),
-        headers=sb_headers(prefer="return=minimal"),
-        params={"id": f"eq.{prev_rows[0]['id']}"},
-        json={"is_active": True, "activated_by": "admin_rollback"},
-    )
+    if rpc_resp.status_code not in (200, 204):
+        logger.error("rollback RPC 실패: %s", rpc_resp.text[:200])
+        raise HTTPException(status_code=502, detail="롤백 중 오류가 발생했습니다.")
 
     logger.info("role_references rollback: %s v%d -> v%d", role, current_version, prev_version)
     return {"role": role, "rolled_back_to": prev_version}
