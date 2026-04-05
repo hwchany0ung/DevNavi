@@ -9,6 +9,7 @@ import GrassCalendar       from '../components/roadmap/GrassCalendar'
 import RoadmapHeader       from '../components/roadmap/RoadmapHeader'
 import RerouteModal        from '../components/roadmap/RerouteModal'
 import CareerSummaryModal  from '../components/roadmap/CareerSummaryModal'
+import EmptyRoadmapState   from '../components/roadmap/EmptyRoadmapState'
 import AuthModal           from '../components/auth/AuthModal'
 import QAPanel            from '../components/qa/QAPanel'
 import { loadRoadmapLocal, saveRoadmapLocal } from '../hooks/useRoadmapStream'
@@ -348,16 +349,23 @@ export default function RoadmapPage() {
     )
   }
 
-  if (error || !roadmap) {
+  // 빈 상태: 로드맵이 없고 에러가 없거나 404 에러인 경우 (신규 사용자)
+  const isEmptyState = !roadmap && (!error || error.includes('찾을 수 없') || error.includes('404'))
+
+  if (isEmptyState) {
+    return <EmptyRoadmapState user={user} />
+  }
+
+  if (error) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-5">
         <div className="text-center space-y-4">
-          <p className="text-5xl">🗺️</p>
-          <p className="text-gray-700 dark:text-white font-semibold">로드맵을 찾을 수 없어요</p>
-          <p className="text-gray-400 dark:text-white/40 text-sm">{error}</p>
-          <button onClick={() => navigate('/onboarding')}
+          <p className="text-5xl">⚠️</p>
+          <p className="text-gray-700 dark:text-white font-semibold">로드맵을 불러오지 못했어요</p>
+          <p className="text-sm text-gray-400 dark:text-white/40">잠시 후 다시 시도해 주세요.</p>
+          <button onClick={() => window.location.reload()}
             className="px-6 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors">
-            새 로드맵 만들기
+            다시 시도
           </button>
         </div>
       </div>
