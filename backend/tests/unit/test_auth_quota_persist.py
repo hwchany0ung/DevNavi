@@ -106,7 +106,7 @@ class TestCheckAndIncrement:
 
         with patch("app.services.usage_service.settings") as mock_settings:
             mock_settings.supabase_ready = True
-            with patch("app.services.usage_service._DEV_BYPASS_USERS", frozenset(["bypass-user"])):
+            with patch("app.services.usage_service._load_bypass_users", return_value=frozenset(["bypass-user"])):
                 await check_and_increment("bypass-user", "full")
 
     @pytest.mark.asyncio
@@ -124,7 +124,7 @@ class TestCheckAndIncrement:
 
         with patch("app.services.usage_service.settings") as mock_settings, \
              patch("app.services.usage_service.get_supabase_client", return_value=mock_client), \
-             patch("app.services.usage_service._DEV_BYPASS_USERS", frozenset()):
+             patch("app.services.usage_service._load_bypass_users", return_value=frozenset()):
             mock_settings.supabase_ready = True
             with pytest.raises(HTTPException) as exc_info:
                 await check_and_increment("user-123", "full")
@@ -146,7 +146,7 @@ class TestCheckAndIncrement:
 
         with patch("app.services.usage_service.settings") as mock_settings, \
              patch("app.services.usage_service.get_supabase_client", return_value=mock_client), \
-             patch("app.services.usage_service._DEV_BYPASS_USERS", frozenset()):
+             patch("app.services.usage_service._load_bypass_users", return_value=frozenset()):
             mock_settings.supabase_ready = True
             await check_and_increment("user-123", "full")
 
@@ -295,7 +295,7 @@ class TestUsageQuota:
 
         with patch("app.services.usage_service.settings") as mock_settings, \
              patch("app.services.usage_service.get_supabase_client", return_value=mock_client), \
-             patch("app.services.usage_service._DEV_BYPASS_USERS", frozenset()):
+             patch("app.services.usage_service._load_bypass_users", return_value=frozenset()):
             mock_settings.supabase_ready = True
             with pytest.raises(HTTPException) as exc_info:
                 await check_and_increment("user-daily-30", "full")
@@ -326,7 +326,7 @@ class TestUsageQuota:
 
         with patch("app.services.usage_service.settings") as mock_settings, \
              patch("app.services.usage_service.get_supabase_client", return_value=mock_client), \
-             patch("app.services.usage_service._DEV_BYPASS_USERS", frozenset()):
+             patch("app.services.usage_service._load_bypass_users", return_value=frozenset()):
             mock_settings.supabase_ready = True
             with pytest.raises(HTTPException) as exc_info:
                 await check_and_increment("user-monthly-100", "career-summary")
@@ -358,7 +358,7 @@ class TestUsageQuota:
 
         with patch("app.services.usage_service.settings") as mock_settings, \
              patch("app.services.usage_service.get_supabase_client", return_value=mock_client), \
-             patch("app.services.usage_service._DEV_BYPASS_USERS", frozenset()):
+             patch("app.services.usage_service._load_bypass_users", return_value=frozenset()):
             mock_settings.supabase_ready = True
 
             # 'full' → 한도 초과

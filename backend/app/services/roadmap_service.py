@@ -79,7 +79,11 @@ async def persist_roadmap(
 ) -> str:
     """파싱된 roadmap dict를 Supabase roadmaps 테이블에 저장."""
     if not settings.supabase_ready:
-        return str(uuid.uuid4())  # Supabase 없으면 UUID만 반환
+        # 프로덕션에서는 DB 없이 운영 불가 — 503 반환
+        if settings.ENV == "production":
+            raise HTTPException(status_code=503, detail="데이터베이스를 사용할 수 없습니다.")
+        logger.warning("Supabase 미설정 — 개발 환경 임시 UUID 반환 (로드맵 저장 안됨)")
+        return str(uuid.uuid4())
 
     roadmap_id = str(uuid.uuid4())
     client = get_supabase_client()

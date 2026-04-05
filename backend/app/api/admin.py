@@ -48,16 +48,12 @@ async def _count(table: str, params: Optional[dict] = None) -> int:
     return _parse_count(r.headers.get("content-range", "0/0"))
 
 
-def _group_by_day(rows: list[dict], field: str, days: int) -> list[dict]:
-    """ISO datetime 문자열을 날짜별로 집계. 빈 날은 0으로 채움."""
-    counts: dict[str, int] = defaultdict(int)
-    for row in rows:
-        val = row.get(field, "") or ""
-        if val:
-            counts[val[:10]] += 1  # "2025-01-01T..." → "2025-01-01"
+def _fill_daily(agg_rows: list[dict], days: int) -> list[dict]:
+    """DB 뷰 집계 결과(stat_date, cnt)를 최근 N일 리스트로 변환. 빈 날은 0."""
+    lookup = {row["stat_date"]: row["cnt"] for row in agg_rows}
     return [
         {"date": (date.today() - timedelta(days=i)).isoformat(),
-         "count": counts[(date.today() - timedelta(days=i)).isoformat()]}
+         "count": lookup.get((date.today() - timedelta(days=i)).isoformat(), 0)}
         for i in range(days - 1, -1, -1)
     ]
 
@@ -143,13 +139,13 @@ async def get_stats(request: Request, admin: dict = Depends(require_admin)) -> d
             headers=sb_headers(),
         ),
         client.get(
-            sb_url("users"),
-            params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "1000"},
+            sb_url("daily_user_signups"),
+            params={"select": "stat_date,cnt", "stat_date": f"gte.{week_ago}"},
             headers=sb_headers(),
         ),
         client.get(
-            sb_url("roadmaps"),
-            params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "1000"},
+            sb_url("daily_roadmap_creates"),
+            params={"select": "stat_date,cnt", "stat_date": f"gte.{week_ago}"},
             headers=sb_headers(),
         ),
     )
@@ -161,9 +157,9 @@ async def get_stats(request: Request, admin: dict = Depends(require_admin)) -> d
     for row in usage_rows:
         endpoint_breakdown[row.get("endpoint", "unknown")] += row.get("count", 0)
 
-    # ── 최근 7일 행 데이터 ────────────────────────────────────────
-    user_rows: list[dict] = user_rows_resp.json() if user_rows_resp.status_code == 200 else []
-    roadmap_rows: list[dict] = roadmap_rows_resp.json() if roadmap_rows_resp.status_code == 200 else []
+    # ── 최근 7일 뷰 집계 데이터 ─────────────────────────────────────
+    user_agg: list[dict] = user_rows_resp.json() if user_rows_resp.status_code == 200 else []
+    roadmap_agg: list[dict] = roadmap_rows_resp.json() if roadmap_rows_resp.status_code == 200 else []
 
     return {
         "total_users":        total_users,
@@ -173,8 +169,8 @@ async def get_stats(request: Request, admin: dict = Depends(require_admin)) -> d
         "api_calls_today":    api_calls_today,
         "endpoint_breakdown": dict(endpoint_breakdown),
         "errors_today":       errors_today,
-        "daily_signups":      _group_by_day(user_rows,    "created_at", 7),
-        "daily_roadmaps":     _group_by_day(roadmap_rows, "created_at", 7),
+        "daily_signups":      _fill_daily(user_agg, 7),
+        "daily_roadmaps":     _fill_daily(roadmap_agg, 7),
     }
 
 
@@ -317,24 +313,39 @@ async def get_qa_stats(request: Request, admin: dict = Depends(require_admin)) -
                 params={"select": "id,task_id,question,rating,created_at", "order": "created_at.desc", "limit": "20"},
                 headers=sb_headers(),
             ),
+            return_exceptions=True,
         )
 
-        total_qa_count = _parse_count(total_r.headers.get("content-range", "0/0"))
+        # gather 결과 검증 — 예외 발생 항목은 None으로 대체
+        def _safe_resp(r):
+            if isinstance(r, BaseException):
+                logger.warning("qa stats gather 부분 실패: %s", r)
+                return None
+            return r
 
-        up_count = _parse_count(up_r.headers.get("content-range", "0/0"))
-        down_count = _parse_count(down_r.headers.get("content-range", "0/0"))
+        total_r = _safe_resp(total_r)
+        up_r = _safe_resp(up_r)
+        down_r = _safe_resp(down_r)
+        daily_r = _safe_resp(daily_r)
+        checked_r = _safe_resp(checked_r)
+        recent_r = _safe_resp(recent_r)
+
+        total_qa_count = _parse_count(total_r.headers.get("content-range", "0/0")) if total_r else 0
+
+        up_count = _parse_count(up_r.headers.get("content-range", "0/0")) if up_r else 0
+        down_count = _parse_count(down_r.headers.get("content-range", "0/0")) if down_r else 0
         total_fb = up_count + down_count
         satisfaction_rate = round(up_count / total_fb, 2) if total_fb > 0 else 0.0
 
         daily_counts = [
             {"date": str(row["date"]), "count": row["count"]}
-            for row in (daily_r.json() if daily_r.status_code == 200 else [])
+            for row in (daily_r.json() if daily_r and daily_r.status_code == 200 else [])
         ]
 
-        task_checked_count = _parse_count(checked_r.headers.get("content-range", "0/0"))
+        task_checked_count = _parse_count(checked_r.headers.get("content-range", "0/0")) if checked_r else 0
         task_completion_lift = round(task_checked_count / max(total_qa_count, 1), 2)
 
-        recent_feedback = recent_r.json() if recent_r.status_code == 200 else []
+        recent_feedback = recent_r.json() if recent_r and recent_r.status_code == 200 else []
 
         return {
             "total_qa_count": total_qa_count,
@@ -342,6 +353,15 @@ async def get_qa_stats(request: Request, admin: dict = Depends(require_admin)) -
             "daily_counts": daily_counts,
             "task_completion_lift": task_completion_lift,
             "recent_feedback": recent_feedback,
+        }
+    except (AttributeError, TypeError, KeyError) as e:
+        logger.exception("qa stats 예상치 못한 오류 (프로그래밍 오류 가능): %s", e)
+        return {
+            "total_qa_count": 0,
+            "satisfaction_rate": 0.0,
+            "daily_counts": [],
+            "task_completion_lift": 0.0,
+            "recent_feedback": [],
         }
     except Exception as e:
         logger.error("qa stats 조회 실패: %s", e)
@@ -406,20 +426,15 @@ async def rollback_reference(
     if not prev_rows:
         raise HTTPException(status_code=404, detail=f"v{prev_version}이 존재하지 않습니다.")
 
-    # 현재 active 해제
-    await client.patch(
-        sb_url("role_references"),
-        headers=sb_headers(prefer="return=minimal"),
-        params={"id": f"eq.{active_rows[0]['id']}"},
-        json={"is_active": False},
+    # 원자적 롤백 — 트랜잭션으로 처리
+    rpc_resp = await client.post(
+        sb_url("rpc/rollback_role_reference"),
+        headers=sb_headers(),
+        json={"p_current_id": active_rows[0]["id"], "p_prev_id": prev_rows[0]["id"]},
     )
-    # 이전 버전 활성화
-    await client.patch(
-        sb_url("role_references"),
-        headers=sb_headers(prefer="return=minimal"),
-        params={"id": f"eq.{prev_rows[0]['id']}"},
-        json={"is_active": True, "activated_by": "admin_rollback"},
-    )
+    if rpc_resp.status_code not in (200, 204):
+        logger.error("rollback RPC 실패: %s", rpc_resp.text[:200])
+        raise HTTPException(status_code=502, detail="롤백 중 오류가 발생했습니다.")
 
     logger.info("role_references rollback: %s v%d -> v%d", role, current_version, prev_version)
     return {"role": role, "rolled_back_to": prev_version}

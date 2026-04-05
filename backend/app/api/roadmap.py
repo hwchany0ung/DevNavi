@@ -26,6 +26,7 @@ _UUID_PATTERN = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 
 logger = logging.getLogger(__name__)
 
+from app.core.constants import SSE_HEADERS
 from app.core.limiter import limiter
 from app.core.config import settings
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
@@ -60,16 +61,10 @@ from app.services.usage_service import check_and_increment
 
 router = APIRouter(prefix="/roadmap", tags=["roadmap"])
 
-_ALLOWED_JOB_ROLES: frozenset = frozenset({
+_ALLOWED_JOB_ROLES: frozenset[str] = frozenset({
     "backend", "frontend", "cloud_devops", "fullstack",
     "data", "ai_ml", "security", "ios_android", "qa",
 })
-
-SSE_HEADERS = {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    "X-Accel-Buffering": "no",
-}
 
 
 async def _with_usage_check(
@@ -100,8 +95,12 @@ async def _with_usage_check(
             logger.warning("SSE error event (user=%s, status=%d): %s", user_id, e.status_code, message)
         yield f"data: {json.dumps({'type': 'error', 'message': message})}\n\n"
         return
-    async for chunk in gen:
-        yield chunk
+    try:
+        async for chunk in gen:
+            yield chunk
+    except Exception as exc:
+        logger.exception("SSE 스트리밍 중 예외 발생 (user=%s): %s", user_id, exc)
+        yield f"data: {json.dumps({'type': 'error', 'message': '로드맵 생성 중 오류가 발생했습니다. 다시 시도해 주세요.'})}\n\n"
 
 
 # ─────────────────────────── 티저 캐시 헬퍼 ─────────────────────────

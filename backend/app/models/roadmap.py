@@ -78,6 +78,23 @@ def _coerce_skills(v: list) -> list:
     return result
 
 
+# ───────────────────────────── 공통 Mixin ──────────────────────────────
+
+class _RoadmapMixin(BaseModel):
+    """FullRoadmapRequest / CareerSummaryRequest 공통 validator."""
+
+    @field_validator("skills", mode="before", check_fields=False)
+    @classmethod
+    def coerce_skills_items(cls, v: list) -> list:
+        """list[str] 하위호환 → OnboardingSkillItem 변환."""
+        return _coerce_skills(v) if isinstance(v, list) else v
+
+    @field_validator("certifications", mode="before", check_fields=False)
+    @classmethod
+    def truncate_certs(cls, v: list) -> list[str]:
+        return _truncate_items(v) if isinstance(v, list) else v
+
+
 # ───────────────────────────── 요청 모델 ─────────────────────────────
 
 class TeaserRequest(BaseModel):
@@ -89,7 +106,7 @@ class TeaserRequest(BaseModel):
     level: Literal["beginner", "basic", "some_exp", "career_change"]
 
 
-class FullRoadmapRequest(BaseModel):
+class FullRoadmapRequest(_RoadmapMixin):
     role: Literal[
         "backend", "frontend", "cloud_devops", "fullstack",
         "data", "ai_ml", "security", "ios_android", "qa"
@@ -101,17 +118,6 @@ class FullRoadmapRequest(BaseModel):
     company_type: Literal["startup", "msp", "bigco", "si", "foreign", "any"] = "any"
     daily_study_hours: Literal["under1h", "1to2h", "3to4h", "over5h"] = "1to2h"
     extra_profile: Optional[ExtraProfile] = None
-
-    @field_validator("skills", mode="before")
-    @classmethod
-    def coerce_skills_items(cls, v: list) -> list:
-        """list[str] 하위호환 → OnboardingSkillItem 변환."""
-        return _coerce_skills(v) if isinstance(v, list) else v
-
-    @field_validator("certifications", mode="before")
-    @classmethod
-    def truncate_certs(cls, v: list) -> list[str]:
-        return _truncate_items(v) if isinstance(v, list) else v
 
 
 _TASK_ID_RE = re.compile(r'^\d{1,3}-\d{1,2}-\d{1,3}$')
@@ -235,7 +241,7 @@ class RoadmapSaveResponse(BaseModel):
 
 # ───────────────────────────── 커리어 분석 ───────────────────────────
 
-class CareerSummaryRequest(BaseModel):
+class CareerSummaryRequest(_RoadmapMixin):
     role: Literal[
         "backend", "frontend", "cloud_devops", "fullstack",
         "data", "ai_ml", "security", "ios_android", "qa"
@@ -246,17 +252,6 @@ class CareerSummaryRequest(BaseModel):
     certifications: list[str] = Field(default_factory=list, max_length=10)
     company_type: Literal["startup", "msp", "bigco", "si", "foreign", "any"] = "any"
     extra_profile: Optional[ExtraProfile] = None
-
-    @field_validator("skills", mode="before")
-    @classmethod
-    def coerce_skills_items(cls, v: list) -> list:
-        """list[str] 하위호환 → OnboardingSkillItem 변환."""
-        return _coerce_skills(v) if isinstance(v, list) else v
-
-    @field_validator("certifications", mode="before")
-    @classmethod
-    def truncate_certs(cls, v: list) -> list[str]:
-        return _truncate_items(v) if isinstance(v, list) else v
 
 
 class SkillItem(BaseModel):
