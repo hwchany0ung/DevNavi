@@ -100,8 +100,12 @@ async def _with_usage_check(
             logger.warning("SSE error event (user=%s, status=%d): %s", user_id, e.status_code, message)
         yield f"data: {json.dumps({'type': 'error', 'message': message})}\n\n"
         return
-    async for chunk in gen:
-        yield chunk
+    try:
+        async for chunk in gen:
+            yield chunk
+    except Exception as exc:
+        logger.exception("SSE 스트리밍 중 예외 발생 (user=%s): %s", user_id, exc)
+        yield f"data: {json.dumps({'type': 'error', 'message': '로드맵 생성 중 오류가 발생했습니다. 다시 시도해 주세요.'})}\n\n"
 
 
 # ─────────────────────────── 티저 캐시 헬퍼 ─────────────────────────

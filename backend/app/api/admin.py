@@ -327,24 +327,39 @@ async def get_qa_stats(request: Request, admin: dict = Depends(require_admin)) -
                 params={"select": "id,task_id,question,rating,created_at", "order": "created_at.desc", "limit": "20"},
                 headers=sb_headers(),
             ),
+            return_exceptions=True,
         )
 
-        total_qa_count = _parse_count(total_r.headers.get("content-range", "0/0"))
+        # gather 결과 검증 — 예외 발생 항목은 None으로 대체
+        def _safe_resp(r):
+            if isinstance(r, BaseException):
+                logger.warning("qa stats gather 부분 실패: %s", r)
+                return None
+            return r
 
-        up_count = _parse_count(up_r.headers.get("content-range", "0/0"))
-        down_count = _parse_count(down_r.headers.get("content-range", "0/0"))
+        total_r = _safe_resp(total_r)
+        up_r = _safe_resp(up_r)
+        down_r = _safe_resp(down_r)
+        daily_r = _safe_resp(daily_r)
+        checked_r = _safe_resp(checked_r)
+        recent_r = _safe_resp(recent_r)
+
+        total_qa_count = _parse_count(total_r.headers.get("content-range", "0/0")) if total_r else 0
+
+        up_count = _parse_count(up_r.headers.get("content-range", "0/0")) if up_r else 0
+        down_count = _parse_count(down_r.headers.get("content-range", "0/0")) if down_r else 0
         total_fb = up_count + down_count
         satisfaction_rate = round(up_count / total_fb, 2) if total_fb > 0 else 0.0
 
         daily_counts = [
             {"date": str(row["date"]), "count": row["count"]}
-            for row in (daily_r.json() if daily_r.status_code == 200 else [])
+            for row in (daily_r.json() if daily_r and daily_r.status_code == 200 else [])
         ]
 
-        task_checked_count = _parse_count(checked_r.headers.get("content-range", "0/0"))
+        task_checked_count = _parse_count(checked_r.headers.get("content-range", "0/0")) if checked_r else 0
         task_completion_lift = round(task_checked_count / max(total_qa_count, 1), 2)
 
-        recent_feedback = recent_r.json() if recent_r.status_code == 200 else []
+        recent_feedback = recent_r.json() if recent_r and recent_r.status_code == 200 else []
 
         return {
             "total_qa_count": total_qa_count,
@@ -352,6 +367,15 @@ async def get_qa_stats(request: Request, admin: dict = Depends(require_admin)) -
             "daily_counts": daily_counts,
             "task_completion_lift": task_completion_lift,
             "recent_feedback": recent_feedback,
+        }
+    except (AttributeError, TypeError, KeyError) as e:
+        logger.exception("qa stats 예상치 못한 오류 (프로그래밍 오류 가능): %s", e)
+        return {
+            "total_qa_count": 0,
+            "satisfaction_rate": 0.0,
+            "daily_counts": [],
+            "task_completion_lift": 0.0,
+            "recent_feedback": [],
         }
     except Exception as e:
         logger.error("qa stats 조회 실패: %s", e)
