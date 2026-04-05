@@ -10,6 +10,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 
+from app.core.constants import SSE_HEADERS
 from app.core.limiter import limiter
 from app.middleware.auth import optional_user, require_user
 from app.models.qa_models import EventRequest, FeedbackRequest, QARequest
@@ -24,12 +25,6 @@ from app.services.qa_service import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["ai-qa"])
-
-SSE_HEADERS = {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    "X-Accel-Buffering": "no",
-}
 
 
 async def _qa_stream(body: QARequest, user_id: str):

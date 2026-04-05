@@ -26,6 +26,7 @@ _UUID_PATTERN = r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
 
 logger = logging.getLogger(__name__)
 
+from app.core.constants import SSE_HEADERS
 from app.core.limiter import limiter
 from app.core.config import settings
 from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
@@ -60,16 +61,10 @@ from app.services.usage_service import check_and_increment
 
 router = APIRouter(prefix="/roadmap", tags=["roadmap"])
 
-_ALLOWED_JOB_ROLES: frozenset = frozenset({
+_ALLOWED_JOB_ROLES: frozenset[str] = frozenset({
     "backend", "frontend", "cloud_devops", "fullstack",
     "data", "ai_ml", "security", "ios_android", "qa",
 })
-
-SSE_HEADERS = {
-    "Content-Type": "text/event-stream",
-    "Cache-Control": "no-cache",
-    "X-Accel-Buffering": "no",
-}
 
 
 async def _with_usage_check(

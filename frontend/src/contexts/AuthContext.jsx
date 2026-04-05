@@ -52,6 +52,8 @@ export function AuthProvider({ children }) {
         // PIPA: 약관 동의 이력을 서버에 기록
         // - 이메일 가입: user_metadata에 agreed_terms_at 포함 → 그대로 기록
         // - Google OAuth: user_metadata에 agreed_terms_at 없음 → 최초 SIGNED_IN 시각을 동의 시각으로 기록
+        // NOTE: 멀티탭 환경에서 두 번째 탭의 동의 재전송이 차단될 수 있음.
+        // 서버측 idempotency key로 처리되므로 실제 중복 저장은 없으나, UI상 동의 재요청이 안 될 수 있음.
         const consentKey = `devnavi_consent_sent_${session.user.id}`
         if (!localStorage.getItem(consentKey)) {
           localStorage.setItem(consentKey, '1')  // optimistic locking — 요청 전에 먼저 마킹

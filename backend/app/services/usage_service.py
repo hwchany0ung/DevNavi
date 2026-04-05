@@ -47,11 +47,10 @@ def _limit_message(endpoint: str, limit: int) -> str:
 # ── 개발/테스트 계정 — 일일 한도 적용 제외 ──────────────────────────
 # 소스에 UUID를 박지 않고 환경변수(DEV_BYPASS_USERS=uuid1,uuid2)로 관리
 # 로컬: .env, 프로덕션: SSM /devnavi/prod/DEV_BYPASS_USERS
+# NOTE: 함수 호출 시점에 settings를 읽어 Lambda 웜 인스턴스 환경변수 갱신을 반영
 def _load_bypass_users() -> frozenset[str]:
     raw = settings.DEV_BYPASS_USERS
     return frozenset(u.strip() for u in raw.split(",") if u.strip())
-
-_DEV_BYPASS_USERS: frozenset[str] = _load_bypass_users()
 
 
 async def check_and_increment(user_id: str, endpoint: str) -> None:
@@ -69,7 +68,7 @@ async def check_and_increment(user_id: str, endpoint: str) -> None:
     if not settings.supabase_ready:
         return  # 개발 모드 (Supabase 미설정) → 제한 없이 통과
 
-    if user_id in _DEV_BYPASS_USERS:
+    if user_id in _load_bypass_users():
         logger.warning("DEV_BYPASS 적용: user=%s endpoint=%s", user_id, endpoint)
         return  # 개발/테스트 계정 → 한도 미적용
 

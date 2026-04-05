@@ -48,20 +48,6 @@ async def _count(table: str, params: Optional[dict] = None) -> int:
     return _parse_count(r.headers.get("content-range", "0/0"))
 
 
-def _group_by_day(rows: list[dict], field: str, days: int) -> list[dict]:
-    """ISO datetime 문자열을 날짜별로 집계. 빈 날은 0으로 채움."""
-    counts: dict[str, int] = defaultdict(int)
-    for row in rows:
-        val = row.get(field, "") or ""
-        if val:
-            counts[val[:10]] += 1  # "2025-01-01T..." → "2025-01-01"
-    return [
-        {"date": (date.today() - timedelta(days=i)).isoformat(),
-         "count": counts[(date.today() - timedelta(days=i)).isoformat()]}
-        for i in range(days - 1, -1, -1)
-    ]
-
-
 def _fill_daily(agg_rows: list[dict], days: int) -> list[dict]:
     """DB 뷰 집계 결과(stat_date, cnt)를 최근 N일 리스트로 변환. 빈 날은 0."""
     lookup = {row["stat_date"]: row["cnt"] for row in agg_rows}

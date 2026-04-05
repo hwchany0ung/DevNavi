@@ -5,7 +5,7 @@ import OnboardingPage from './pages/OnboardingPage'
 
 // 개발 전용 — 프로덕션 번들에서 완전 제외 (null이면 라우트 조건도 false)
 const LandingPageMockup = import.meta.env.DEV
-  ? lazy(() => import('./pages/LandingPageMockup'))
+  ? lazy(() => import('./dev/LandingPageMockup'))
   : null
 import RoadmapPage from './pages/RoadmapPage'
 import SharedRoadmapPage from './pages/SharedRoadmapPage'
