@@ -346,3 +346,46 @@ class TestQAModels:
                 job_type="backend", month=1, week=5,
                 category="기초", task_name="태스크",
             )
+
+
+# ── _qa_stream HTTPException 캐치 ────────────────────────────────────────
+
+class TestQaStreamUsageCheckError:
+    """_qa_stream: increment_and_check_qa_usage가 HTTPException을 raise할 때
+    SSE error event로 변환되어 RuntimeError가 전파되지 않는지 검증."""
+
+    def _make_request(self):
+        from app.models.qa_models import QARequest, QATaskContext
+        ctx = QATaskContext(
+            job_type="backend", month=1, week=1,
+            category="기초", task_name="태스크",
+        )
+        return QARequest(
+            task_id="1-1-0",
+            question="테스트 질문",
+            task_context=ctx,
+            messages=[],
+        )
+
+    @pytest.mark.asyncio
+    async def test_http_exception_503_yields_sse_error(self):
+        """increment_and_check_qa_usage가 HTTPException(503)을 raise하면
+        SSE error event를 yield하고 스트림을 정상 종료한다."""
+        from fastapi import HTTPException
+        from app.api.ai_qa import _qa_stream
+
+        with patch("app.api.ai_qa.verify_task_ownership", return_value=True), \
+             patch("app.api.ai_qa.increment_and_check_qa_usage",
+                   side_effect=HTTPException(
+                       status_code=503,
+                       detail={
+                           "code": "QA_USAGE_SERVICE_UNAVAILABLE",
+                           "message": "사용량 확인 서비스에 일시적 문제가 있습니다. 잠시 후 다시 시도해 주세요.",
+                       },
+                   )):
+            chunks = [chunk async for chunk in _qa_stream(self._make_request(), "user-abc")]
+
+        assert len(chunks) == 1
+        payload = json.loads(chunks[0].removeprefix("data: ").strip())
+        assert payload["type"] == "error"
+        assert payload["code"] == "server_error"

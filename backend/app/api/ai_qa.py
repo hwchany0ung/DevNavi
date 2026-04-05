@@ -43,9 +43,9 @@ async def _qa_stream(body: QARequest, user_id: str):
     # Layer 2: 사용량 체크 (daily 30, monthly 100)
     try:
         usage = await increment_and_check_qa_usage(user_id)
-    except RuntimeError as e:
+    except (RuntimeError, HTTPException) as e:
         logger.error("QA usage check 실패 (user=%s): %s", user_id, e)
-        yield f"data: {json.dumps({'type': 'error', 'code': 'server_error', 'message': 'DB 서비스 미설정'})}\n\n"
+        yield f"data: {json.dumps({'type': 'error', 'code': 'server_error', 'message': '사용량 확인 서비스에 일시적 문제가 있습니다. 잠시 후 다시 시도해 주세요.'}, ensure_ascii=False)}\n\n"
         return
 
     if not usage.get("allowed", True):
