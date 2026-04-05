@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
-import { useAuth } from '../../contexts/AuthContext'
+import { request } from '../../lib/api'
 
 
 function formatDate(isoString) {
@@ -29,8 +29,6 @@ export default function QAHistoryPanel({ taskId }) {
   const [error, setError] = useState(null)
   const [retryCount, setRetryCount] = useState(0)
 
-  const { getAuthHeaders } = useAuth()
-
   useEffect(() => {
     if (!taskId) return
     const controller = new AbortController()
@@ -40,11 +38,10 @@ export default function QAHistoryPanel({ taskId }) {
       setIsLoading(true)
       setError(null)
       try {
-        const headers = getAuthHeaders()
-        const url = `${import.meta.env.VITE_API_BASE_URL}/ai/qa/history?task_id=${encodeURIComponent(taskId)}&limit=20`
-        const resp = await fetch(url, { headers, signal: controller.signal })
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
-        const data = await resp.json()
+        const data = await request(
+          `/ai/qa/history?task_id=${encodeURIComponent(taskId)}&limit=20`,
+          { signal: controller.signal }
+        )
         if (!cancelled) setHistory(data.history ?? [])
       } catch (e) {
         if (!cancelled && e.name !== 'AbortError') setError('이력을 불러오지 못했습니다.')
@@ -58,7 +55,7 @@ export default function QAHistoryPanel({ taskId }) {
       cancelled = true
       controller.abort()
     }
-  }, [taskId, getAuthHeaders, retryCount])
+  }, [taskId, retryCount])
 
   if (isLoading) {
     return (

@@ -337,6 +337,7 @@ export default function RoadmapPage() {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
+          roadmap_id:        id,
           original_role:     roadmap._meta?.role ?? 'backend',
           original_period:   reroutePeriod,
           company_type:      roadmap._meta?.company_type ?? 'any',
