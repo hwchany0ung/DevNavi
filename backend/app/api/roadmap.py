@@ -57,6 +57,11 @@ from app.services.usage_service import check_and_increment
 
 router = APIRouter(prefix="/roadmap", tags=["roadmap"])
 
+_ALLOWED_JOB_ROLES: frozenset = frozenset({
+    "backend", "frontend", "cloud_devops", "fullstack",
+    "data", "ai_ml", "security", "ios_android", "qa",
+})
+
 SSE_HEADERS = {
     "Content-Type": "text/event-stream",
     "Cache-Control": "no-cache",
@@ -355,8 +360,6 @@ async def get_role_skills(request: Request, role: str | None = None):
     - role 미지정 시 전체 직군 반환
     - Supabase 미연동 또는 조회 결과 없을 경우 빈 리스트 반환 (프론트에서 fallback)
     """
-    from app.core.config import settings
-
     if not settings.supabase_ready:
         return {"skills": [], "certs": []}
 
@@ -368,11 +371,7 @@ async def get_role_skills(request: Request, role: str | None = None):
         }
         if role:
             # 허용된 직군 값만 전달 (주입 방지)
-            allowed_roles = {
-                "backend", "frontend", "cloud_devops", "fullstack",
-                "data", "ai_ml", "security", "ios_android", "qa",
-            }
-            if role not in allowed_roles:
+            if role not in _ALLOWED_JOB_ROLES:
                 raise HTTPException(
                     status_code=400,
                     detail={"message": f"유효하지 않은 직군입니다: {role}"},

@@ -16,7 +16,7 @@ create table if not exists role_skills (
 create index if not exists idx_role_skills_role_cat
   on role_skills(role, category, priority desc);
 
--- RLS 비활성화 (service role key로만 접근, 공개 읽기 허용)
+-- role_skills는 공개 레퍼런스 데이터로 anon 직접 접근 허용 (PII 없음). FastAPI 엔드포인트 경유 접근 권장.
 alter table role_skills disable row level security;
 
 -- 초기 시드 데이터 (2024-2025 채용공고 기반)
