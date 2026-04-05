@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
-// ── 직군별 추천 스킬 (2024-2025 채용공고 기반) ──────────────────────
+// ── 직군별 추천 스킬 — fallback (API 실패 시 사용) ──────────────────
 const ROLE_SKILLS = {
   // 국내 채용 1위: Java+Spring Boot, 스타트업: Python/Node.js
   backend:     ['Java', 'Spring Boot', 'Python', 'FastAPI', 'Node.js', 'JPA/Hibernate', 'MySQL', 'PostgreSQL', 'Redis', 'Docker', 'AWS EC2/S3', 'GitHub Actions'],
@@ -22,7 +22,7 @@ const ROLE_SKILLS = {
   qa:          ['Selenium', 'Playwright', 'Python', 'Java', 'Postman', 'JMeter/k6', 'Jira/TestRail', 'GitHub Actions', 'Appium', 'REST API 테스트'],
 }
 
-// ── 직군별 추천 자격증 (2024-2025 실전 우선순위) ─────────────────────
+// ── 직군별 추천 자격증 — fallback (API 실패 시 사용) ─────────────────
 const ROLE_CERTS = {
   // 정보처리기사(필수) > SQLD(권장) > AWS Cloud Practitioner(추천)
   backend:     ['정보처리기사', 'SQLD', 'AWS Cloud Practitioner', 'SQLP', '리눅스마스터 2급'],
@@ -59,6 +59,72 @@ const STUDY_HOURS = [
   { value: '3to4h',   label: '3~4시간' },
   { value: 'over5h',  label: '5시간 이상' },
 ]
+
+// ── API BASE URL (환경변수 우선, fallback /api) ───────────────────────
+const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || '/api'
+
+/**
+ * 직군별 추천 스킬·자격증을 API에서 가져오는 커스텀 훅.
+ * - 성공: { skills, certs }
+ * - 실패·빈 응답: 하드코딩 fallback 사용
+ * - role 변경 시 자동 재요청 (AbortController로 이전 요청 취소)
+ */
+function useRoleSkills(role) {
+  const [skills, setSkills] = useState(null)   // null = 로딩 중
+  const [certs,  setCerts]  = useState(null)
+  const abortRef = useRef(null)
+
+  useEffect(() => {
+    // 이전 요청 취소
+    if (abortRef.current) abortRef.current.abort()
+    const controller = new AbortController()
+    abortRef.current = controller
+
+    setSkills(null)
+    setCerts(null)
+
+    const fetchSkills = async () => {
+      try {
+        const res = await fetch(
+          `${API_BASE}/roadmap/role-skills?role=${encodeURIComponent(role)}`,
+          { signal: controller.signal },
+        )
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+        // API가 빈 배열을 반환하면 fallback 사용
+        const apiSkills = data.skills?.length > 0 ? data.skills : null
+        const apiCerts  = data.certs?.length  > 0 ? data.certs  : null
+        setSkills(apiSkills ?? (ROLE_SKILLS[role] ?? ROLE_SKILLS.backend))
+        setCerts (apiCerts  ?? (ROLE_CERTS[role]  ?? ROLE_CERTS.backend))
+      } catch (err) {
+        if (err.name === 'AbortError') return
+        // 실패 시 fallback
+        setSkills(ROLE_SKILLS[role] ?? ROLE_SKILLS.backend)
+        setCerts (ROLE_CERTS[role]  ?? ROLE_CERTS.backend)
+      }
+    }
+
+    fetchSkills()
+    return () => controller.abort()
+  }, [role])
+
+  return { skills, certs, isLoading: skills === null }
+}
+
+/** 스킬/자격증 추천 버튼 스켈레톤 */
+function TagSkeleton({ count = 8 }) {
+  return (
+    <div className="flex flex-wrap gap-2" aria-busy="true" aria-label="추천 항목 로딩 중">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          className="h-8 rounded-full bg-gray-100 dark:bg-white/10 animate-pulse"
+          style={{ width: `${60 + (i % 4) * 20}px` }}
+        />
+      ))}
+    </div>
+  )
+}
 
 const MAX_TAGS = 15  // FI-11: 스킬/자격증 최대 개수 제한
 const MAX_TAG_LENGTH = 50  // C3: 태그당 최대 길이 제한
@@ -230,8 +296,7 @@ export default function Step2Form({ values, onChange, role = 'backend' }) {
   const set = (key) => (val) => onChange({ ...values, [key]: val })
   const [showExtra, setShowExtra] = useState(false)
 
-  const suggestedSkills = ROLE_SKILLS[role] ?? ROLE_SKILLS.backend
-  const suggestedCerts  = ROLE_CERTS[role]  ?? ROLE_CERTS.backend
+  const { skills: suggestedSkills, certs: suggestedCerts, isLoading } = useRoleSkills(role)
 
   // skills: [{name, level}] 형태
   const skillNames = values.skills.map(s => typeof s === 'string' ? s : s.name)
@@ -286,15 +351,20 @@ export default function Step2Form({ values, onChange, role = 'backend' }) {
         <p className="text-xs text-gray-400 dark:text-white/60 mb-3">
           클릭으로 선택 후 <span className="text-indigo-500 dark:text-indigo-400 font-semibold">숙련도 뱃지</span>를 눌러 수준을 조절하세요
         </p>
-        <TagSelector
-          suggestions={suggestedSkills}
-          selected={values.skills}
-          onToggle={toggleSkill}
-          onAdd={addSkill}
-          placeholder="직접 입력 후 Enter"
-          showLevels={true}
-          onLevelChange={changeSkillLevel}
-        />
+        {isLoading
+          ? <TagSkeleton count={10} />
+          : (
+            <TagSelector
+              suggestions={suggestedSkills}
+              selected={values.skills}
+              onToggle={toggleSkill}
+              onAdd={addSkill}
+              placeholder="직접 입력 후 Enter"
+              showLevels={true}
+              onLevelChange={changeSkillLevel}
+            />
+          )
+        }
       </div>
 
       {/* Q5: 보유 자격증 */}
@@ -303,13 +373,18 @@ export default function Step2Form({ values, onChange, role = 'backend' }) {
           Q5 · 보유 자격증 <span className="text-gray-300 dark:text-white/50 font-normal">(선택)</span>
         </p>
         <p className="text-xs text-gray-400 dark:text-white/60 mb-3">해당 직군 관련 자격증을 선택하세요</p>
-        <TagSelector
-          suggestions={suggestedCerts}
-          selected={values.certifications}
-          onToggle={toggleCert}
-          onAdd={addCert}
-          placeholder="다른 자격증 직접 입력"
-        />
+        {isLoading
+          ? <TagSkeleton count={5} />
+          : (
+            <TagSelector
+              suggestions={suggestedCerts}
+              selected={values.certifications}
+              onToggle={toggleCert}
+              onAdd={addCert}
+              placeholder="다른 자격증 직접 입력"
+            />
+          )
+        }
       </div>
 
       {/* Q6: 목표 회사 유형 */}

@@ -347,6 +347,56 @@ async def reroute(
 
 # ─────────────────────────── 조회 ───────────────────────────────────
 
+@router.get("/role-skills")
+@limiter.limit("60/minute")
+async def get_role_skills(request: Request, role: str | None = None):
+    """직군별 추천 스킬·자격증 조회 (role_skills 테이블).
+
+    - role 미지정 시 전체 직군 반환
+    - Supabase 미연동 또는 조회 결과 없을 경우 빈 리스트 반환 (프론트에서 fallback)
+    """
+    from app.core.config import settings
+
+    if not settings.supabase_ready:
+        return {"skills": [], "certs": []}
+
+    try:
+        client = get_supabase_client()
+        params: dict = {
+            "select": "skill_name,category,priority",
+            "order": "priority.desc",
+        }
+        if role:
+            # 허용된 직군 값만 전달 (주입 방지)
+            allowed_roles = {
+                "backend", "frontend", "cloud_devops", "fullstack",
+                "data", "ai_ml", "security", "ios_android", "qa",
+            }
+            if role not in allowed_roles:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"message": f"유효하지 않은 직군입니다: {role}"},
+                )
+            params["role"] = f"eq.{role}"
+
+        resp = await client.get(
+            sb_url("role_skills"),
+            headers=sb_headers(),
+            params=params,
+        )
+        resp.raise_for_status()
+        rows = resp.json()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("role_skills 조회 실패 (빈 리스트 반환): %s", e)
+        return {"skills": [], "certs": []}
+
+    skills = [r["skill_name"] for r in rows if r.get("category") == "skill"]
+    certs  = [r["skill_name"] for r in rows if r.get("category") == "cert"]
+    return {"skills": skills, "certs": certs}
+
+
 @router.get("/my")
 @limiter.limit("30/minute")
 async def my_roadmaps(request: Request, user: dict = Depends(require_user)):
