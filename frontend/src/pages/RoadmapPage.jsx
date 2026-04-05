@@ -189,11 +189,12 @@ export default function RoadmapPage() {
     if (!userId) return
     fetchRemoteCompletions(id, getAuthHeaders())
       .then((remote) => {
-        // remote와 local 병합 (remote 우선)
+        // remote 우선: remote 데이터가 있으면 remote로 덮어씀 (기기 간 동기화)
+        // remote가 비어있으면(첫 로그인 등) local 유지 (offline fallback)
         setDoneSet((local) => {
-          const merged = new Set([...local, ...remote])
-          saveDoneLocal(id, merged)
-          return merged
+          const result = remote.size > 0 ? remote : local
+          saveDoneLocal(id, result)
+          return result
         })
       })
       .catch(() => {}) // 실패 시 로컬 유지
