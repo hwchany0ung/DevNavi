@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { request } from '../../lib/api'
 
 // ── 직군별 추천 스킬 — fallback (API 실패 시 사용) ──────────────────
 const ROLE_SKILLS = {
@@ -60,9 +61,6 @@ const STUDY_HOURS = [
   { value: 'over5h',  label: '5시간 이상' },
 ]
 
-// ── API BASE URL (환경변수 우선, fallback /api) ───────────────────────
-const API_BASE = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || '/api'
-
 /**
  * 직군별 추천 스킬·자격증을 API에서 가져오는 커스텀 훅.
  * - 성공: { skills, certs }
@@ -85,12 +83,10 @@ function useRoleSkills(role) {
 
     const fetchSkills = async () => {
       try {
-        const res = await fetch(
-          `${API_BASE}/roadmap/role-skills?role=${encodeURIComponent(role)}`,
+        const data = await request(
+          `/roadmap/role-skills?role=${encodeURIComponent(role)}`,
           { signal: controller.signal },
         )
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        const data = await res.json()
         // API가 빈 배열을 반환하면 fallback 사용
         const apiSkills = data.skills?.length > 0 ? data.skills : null
         const apiCerts  = data.certs?.length  > 0 ? data.certs  : null
