@@ -16,7 +16,7 @@ vi.mock('../../hooks/useAuth', () => ({
     user: { id: 'user-1', email: 'test@test.com' },
     loading: false,
     signOut: vi.fn(),
-    getAuthHeaders: vi.fn().mockResolvedValue({ Authorization: 'Bearer mock' }),
+    getAuthHeaders: vi.fn().mockReturnValue({ Authorization: 'Bearer mock' }),
   }),
 }))
 
