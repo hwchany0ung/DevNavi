@@ -122,3 +122,4 @@ supabase/test-schema.sql
 # 기타
 # ──────────────────────────────────────────────
 .github_token
+.worktrees/
