@@ -430,7 +430,8 @@ async def get_shared_roadmap(request: Request, token: str = Path(pattern=_UUID_P
 
 
 @router.get("/{roadmap_id}")
-async def get(roadmap_id: str = Path(pattern=_UUID_PATTERN), user: dict = Depends(require_user)):
+@limiter.limit("30/minute")
+async def get(request: Request, roadmap_id: str = Path(pattern=_UUID_PATTERN), user: dict = Depends(require_user)):
     """저장된 로드맵 조회 (인증 필수, 본인 소유 검증)."""
     data = await get_roadmap(roadmap_id, user_id=user["id"])
     if not data:
@@ -441,7 +442,9 @@ async def get(roadmap_id: str = Path(pattern=_UUID_PATTERN), user: dict = Depend
 # ─────────────────────────── 태스크 완료 ────────────────────────────
 
 @router.post("/{roadmap_id}/completions")
+@limiter.limit("60/minute")
 async def toggle_completion(
+    request: Request,
     roadmap_id: str = Path(pattern=_UUID_PATTERN),
     body: CompletionToggleRequest = ...,
     user: dict = Depends(require_user),

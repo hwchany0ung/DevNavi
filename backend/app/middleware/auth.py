@@ -116,7 +116,8 @@ def _verify_token_sync(token: str) -> dict:
             logger.warning("JWKS 검증 실패, HS256 폴백 시도: %s", e)
 
     # 2. Legacy HS256 Secret 폴백 (JWKS 네트워크 장애 시에만 도달)
-    if settings.SUPABASE_JWT_SECRET:
+    # MED-01: ALLOW_HS256_FALLBACK 환경변수로 명시적 opt-in 필요
+    if settings.SUPABASE_JWT_SECRET and settings.ALLOW_HS256_FALLBACK:
         try:
             payload = jwt.decode(
                 token,
@@ -130,6 +131,9 @@ def _verify_token_sync(token: str) -> dict:
                     status.HTTP_401_UNAUTHORIZED,
                     "유효하지 않은 토큰입니다. (sub 누락)",
                 )
+            logger.warning(
+                "Security event: HS256 fallback used for user %s", sub,
+            )
             return {
                 "id":    sub,
                 "email": payload.get("email", ""),
@@ -144,6 +148,10 @@ def _verify_token_sync(token: str) -> dict:
                 status.HTTP_401_UNAUTHORIZED,
                 "유효하지 않은 토큰입니다.",
             )
+    elif settings.SUPABASE_JWT_SECRET and not settings.ALLOW_HS256_FALLBACK:
+        logger.debug(
+            "HS256 fallback available but disabled (ALLOW_HS256_FALLBACK=False)",
+        )
 
     raise _AuthError(
         status.HTTP_503_SERVICE_UNAVAILABLE,

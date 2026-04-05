@@ -93,6 +93,11 @@ class Settings(BaseSettings):
     # ── 무료 사용자 일일 생성 한도 ───────────────────────────────
     FREE_DAILY_LIMIT: int = 3
 
+    # ── HS256 JWT 폴백 허용 (보안 위험 — 명시적 opt-in 필요) ──
+    # JWKS(ES256/RS256) 검증 실패 시 HS256 Secret 폴백을 허용할지 여부
+    # 프로덕션에서는 False 유지 권장
+    ALLOW_HS256_FALLBACK: bool = False
+
     # ── 개발/테스트 계정 일일 한도 제외 (쉼표 구분 UUID 문자열) ──
     # 예: DEV_BYPASS_USERS=uuid1,uuid2
     DEV_BYPASS_USERS: str = ""
