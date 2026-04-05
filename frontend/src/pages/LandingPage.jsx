@@ -73,52 +73,53 @@ export default function LandingPage() {
       }}
     >
       {/* ────────── NAV ────────── */}
-      <nav className={`px-6 py-5 flex items-center justify-between max-w-6xl mx-auto
-        ${t('', 'border-b border-slate-200/60 bg-white/80 backdrop-blur sticky top-0 z-40')}`}>
-        <span className="text-xl font-black tracking-tight">
-          Dev<span className="text-indigo-500">Navi</span>
-        </span>
-        <div className="flex items-center gap-5">
-          <a href="#how"   className={`text-sm transition-colors hidden sm:block ${t('text-white/40 hover:text-white/70', 'text-slate-500 hover:text-slate-800')}`}>기능 소개</a>
-          <a href="#proof" className={`text-sm transition-colors hidden sm:block ${t('text-white/40 hover:text-white/70', 'text-slate-500 hover:text-slate-800')}`}>이용 후기</a>
-          <ThemeToggle />
-          {user ? (
-            <div className="flex items-center gap-3">
-              <button
-                onClick={goToMyRoadmap}
-                className="text-sm px-4 py-2 rounded-xl font-bold text-white
-                  bg-gradient-to-r from-indigo-500 to-cyan-500 hover:opacity-90 transition-opacity active:scale-95">
-                내 로드맵
-              </button>
-              {isAdmin && (
+      <div className={`sticky top-0 z-40 ${t('', 'bg-white/80 backdrop-blur border-b border-slate-200/60')}`}>
+        <nav className="px-6 py-5 flex items-center justify-between max-w-7xl mx-auto">
+          <span className="text-xl font-black tracking-tight">
+            Dev<span className="text-indigo-500">Navi</span>
+          </span>
+          <div className="flex items-center gap-5">
+            <a href="#how"   className={`text-sm transition-colors hidden sm:block ${t('text-white/40 hover:text-white/70', 'text-slate-500 hover:text-slate-800')}`}>기능 소개</a>
+            <a href="#proof" className={`text-sm transition-colors hidden sm:block ${t('text-white/40 hover:text-white/70', 'text-slate-500 hover:text-slate-800')}`}>이용 후기</a>
+            <ThemeToggle />
+            {user ? (
+              <div className="flex items-center gap-3">
                 <button
-                  onClick={() => navigate('/admin')}
-                  className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-all
-                    ${t('bg-red-500/15 border border-red-500/30 text-red-400',
-                        'bg-red-50 border border-red-200 text-red-600')}`}>
-                  관리자
+                  onClick={goToMyRoadmap}
+                  className="text-sm px-4 py-2 rounded-xl font-bold text-white
+                    bg-gradient-to-r from-indigo-500 to-cyan-500 hover:opacity-90 transition-opacity active:scale-95">
+                  내 로드맵
                 </button>
-              )}
+                {isAdmin && (
+                  <button
+                    onClick={() => navigate('/admin')}
+                    className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-all
+                      ${t('bg-red-500/15 border border-red-500/30 text-red-400',
+                          'bg-red-50 border border-red-200 text-red-600')}`}>
+                    관리자
+                  </button>
+                )}
+                <button
+                  onClick={signOut}
+                  className={`text-sm transition-colors ${t('text-white/40 hover:text-white/70', 'text-slate-500 hover:text-slate-800')}`}>
+                  로그아웃
+                </button>
+              </div>
+            ) : (
               <button
-                onClick={signOut}
-                className={`text-sm transition-colors ${t('text-white/40 hover:text-white/70', 'text-slate-500 hover:text-slate-800')}`}>
-                로그아웃
+                onClick={() => setAuthOpen(true)}
+                className={`text-sm px-4 py-2 rounded-xl transition-all border
+                  ${t('text-white/70 border-white/20 hover:border-white/30',
+                      'text-slate-600 border-slate-200 hover:border-slate-300 bg-white')}`}>
+                로그인
               </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setAuthOpen(true)}
-              className={`text-sm px-4 py-2 rounded-xl transition-all border
-                ${t('text-white/70 border-white/20 hover:border-white/30',
-                    'text-slate-600 border-slate-200 hover:border-slate-300 bg-white')}`}>
-              로그인
-            </button>
-          )}
-        </div>
-      </nav>
+            )}
+          </div>
+        </nav>
+      </div>
 
       {/* ────────── HERO ────────── */}
-      <section className="px-6 py-16 max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-14 lg:gap-20">
+      <section className="px-6 py-16 max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-14 lg:gap-20">
         <div className="flex-1 max-w-xl">
           <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full
             bg-indigo-500/10 border border-indigo-500/20 text-indigo-500`}>
@@ -176,13 +177,13 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 hidden sm:block">
           <HeroPreview isDark={isDark} />
         </div>
       </section>
 
       {/* ────────── PROBLEM ────────── */}
-      <section id="problem" className={`px-6 py-20 max-w-6xl mx-auto border-t ${t('border-white/[0.06]', 'border-slate-200')}`}>
+      <section id="problem" className={`px-6 py-20 max-w-7xl mx-auto border-t ${t('border-white/[0.06]', 'border-slate-200')}`}>
         <div className="text-center mb-14">
           <p className={`text-xs font-bold tracking-widest uppercase mb-3 ${t('text-indigo-400', 'text-indigo-500')}`}>
             이런 적 있으셨나요?
@@ -234,7 +235,7 @@ export default function LandingPage() {
       </section>
 
       {/* ────────── HOW IT WORKS ────────── */}
-      <section id="how" className={`px-6 py-20 max-w-6xl mx-auto border-t ${t('border-white/[0.06]', 'border-slate-200')}`}>
+      <section id="how" className={`px-6 py-20 max-w-7xl mx-auto border-t ${t('border-white/[0.06]', 'border-slate-200')}`}>
         <div className="text-center mb-14">
           <p className={`text-xs font-bold tracking-widest uppercase mb-3 ${t('text-indigo-400', 'text-indigo-500')}`}>
             DevNavi가 하는 일
@@ -296,7 +297,7 @@ export default function LandingPage() {
       </section>
 
       {/* ────────── SOCIAL PROOF ────────── */}
-      <section id="proof" className={`px-6 py-20 max-w-6xl mx-auto border-t ${t('border-white/[0.06]', 'border-slate-200')}`}>
+      <section id="proof" className={`px-6 py-20 max-w-7xl mx-auto border-t ${t('border-white/[0.06]', 'border-slate-200')}`}>
         <div className="text-center mb-14">
           <p className={`text-xs font-bold tracking-widest uppercase mb-3 ${t('text-indigo-400', 'text-indigo-500')}`}>
             실제 사용 후기
