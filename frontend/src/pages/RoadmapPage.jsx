@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import Footer from '../components/common/Footer'
+import CompletionToast from '../components/common/CompletionToast'
 import PersonaCard         from '../components/roadmap/PersonaCard'
 import MonthTimeline       from '../components/roadmap/MonthTimeline'
 import WeekAccordion       from '../components/roadmap/WeekAccordion'
 import RerouteButton       from '../components/roadmap/RerouteButton'
 import GrassCalendar       from '../components/roadmap/GrassCalendar'
+import WeeklyProgressBar  from '../components/roadmap/WeeklyProgressBar'
 import RoadmapHeader       from '../components/roadmap/RoadmapHeader'
 import RerouteModal        from '../components/roadmap/RerouteModal'
 import CareerSummaryModal  from '../components/roadmap/CareerSummaryModal'
+import EmptyRoadmapState   from '../components/roadmap/EmptyRoadmapState'
 import AuthModal           from '../components/auth/AuthModal'
 import QAPanel            from '../components/qa/QAPanel'
 import { loadRoadmapLocal, saveRoadmapLocal } from '../hooks/useRoadmapStream'
@@ -83,6 +86,15 @@ export default function RoadmapPage() {
   const [qaOpen,        setQaOpen]       = useState(false)
   const [qaTaskContext, setQaTaskContext] = useState(null)
   const [qaSessionSet,  setQaSessionSet] = useState(() => new Set())
+  const [toastMsg,      setToastMsg]     = useState(null)
+  const toastTimerRef                    = useRef(null)
+  const nextDoneRef                      = useRef(false)
+  useEffect(() => {
+    return () => { clearTimeout(toastTimerRef.current) }
+  }, [])
+  // doneSet을 ref로 미러링 — handleToggle deps에 doneSet 추가 없이 최신값 참조 (렌더마다 동기 갱신)
+  const doneSetRef                       = useRef(doneSet)
+  doneSetRef.current                     = doneSet
 
   useEffect(() => {
     document.title = '나의 로드맵 — DevNavi'
@@ -186,16 +198,20 @@ export default function RoadmapPage() {
   // ── 로그인 시 Supabase completions 동기화 ───────────────────────
   useEffect(() => {
     if (!userId) return
+    let cancelled = false
     fetchRemoteCompletions(id, getAuthHeaders())
       .then((remote) => {
-        // remote와 local 병합 (remote 우선)
+        if (cancelled) return
+        // remote 우선: remote 데이터가 있으면 remote로 덮어씀 (기기 간 동기화)
+        // remote가 비어있으면(첫 로그인 등) local 유지 (offline fallback)
         setDoneSet((local) => {
-          const merged = new Set([...local, ...remote])
-          saveDoneLocal(id, merged)
-          return merged
+          const result = remote.size > 0 ? remote : local
+          saveDoneLocal(id, result)
+          return result
         })
       })
       .catch(() => {}) // 실패 시 로컬 유지
+    return () => { cancelled = true }
   }, [id, userId, getAuthHeaders])
 
   // ── 로그인 시 잔디 활동 로드 ─────────────────────────────────────
@@ -208,23 +224,59 @@ export default function RoadmapPage() {
   // React concurrent mode 안전: doneSet이 단일 소스 (updater 내부 상태)
   // nowDone은 updater 내에서만 계산되고, deferred 실행 안정성 보장
   const handleToggle = useCallback((taskId) => {
+    // doneSetRef.current는 렌더마다 동기 갱신되므로 updater 실행 전에도 최신값 보장.
+    // nextDoneRef는 여기서만 한 번 쓰고, updater 내부에서는 쓰지 않음
+    // (updater는 deferred 실행될 수 있어 line 244보다 늦게 실행될 수 있음)
+    nextDoneRef.current = !doneSetRef.current.has(taskId)
+
     setDoneSet((prev) => {
       const next = new Set(prev)
-      const nowDone = !next.has(taskId)
-      if (nowDone) next.add(taskId)
+      const willBeDone = !prev.has(taskId)
+      if (willBeDone) next.add(taskId)
       else next.delete(taskId)
       saveDoneLocal(id, next)
       // 로그인 시 Supabase에도 동기화
       if (userId) {
-        toggleRemote(id, taskId, nowDone, getAuthHeaders()).catch(() => {})
+        toggleRemote(id, taskId, willBeDone, getAuthHeaders()).catch(() => {})
       }
       return next
     })
+
+    // 완료 토스트: doneSetRef 기준 단일 소스 (pre-set 값)
+    const nowDone = nextDoneRef.current
+    if (nowDone && roadmap) {
+      // taskId 형식: "{month}-{week}-{taskIndex}"
+      const [monthStr, weekStr] = taskId.split('-')
+      const monthNum = Number(monthStr)
+      const weekNum  = Number(weekStr)
+
+      // 이번 주 모든 태스크 ID 계산
+      const monthData = roadmap.months.find((m) => m.month === monthNum)
+      const weekData  = monthData?.weeks.find((w) => w.week === weekNum)
+      const weekTaskIds = weekData
+        ? weekData.tasks.map((_, ti) => `${monthNum}-${weekNum}-${ti}`)
+        : []
+
+      // 주간 내 모든 태스크가 완료되었는지 확인
+      // (doneSetRef.current는 업데이트 전이므로 taskId를 직접 추가해 계산)
+      const nextDoneSet = new Set(doneSetRef.current)
+      nextDoneSet.add(taskId)
+      const isWeekDone = weekTaskIds.length > 0 && weekTaskIds.every((tid) => nextDoneSet.has(tid))
+
+      const msg = isWeekDone
+        ? '이번 주 완료! 다음 주도 화이팅!'
+        : '완료! 꾸준히 하면 반드시 됩니다.'
+
+      clearTimeout(toastTimerRef.current)
+      setToastMsg(msg)
+      toastTimerRef.current = setTimeout(() => setToastMsg(null), 2000)
+    }
+
     // Plan SC: SC-02 — Q&A 사용 이력이 있는 태스크만 task_checked 이벤트 발송
     if (qaSessionSet.has(taskId)) {
       logEvent('task_checked', taskId)
     }
-  }, [id, userId, getAuthHeaders, logEvent, qaSessionSet])
+  }, [id, userId, getAuthHeaders, logEvent, qaSessionSet, roadmap])
 
   const handleQAOpen = useCallback((taskId, context) => {
     setQaTaskContext({ taskId, ...context })
@@ -350,16 +402,23 @@ export default function RoadmapPage() {
     )
   }
 
-  if (error || !roadmap) {
+  // 빈 상태: 로드맵이 없고 에러가 없거나 404 에러인 경우 (신규 사용자)
+  const isEmptyState = !roadmap && (!error || error.includes('찾을 수 없') || error.includes('404'))
+
+  if (isEmptyState) {
+    return <EmptyRoadmapState user={user} />
+  }
+
+  if (error) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center px-5">
         <div className="text-center space-y-4">
-          <p className="text-5xl">🗺️</p>
-          <p className="text-gray-700 dark:text-white font-semibold">로드맵을 찾을 수 없어요</p>
-          <p className="text-gray-400 dark:text-white/40 text-sm">{error}</p>
-          <button onClick={() => navigate('/onboarding')}
+          <p className="text-5xl">⚠️</p>
+          <p className="text-gray-700 dark:text-white font-semibold">로드맵을 불러오지 못했어요</p>
+          <p className="text-sm text-gray-400 dark:text-white/40">잠시 후 다시 시도해 주세요.</p>
+          <button onClick={() => window.location.reload()}
             className="px-6 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-colors">
-            새 로드맵 만들기
+            다시 시도
           </button>
         </div>
       </div>
@@ -377,6 +436,8 @@ export default function RoadmapPage() {
         onAuthOpen={() => setAuthOpen(true)}
         onSidebarToggle={() => setSidebarOpen((v) => !v)}
         signOut={signOut}
+        roadmapId={id}
+        getAuthHeaders={getAuthHeaders}
       />
 
       {/* 자동 저장 실패 알림 */}
@@ -421,6 +482,15 @@ export default function RoadmapPage() {
                 activeMonth={activeMonth}
                 doneSet={doneSet}
                 totalDone={completedCount}
+              />
+            )}
+
+            {/* 주간 진도율 — 로그인 + showGrass 시 */}
+            {user && showGrass && (
+              <WeeklyProgressBar
+                months={roadmap.months}
+                activeMonth={activeMonth}
+                doneSet={doneSet}
               />
             )}
 
@@ -561,6 +631,9 @@ export default function RoadmapPage() {
         summary={careerSummary}
         onClose={() => setShowSummary(false)}
       />
+
+      {/* 태스크 완료 피드백 토스트 */}
+      <CompletionToast message={toastMsg ?? ''} visible={toastMsg !== null} />
 
       {/* AI 면책 고지 + 푸터 */}
       <div className="mt-auto">

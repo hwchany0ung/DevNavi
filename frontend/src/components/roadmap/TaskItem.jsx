@@ -24,8 +24,8 @@ export default function TaskItem({ task, taskId, done, onToggle, onQAOpen, taskC
         aria-checked={done}
         aria-label={task.content}
         tabIndex={0}
-        onClick={() => onToggle(taskId)}
-        onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onToggle(taskId) } }}
+        onClick={() => onToggle && onToggle(taskId)}
+        onKeyDown={(e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onToggle && onToggle(taskId) } }}
         className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 cursor-pointer
           transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500
           ${done

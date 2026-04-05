@@ -615,7 +615,11 @@ export default function OnboardingPage() {
                 {summaryError?.status === 429 ? (
                   <>
                     <p className="text-orange-600 dark:text-orange-400 font-semibold text-sm">일일 사용 한도에 도달했어요</p>
-                    <p className="text-orange-400 dark:text-orange-400/70 text-xs">잠시 후 다시 시도해주세요. 내일 한도가 초기화됩니다.</p>
+                    <p className="text-orange-400 dark:text-orange-400/70 text-xs">
+                      {summaryError?.data?.reset_at
+                        ? '내일 오전 9시에 초기화됩니다.'
+                        : '잠시 후 다시 시도해주세요. 내일 한도가 초기화됩니다.'}
+                    </p>
                   </>
                 ) : (
                   <>

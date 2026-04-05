@@ -103,7 +103,7 @@ WeekAccordion.propTypes = {
   }).isRequired,
   monthIdx: PropTypes.number.isRequired,
   doneSet:  PropTypes.instanceOf(Set).isRequired,
-  onToggle: PropTypes.func.isRequired,
+  onToggle: PropTypes.func,
   onQAOpen: PropTypes.func,
   jobType:  PropTypes.string,
 }

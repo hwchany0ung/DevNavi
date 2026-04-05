@@ -63,7 +63,7 @@ async def _qa_stream(body: QARequest, user_id: str):
         return
 
     # Layer 5: Haiku 스트리밍 (max_tokens=120) + 팔로업 질문 생성
-    async for chunk in stream_qa_response(body, user_id):
+    async for chunk in stream_qa_response(body, user_id, roadmap_id=body.roadmap_id):
         yield chunk
 
 
@@ -82,6 +82,39 @@ async def ask_qa(
     - 200 + SSE: 정상 스트리밍 (소유권/사용량 초과는 SSE error event로 전달)
     """
     return StreamingResponse(_qa_stream(body, user["id"]), headers=SSE_HEADERS)
+
+
+@router.get("/qa/history")
+@limiter.limit("30/minute")
+async def get_qa_history(
+    request: Request,
+    roadmap_id: str | None = None,
+    task_id: str | None = None,
+    limit: int = 20,
+    user: dict = Depends(require_user),
+):
+    """Q&A 이력 조회 (최신순). roadmap_id 또는 task_id로 필터 가능."""
+    from app.core.supabase_client import get_supabase_client, sb_headers, sb_url
+    from app.core.config import settings
+    if not settings.supabase_ready:
+        return {"history": []}
+
+    client = get_supabase_client()
+    params = {
+        "user_id": f"eq.{user['id']}",
+        "select": "id,task_id,roadmap_id,question,answer,created_at",
+        "order": "created_at.desc",
+        "limit": str(min(limit, 50)),
+    }
+    if roadmap_id:
+        params["roadmap_id"] = f"eq.{roadmap_id}"
+    if task_id:
+        params["task_id"] = f"eq.{task_id}"
+
+    resp = await client.get(sb_url("qa_history"), headers=sb_headers(), params=params)
+    if resp.status_code != 200:
+        return {"history": []}
+    return {"history": resp.json()}
 
 
 @router.post("/qa/feedback")

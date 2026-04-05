@@ -15,6 +15,7 @@
 import json
 import re
 import logging
+import uuid
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request
@@ -51,11 +52,18 @@ from app.services.roadmap_service import (
     list_activity,
     list_user_roadmaps,
     get_completion_rate,
+    set_share_token,
+    get_roadmap_by_share_token,
 )
 from app.middleware.auth import require_user, optional_user
 from app.services.usage_service import check_and_increment
 
 router = APIRouter(prefix="/roadmap", tags=["roadmap"])
+
+_ALLOWED_JOB_ROLES: frozenset = frozenset({
+    "backend", "frontend", "cloud_devops", "fullstack",
+    "data", "ai_ml", "security", "ios_android", "qa",
+})
 
 SSE_HEADERS = {
     "Content-Type": "text/event-stream",
@@ -347,6 +355,50 @@ async def reroute(
 
 # ─────────────────────────── 조회 ───────────────────────────────────
 
+@router.get("/role-skills")
+@limiter.limit("60/minute")
+async def get_role_skills(request: Request, role: str | None = None):
+    """직군별 추천 스킬·자격증 조회 (role_skills 테이블).
+
+    - role 미지정 시 전체 직군 반환
+    - Supabase 미연동 또는 조회 결과 없을 경우 빈 리스트 반환 (프론트에서 fallback)
+    """
+    if not settings.supabase_ready:
+        return {"skills": [], "certs": []}
+
+    try:
+        client = get_supabase_client()
+        params: dict = {
+            "select": "skill_name,category,priority",
+            "order": "priority.desc",
+        }
+        if role:
+            # 허용된 직군 값만 전달 (주입 방지)
+            if role not in _ALLOWED_JOB_ROLES:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"message": f"유효하지 않은 직군입니다: {role}"},
+                )
+            params["role"] = f"eq.{role}"
+
+        resp = await client.get(
+            sb_url("role_skills"),
+            headers=sb_headers(),
+            params=params,
+        )
+        resp.raise_for_status()
+        rows = resp.json()
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.warning("role_skills 조회 실패 (빈 리스트 반환): %s", e)
+        return {"skills": [], "certs": []}
+
+    skills = [r["skill_name"] for r in rows if r.get("category") == "skill"]
+    certs  = [r["skill_name"] for r in rows if r.get("category") == "cert"]
+    return {"skills": skills, "certs": certs}
+
+
 @router.get("/my")
 @limiter.limit("30/minute")
 async def my_roadmaps(request: Request, user: dict = Depends(require_user)):
@@ -361,6 +413,20 @@ async def get_activity(request: Request, user: dict = Depends(require_user)):
     """잔디 달력용 최근 365일 날짜별 완료 수."""
     data = await list_activity(user["id"])
     return {"activity": data}
+
+
+@router.get("/shared/{token}")
+@limiter.limit("60/minute")
+async def get_shared_roadmap(request: Request, token: str = Path(pattern=_UUID_PATTERN)):
+    """공유 토큰으로 로드맵 공개 조회 (인증 불필요).
+
+    share_token이 설정된 로드맵의 data 필드(메타데이터)만 반환.
+    user_id 등 민감정보는 제외.
+    """
+    data = await get_roadmap_by_share_token(token)
+    if not data:
+        raise HTTPException(status_code=404, detail={"message": "공유 링크를 찾을 수 없습니다."})
+    return data
 
 
 @router.get("/{roadmap_id}")
@@ -401,3 +467,37 @@ async def get_completions(
         raise HTTPException(status_code=404, detail={"message": "로드맵을 찾을 수 없습니다."})
     task_ids = await list_completions(user["id"], roadmap_id)
     return {"task_ids": task_ids}
+
+
+# ─────────────────────────── 공유 링크 ──────────────────────────────
+
+@router.post("/{roadmap_id}/share")
+@limiter.limit("10/minute")
+async def create_share(
+    roadmap_id: str = Path(pattern=_UUID_PATTERN),
+    request: Request = ...,
+    user: dict = Depends(require_user),
+):
+    """공유 토큰 생성 (본인 소유 검증 필수).
+
+    이미 공유 토큰이 있어도 새 UUID를 생성해 덮어씀 (링크 교체).
+    """
+    token = str(uuid.uuid4())
+    ok = await set_share_token(roadmap_id, user["id"], token)
+    if not ok:
+        raise HTTPException(status_code=404, detail={"message": "로드맵을 찾을 수 없습니다."})
+    return {"share_token": token}
+
+
+@router.delete("/{roadmap_id}/share")
+@limiter.limit("10/minute")
+async def delete_share(
+    roadmap_id: str = Path(pattern=_UUID_PATTERN),
+    request: Request = ...,
+    user: dict = Depends(require_user),
+):
+    """공유 토큰 삭제 (share_token → NULL, 본인 소유 검증 필수)."""
+    ok = await set_share_token(roadmap_id, user["id"], None)
+    if not ok:
+        raise HTTPException(status_code=404, detail={"message": "로드맵을 찾을 수 없습니다."})
+    return {"ok": True}
