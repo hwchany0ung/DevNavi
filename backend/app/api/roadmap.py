@@ -51,6 +51,8 @@ from app.services.roadmap_service import (
     list_activity,
     list_user_roadmaps,
     get_completion_rate,
+    set_share_token,
+    get_roadmap_by_share_token,
 )
 from app.middleware.auth import require_user, optional_user
 from app.services.usage_service import check_and_increment
@@ -412,6 +414,20 @@ async def get_activity(request: Request, user: dict = Depends(require_user)):
     return {"activity": data}
 
 
+@router.get("/shared/{token}")
+@limiter.limit("60/minute")
+async def get_shared_roadmap(request: Request, token: str = Path(pattern=_UUID_PATTERN)):
+    """공유 토큰으로 로드맵 공개 조회 (인증 불필요).
+
+    share_token이 설정된 로드맵의 data 필드(메타데이터)만 반환.
+    user_id 등 민감정보는 제외.
+    """
+    data = await get_roadmap_by_share_token(token)
+    if not data:
+        raise HTTPException(status_code=404, detail={"message": "공유 링크를 찾을 수 없습니다."})
+    return data
+
+
 @router.get("/{roadmap_id}")
 async def get(roadmap_id: str = Path(pattern=_UUID_PATTERN), user: dict = Depends(require_user)):
     """저장된 로드맵 조회 (인증 필수, 본인 소유 검증)."""
@@ -450,3 +466,34 @@ async def get_completions(
         raise HTTPException(status_code=404, detail={"message": "로드맵을 찾을 수 없습니다."})
     task_ids = await list_completions(user["id"], roadmap_id)
     return {"task_ids": task_ids}
+
+
+# ─────────────────────────── 공유 링크 ──────────────────────────────
+
+@router.post("/{roadmap_id}/share")
+async def create_share(
+    roadmap_id: str = Path(pattern=_UUID_PATTERN),
+    user: dict = Depends(require_user),
+):
+    """공유 토큰 생성 (본인 소유 검증 필수).
+
+    이미 공유 토큰이 있어도 새 UUID를 생성해 덮어씀 (링크 교체).
+    """
+    import uuid as _uuid
+    token = str(_uuid.uuid4())
+    ok = await set_share_token(roadmap_id, user["id"], token)
+    if not ok:
+        raise HTTPException(status_code=404, detail={"message": "로드맵을 찾을 수 없습니다."})
+    return {"share_token": token}
+
+
+@router.delete("/{roadmap_id}/share")
+async def delete_share(
+    roadmap_id: str = Path(pattern=_UUID_PATTERN),
+    user: dict = Depends(require_user),
+):
+    """공유 토큰 삭제 (share_token → NULL, 본인 소유 검증 필수)."""
+    ok = await set_share_token(roadmap_id, user["id"], None)
+    if not ok:
+        raise HTTPException(status_code=404, detail={"message": "로드맵을 찾을 수 없습니다."})
+    return {"ok": True}
