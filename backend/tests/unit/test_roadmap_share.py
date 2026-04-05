@@ -42,10 +42,16 @@ class TestCreateShare:
             return True
 
         with patch("app.api.roadmap.set_share_token", side_effect=fake_set):
-            result = await create_share(
-                roadmap_id="00000000-0000-0000-0000-000000000001",
-                user={"id": "user-1"},
-            )
+            from app.core.limiter import limiter
+            limiter.enabled = False
+            try:
+                result = await create_share(
+                    roadmap_id="00000000-0000-0000-0000-000000000001",
+                    request=_mock_request(),
+                    user={"id": "user-1"},
+                )
+            finally:
+                limiter.enabled = True
 
         assert "share_token" in result
         assert result["share_token"] == generated_token
@@ -58,11 +64,17 @@ class TestCreateShare:
         from app.api.roadmap import create_share
 
         with patch("app.api.roadmap.set_share_token", new=AsyncMock(return_value=False)):
-            with pytest.raises(HTTPException) as exc_info:
-                await create_share(
-                    roadmap_id="00000000-0000-0000-0000-000000000001",
-                    user={"id": "user-1"},
-                )
+            from app.core.limiter import limiter
+            limiter.enabled = False
+            try:
+                with pytest.raises(HTTPException) as exc_info:
+                    await create_share(
+                        roadmap_id="00000000-0000-0000-0000-000000000001",
+                        request=_mock_request(),
+                        user={"id": "user-1"},
+                    )
+            finally:
+                limiter.enabled = True
 
         assert exc_info.value.status_code == 404
 
@@ -78,14 +90,21 @@ class TestCreateShare:
             return True
 
         with patch("app.api.roadmap.set_share_token", side_effect=fake_set):
-            r1 = await create_share(
-                roadmap_id="00000000-0000-0000-0000-000000000001",
-                user={"id": "user-1"},
-            )
-            r2 = await create_share(
-                roadmap_id="00000000-0000-0000-0000-000000000001",
-                user={"id": "user-1"},
-            )
+            from app.core.limiter import limiter
+            limiter.enabled = False
+            try:
+                r1 = await create_share(
+                    roadmap_id="00000000-0000-0000-0000-000000000001",
+                    request=_mock_request(),
+                    user={"id": "user-1"},
+                )
+                r2 = await create_share(
+                    roadmap_id="00000000-0000-0000-0000-000000000001",
+                    request=_mock_request(),
+                    user={"id": "user-1"},
+                )
+            finally:
+                limiter.enabled = True
 
         assert r1["share_token"] != r2["share_token"]
 
@@ -107,10 +126,16 @@ class TestDeleteShare:
             return True
 
         with patch("app.api.roadmap.set_share_token", side_effect=fake_set):
-            result = await delete_share(
-                roadmap_id="00000000-0000-0000-0000-000000000001",
-                user={"id": "user-1"},
-            )
+            from app.core.limiter import limiter
+            limiter.enabled = False
+            try:
+                result = await delete_share(
+                    roadmap_id="00000000-0000-0000-0000-000000000001",
+                    request=_mock_request(),
+                    user={"id": "user-1"},
+                )
+            finally:
+                limiter.enabled = True
 
         assert result == {"ok": True}
         assert captured["token"] is None  # share_token을 NULL로 설정
@@ -121,11 +146,17 @@ class TestDeleteShare:
         from app.api.roadmap import delete_share
 
         with patch("app.api.roadmap.set_share_token", new=AsyncMock(return_value=False)):
-            with pytest.raises(HTTPException) as exc_info:
-                await delete_share(
-                    roadmap_id="00000000-0000-0000-0000-000000000001",
-                    user={"id": "user-1"},
-                )
+            from app.core.limiter import limiter
+            limiter.enabled = False
+            try:
+                with pytest.raises(HTTPException) as exc_info:
+                    await delete_share(
+                        roadmap_id="00000000-0000-0000-0000-000000000001",
+                        request=_mock_request(),
+                        user={"id": "user-1"},
+                    )
+            finally:
+                limiter.enabled = True
 
         assert exc_info.value.status_code == 404
 

@@ -15,6 +15,7 @@
 import json
 import re
 import logging
+import uuid
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Request
@@ -471,16 +472,17 @@ async def get_completions(
 # ─────────────────────────── 공유 링크 ──────────────────────────────
 
 @router.post("/{roadmap_id}/share")
+@limiter.limit("10/minute")
 async def create_share(
     roadmap_id: str = Path(pattern=_UUID_PATTERN),
+    request: Request = ...,
     user: dict = Depends(require_user),
 ):
     """공유 토큰 생성 (본인 소유 검증 필수).
 
     이미 공유 토큰이 있어도 새 UUID를 생성해 덮어씀 (링크 교체).
     """
-    import uuid as _uuid
-    token = str(_uuid.uuid4())
+    token = str(uuid.uuid4())
     ok = await set_share_token(roadmap_id, user["id"], token)
     if not ok:
         raise HTTPException(status_code=404, detail={"message": "로드맵을 찾을 수 없습니다."})
@@ -488,8 +490,10 @@ async def create_share(
 
 
 @router.delete("/{roadmap_id}/share")
+@limiter.limit("10/minute")
 async def delete_share(
     roadmap_id: str = Path(pattern=_UUID_PATTERN),
+    request: Request = ...,
     user: dict = Depends(require_user),
 ):
     """공유 토큰 삭제 (share_token → NULL, 본인 소유 검증 필수)."""
