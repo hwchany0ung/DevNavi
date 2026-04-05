@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useParams, useNavigate, Navigate } from 'react-router-dom'
 import Footer from '../components/common/Footer'
+import CompletionToast from '../components/common/CompletionToast'
 import PersonaCard         from '../components/roadmap/PersonaCard'
 import MonthTimeline       from '../components/roadmap/MonthTimeline'
 import WeekAccordion       from '../components/roadmap/WeekAccordion'
@@ -84,6 +85,11 @@ export default function RoadmapPage() {
   const [qaOpen,        setQaOpen]       = useState(false)
   const [qaTaskContext, setQaTaskContext] = useState(null)
   const [qaSessionSet,  setQaSessionSet] = useState(() => new Set())
+  const [toastMsg,      setToastMsg]     = useState(null)
+  const toastTimerRef                    = useRef(null)
+  // doneSet을 ref로 미러링 — handleToggle deps에 doneSet 추가 없이 최신값 참조 (렌더마다 동기 갱신)
+  const doneSetRef                       = useRef(doneSet)
+  doneSetRef.current                     = doneSet
 
   useEffect(() => {
     document.title = '나의 로드맵 — DevNavi'
@@ -211,23 +217,55 @@ export default function RoadmapPage() {
 
   // ── 태스크 토글 ─────────────────────────────────────────────────
   const handleToggle = useCallback((taskId) => {
+    // doneSetRef.current를 사용해 최신 doneSet을 deps 없이 참조 (handleToggle 재생성 억제)
+    const nowDone = !doneSetRef.current.has(taskId)
+
     setDoneSet((prev) => {
       const next = new Set(prev)
-      const nowDone = !next.has(taskId)
-      if (nowDone) next.add(taskId)
+      if (!prev.has(taskId)) next.add(taskId)
       else next.delete(taskId)
       saveDoneLocal(id, next)
       // 로그인 시 Supabase에도 동기화
       if (userId) {
-        toggleRemote(id, taskId, nowDone, getAuthHeaders()).catch(() => {})
+        toggleRemote(id, taskId, !prev.has(taskId), getAuthHeaders()).catch(() => {})
       }
       return next
     })
+
+    // 완료 토스트: 체크 시에만 표시 (state updater 외부에서 side-effect 처리)
+    if (nowDone && roadmap) {
+      // taskId 형식: "{month}-{week}-{taskIndex}"
+      const [monthStr, weekStr] = taskId.split('-')
+      const monthNum = Number(monthStr)
+      const weekNum  = Number(weekStr)
+
+      // 이번 주 모든 태스크 ID 계산
+      const monthData = roadmap.months.find((m) => m.month === monthNum)
+      const weekData  = monthData?.weeks.find((w) => w.week === weekNum)
+      const weekTaskIds = weekData
+        ? weekData.tasks.map((_, ti) => `${monthNum}-${weekNum}-${ti}`)
+        : []
+
+      // 주간 내 모든 태스크가 완료되었는지 확인
+      // (doneSetRef.current는 업데이트 전이므로 taskId를 직접 추가해 계산)
+      const nextDoneSet = new Set(doneSetRef.current)
+      nextDoneSet.add(taskId)
+      const isWeekDone = weekTaskIds.length > 0 && weekTaskIds.every((tid) => nextDoneSet.has(tid))
+
+      const msg = isWeekDone
+        ? '이번 주 완료! 다음 주도 화이팅!'
+        : '완료! 꾸준히 하면 반드시 됩니다.'
+
+      clearTimeout(toastTimerRef.current)
+      setToastMsg(msg)
+      toastTimerRef.current = setTimeout(() => setToastMsg(null), 2000)
+    }
+
     // Plan SC: SC-02 — Q&A 사용 이력이 있는 태스크만 task_checked 이벤트 발송
     if (qaSessionSet.has(taskId)) {
       logEvent('task_checked', taskId)
     }
-  }, [id, userId, getAuthHeaders, logEvent, qaSessionSet])
+  }, [id, userId, getAuthHeaders, logEvent, qaSessionSet, roadmap])
 
   const handleQAOpen = useCallback((taskId, context) => {
     setQaTaskContext({ taskId, ...context })
@@ -571,6 +609,9 @@ export default function RoadmapPage() {
         summary={careerSummary}
         onClose={() => setShowSummary(false)}
       />
+
+      {/* 태스크 완료 피드백 토스트 */}
+      <CompletionToast message={toastMsg ?? ''} visible={toastMsg !== null} />
 
       {/* AI 면책 고지 + 푸터 */}
       <div className="mt-auto">
