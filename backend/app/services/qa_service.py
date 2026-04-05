@@ -4,6 +4,7 @@ QA 서비스 — 사용량 체크, 소유권 검증, Haiku 스트리밍, 이력 
 import asyncio
 import json
 import logging
+import unicodedata
 from typing import AsyncGenerator, Optional
 
 import anthropic
@@ -41,8 +42,11 @@ _FOLLOWUP_SYSTEM = (
 )
 
 def _sanitize_prompt_input(value: str) -> str:
-    """프롬프트 인젝션 방어: 중괄호 및 제어 문자 제거."""
-    return str(value).replace("{", "").replace("}", "")
+    """프롬프트 인젝션 방어: 중괄호·제어 문자(Cc/Cf)·개행 제거."""
+    s = str(value).replace("{", "").replace("}", "")
+    # 유니코드 제어 문자(Cc: 제어문자, Cf: 형식문자) 및 개행 제거
+    s = "".join(ch for ch in s if unicodedata.category(ch) not in ("Cc", "Cf"))
+    return s.strip()
 
 
 def build_system_prompt(task_context: QATaskContext) -> str:

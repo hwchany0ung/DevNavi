@@ -62,6 +62,16 @@ def _group_by_day(rows: list[dict], field: str, days: int) -> list[dict]:
     ]
 
 
+def _fill_daily(agg_rows: list[dict], days: int) -> list[dict]:
+    """DB 뷰 집계 결과(stat_date, cnt)를 최근 N일 리스트로 변환. 빈 날은 0."""
+    lookup = {row["stat_date"]: row["cnt"] for row in agg_rows}
+    return [
+        {"date": (date.today() - timedelta(days=i)).isoformat(),
+         "count": lookup.get((date.today() - timedelta(days=i)).isoformat(), 0)}
+        for i in range(days - 1, -1, -1)
+    ]
+
+
 # ── 에러 로그 비동기 저장 (미들웨어에서 호출) ─────────────────────
 
 async def save_error_log(
@@ -143,13 +153,13 @@ async def get_stats(request: Request, admin: dict = Depends(require_admin)) -> d
             headers=sb_headers(),
         ),
         client.get(
-            sb_url("users"),
-            params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "1000"},
+            sb_url("daily_user_signups"),
+            params={"select": "stat_date,cnt", "stat_date": f"gte.{week_ago}"},
             headers=sb_headers(),
         ),
         client.get(
-            sb_url("roadmaps"),
-            params={"select": "created_at", "created_at": f"gte.{week_ago}", "limit": "1000"},
+            sb_url("daily_roadmap_creates"),
+            params={"select": "stat_date,cnt", "stat_date": f"gte.{week_ago}"},
             headers=sb_headers(),
         ),
     )
@@ -161,9 +171,9 @@ async def get_stats(request: Request, admin: dict = Depends(require_admin)) -> d
     for row in usage_rows:
         endpoint_breakdown[row.get("endpoint", "unknown")] += row.get("count", 0)
 
-    # ── 최근 7일 행 데이터 ────────────────────────────────────────
-    user_rows: list[dict] = user_rows_resp.json() if user_rows_resp.status_code == 200 else []
-    roadmap_rows: list[dict] = roadmap_rows_resp.json() if roadmap_rows_resp.status_code == 200 else []
+    # ── 최근 7일 뷰 집계 데이터 ─────────────────────────────────────
+    user_agg: list[dict] = user_rows_resp.json() if user_rows_resp.status_code == 200 else []
+    roadmap_agg: list[dict] = roadmap_rows_resp.json() if roadmap_rows_resp.status_code == 200 else []
 
     return {
         "total_users":        total_users,
@@ -173,8 +183,8 @@ async def get_stats(request: Request, admin: dict = Depends(require_admin)) -> d
         "api_calls_today":    api_calls_today,
         "endpoint_breakdown": dict(endpoint_breakdown),
         "errors_today":       errors_today,
-        "daily_signups":      _group_by_day(user_rows,    "created_at", 7),
-        "daily_roadmaps":     _group_by_day(roadmap_rows, "created_at", 7),
+        "daily_signups":      _fill_daily(user_agg, 7),
+        "daily_roadmaps":     _fill_daily(roadmap_agg, 7),
     }
 
 
