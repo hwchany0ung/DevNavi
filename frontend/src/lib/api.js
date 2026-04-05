@@ -43,6 +43,10 @@ function _parseError(err, status) {
 
   const error = new Error(userMsg)
   error.status = status
+  // 원본 detail 데이터 보존 (reset_at 등 구조화된 필드 접근용)
+  if (err.detail && typeof err.detail === 'object') {
+    error.data = err.detail
+  }
   return error
 }
 

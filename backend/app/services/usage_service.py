@@ -109,12 +109,14 @@ async def check_and_increment(user_id: str, endpoint: str) -> None:
             except Exception:
                 is_limit = "DAILY_LIMIT_EXCEEDED" in err_text
             if is_limit:
+                reset_at = (datetime.now(timezone.utc).date() + timedelta(days=1)).isoformat()
                 raise HTTPException(
                     status_code=429,
                     detail={
                         "code":    "DAILY_LIMIT_EXCEEDED",
                         "message": _limit_message(endpoint, limit),
                         "limit":   limit,
+                        "reset_at": reset_at,
                     },
                 )
         # RPC 자체가 없거나 다른 오류 → 폴백
@@ -162,6 +164,7 @@ async def _legacy_check_and_increment(
         )
 
     if new_count > limit:
+        reset_at = (datetime.now(timezone.utc).date() + timedelta(days=1)).isoformat()
         raise HTTPException(
             status_code=429,
             detail={
@@ -169,5 +172,6 @@ async def _legacy_check_and_increment(
                 "message": _limit_message(endpoint, limit),
                 "current": new_count,
                 "limit":   limit,
+                "reset_at": reset_at,
             },
         )

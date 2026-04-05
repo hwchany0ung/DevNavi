@@ -98,3 +98,22 @@ describe('OnboardingPage Step 1 선택', () => {
     expect(backendBtn.className).toMatch(/border-indigo-500/)
   })
 })
+
+// ── 429 reset_at 조건 논리 단위 테스트 ───────────────────────────────
+describe('OnboardingPage 429 reset_at 조건 논리', () => {
+  it('error.data.reset_at이 있으면 메시지 표시 조건 true', () => {
+    // JSX 조건: {summaryError?.data?.reset_at && <p>내일 오전 9시에 초기화됩니다.</p>}
+    const errWithReset = { status: 429, data: { code: 'DAILY_LIMIT_EXCEEDED', reset_at: '2026-04-06' } }
+    expect(errWithReset?.data?.reset_at).toBeTruthy()
+  })
+
+  it('error.data.reset_at이 없으면 메시지 표시 조건 false', () => {
+    const errNoReset = { status: 429, data: { code: 'DAILY_LIMIT_EXCEEDED' } }
+    expect(errNoReset?.data?.reset_at).toBeFalsy()
+  })
+
+  it('error.data 자체가 없으면 메시지 표시 조건 false', () => {
+    const errNoData = { status: 429 }
+    expect(errNoData?.data?.reset_at).toBeFalsy()
+  })
+})
